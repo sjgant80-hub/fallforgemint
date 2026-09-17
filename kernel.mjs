@@ -248,6 +248,96 @@ export function scorecard(rows) {
   return { ok: true, n, baseHits, mintedHits, baseRate: baseHits / n, mintedRate: mintedHits / n, delta, verdict, smallSample: n < 5 };
 }
 
+// ── frictionless own-it: a safe model name + a one-file installer they run to own the model ───────
+// The manual path is two commands; this makes it one download. The installer embeds the Modelfile as
+// base64 (bulletproof — no quoting/newline/unicode escaping to get wrong), decodes it, and runs
+// `ollama create`/`ollama run`. Honest: Ollama is still required; the script says so and links it.
+
+const B64 = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
+
+/** b64encode(text) — UTF-8 → RFC 4648 base64. Pure and total. */
+export function b64encode(text) {
+  if (!isStr(text)) return { ok: false, why: 'b64encode takes a string' };
+  const bytes = new TextEncoder().encode(text);
+  let out = '';
+  for (let i = 0; i < bytes.length; i += 3) {
+    const has1 = i + 1 < bytes.length, has2 = i + 2 < bytes.length;
+    const b0 = bytes[i], b1 = has1 ? bytes[i + 1] : 0, b2 = has2 ? bytes[i + 2] : 0;
+    out += B64[b0 >> 2];
+    out += B64[((b0 & 3) << 4) | (b1 >> 4)];
+    out += has1 ? B64[((b1 & 15) << 2) | (b2 >> 6)] : '=';
+    out += has2 ? B64[b2 & 63] : '=';
+  }
+  return { ok: true, b64: out };
+}
+
+/** safeModelName(raw) — normalise any string into a valid, tidy Ollama model name; total, always a string. */
+export function safeModelName(raw) {
+  const fallback = 'my-model';
+  if (!isStr(raw)) return fallback;
+  const s = raw.trim().toLowerCase()
+    .replace(/[^a-z0-9._-]+/g, '-')     // only letters, digits, dot, dash, underscore
+    .replace(/^[-._]+/, '')             // no leading punctuation
+    .slice(0, 40)                       // keep it short
+    .replace(/[-._]+$/, '');            // no trailing punctuation
+  return s.length > 0 ? s : fallback;
+}
+
+export const INSTALLER_OS = ['mac', 'linux', 'windows'];
+
+/** installerScript(os, name, modelfile) — one file the buyer runs to own the model. */
+export function installerScript(os, name, modelfile) {
+  if (!isStr(os) || !INSTALLER_OS.includes(os)) return { ok: false, why: 'os must be one of: ' + INSTALLER_OS.join(', ') };
+  if (!isStr(modelfile) || modelfile.trim().length === 0) return { ok: false, why: 'installerScript needs the Modelfile text' };
+  const n = safeModelName(name);
+  const enc = b64encode(modelfile.replace(/\r\n/g, '\n'));
+  if (!enc.ok) return enc;
+  const wrapped = enc.b64.match(/.{1,120}/g);   // modelfile is non-empty here, so this is always ≥1 chunk
+
+  if (os === 'windows') {
+    const echoes = wrapped.map((c) => 'echo ' + c + '>>"%B64%"').join('\r\n');
+    const script = [
+      '@echo off',
+      'REM FallForge Mint - one-file installer for "' + n + '". Double-click to own your model.',
+      'REM Needs Ollama (free): https://ollama.com/download',
+      'setlocal',
+      'set "B64=%TEMP%\\' + n + '.b64"',
+      'set "MF=%TEMP%\\' + n + '.Modelfile"',
+      'if exist "%B64%" del "%B64%"',
+      echoes,
+      'certutil -f -decode "%B64%" "%MF%" >nul',
+      'del "%B64%"',
+      'echo Minting your model "' + n + '"...',
+      'ollama create ' + n + ' -f "%MF%"',
+      'echo.',
+      'echo Your model "' + n + '" is ready. Starting it - type your task and press Enter:',
+      'ollama run ' + n,
+      'pause',
+    ].join('\r\n') + '\r\n';
+    return { ok: true, os, name: n, filename: 'install-' + n + '.bat', mime: 'application/octet-stream', script };
+  }
+
+  // mac + linux: a POSIX script; openssl decodes the base64 (present on both).
+  const DELIM = 'FF_B64_EOF';
+  const run = os === 'mac' ? 'Double-click this file to run it in Terminal.' : 'Run it with:  sh install-' + n + '.sh';
+  const script = [
+    '#!/bin/sh',
+    '# FallForge Mint - one-file installer for "' + n + '". ' + run,
+    '# Needs Ollama (free): https://ollama.com/download',
+    'set -e',
+    'DIR="$(cd "$(dirname "$0")" && pwd)"',
+    'openssl base64 -d > "$DIR/' + n + '.Modelfile" <<\'' + DELIM + '\'',
+    wrapped.join('\n'),
+    DELIM,
+    'echo "Minting your model \\"' + n + '\\"..."',
+    'ollama create ' + n + ' -f "$DIR/' + n + '.Modelfile"',
+    'echo ""',
+    'echo "Your model \\"' + n + '\\" is ready. Starting it - type your task and press Enter:"',
+    'ollama run ' + n,
+  ].join('\n') + '\n';
+  return { ok: true, os, name: n, filename: 'install-' + n + (os === 'mac' ? '.command' : '.sh'), mime: 'application/octet-stream', script };
+}
+
 // ── the manifest: the mint's whole story, canonically hashed, ready for a wallet signature ──────
 export function makeManifest(m) {
   if (!isObj(m)) return { ok: false, why: 'makeManifest takes an object' };

@@ -6,7 +6,9 @@ import {
   sha256, canon, validSpec, assembleModelfile, mintVerdict,
   makeManifest, signable, attachSignature, verifyManifest,
   ownVsRent, specFromTask, planProof, gradeAnswer, scorecard,
+  b64encode, safeModelName, installerScript, INSTALLER_OS,
 } from './kernel.mjs';
+import { Buffer } from 'node:buffer';
 
 test('sha256 + canon: FIPS-pinned, order-blind, primitive-distinct', () => {
   assert.equal(sha256('abc').hash, 'ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad');
@@ -412,4 +414,71 @@ test('scorecard: counts base vs minted independently and picks the right verdict
   const badRow = scorecard([{ correct: 'a', baseOut: 'a', mintedOut: 'a' }, 7]);
   assert.equal(badRow.ok, false);
   assert.ok(badRow.why.includes('row 2'), 'bad second row names row 2, got: ' + badRow.why);
+});
+
+// ── frictionless own-it: base64, safe names, one-file installers ──────────────────────────────────
+test('b64encode: RFC 4648 vectors + matches Buffer on every padding case and unicode', () => {
+  assert.equal(b64encode('').b64, '');
+  assert.equal(b64encode('f').b64, 'Zg==');
+  assert.equal(b64encode('fo').b64, 'Zm8=');
+  assert.equal(b64encode('foo').b64, 'Zm9v');
+  assert.equal(b64encode('foob').b64, 'Zm9vYg==');
+  assert.equal(b64encode('fooba').b64, 'Zm9vYmE=');
+  assert.equal(b64encode('foobar').b64, 'Zm9vYmFy');
+  for (const s of ['', 'a', 'ab', 'abc', 'café ☕ ◊', 'MESSAGE user """{"x":1}"""', '\n\t weird\r\n end']) {
+    assert.equal(b64encode(s).b64, Buffer.from(s, 'utf8').toString('base64'), 'b64 mismatch for ' + JSON.stringify(s));
+  }
+  assert.equal(b64encode(7).ok, false);
+});
+
+test('safeModelName: tidy, valid, bounded — always a usable string', () => {
+  assert.equal(safeModelName('My Model!'), 'my-model');
+  assert.equal(safeModelName('triage-1b'), 'triage-1b');
+  assert.equal(safeModelName('  Support Triage v2  '), 'support-triage-v2');
+  assert.equal(safeModelName('good.name_1'), 'good.name_1');   // dot + underscore kept
+  assert.equal(safeModelName('---abc---'), 'abc');             // leading/trailing punctuation stripped
+  assert.equal(safeModelName(''), 'my-model');                 // empty → fallback (kills > 0 → >= 0)
+  assert.equal(safeModelName('   '), 'my-model');
+  assert.equal(safeModelName('!!!'), 'my-model');              // all punctuation → fallback
+  assert.equal(safeModelName(7), 'my-model');                  // non-string → fallback
+  assert.equal(safeModelName('a'.repeat(80)).length, 40);      // capped
+});
+
+test('installerScript: each OS embeds the real Modelfile + the ollama commands, no raw fences', () => {
+  const mf = 'FROM llama3.2:1b\nPARAMETER temperature 0\nSYSTEM """do the one job"""\nMESSAGE user """hi"""\n';
+  // refusals
+  assert.equal(installerScript('bsd', 'x', mf).ok, false);
+  assert.equal(installerScript('mac', 'x', '').ok, false);
+  assert.equal(installerScript('mac', 'x', 7).ok, false);
+  assert.deepEqual(INSTALLER_OS, ['mac', 'linux', 'windows']);
+
+  const mac = installerScript('mac', 'My Model!', mf);
+  assert.equal(mac.ok, true);
+  assert.equal(mac.name, 'my-model');                          // name sanitised through safeModelName
+  assert.equal(mac.filename, 'install-my-model.command');
+  assert.ok(mac.script.startsWith('#!/bin/sh'));
+  assert.ok(mac.script.includes('ollama create my-model'));
+  assert.ok(mac.script.includes('ollama run my-model'));
+  assert.ok(mac.script.includes('ollama.com/download'), 'honest: the installer says Ollama is needed');
+  assert.ok(mac.script.includes('base64 -d > "$DIR/'), 'the redirect > must be exact shell (kills > → >= inside the script string)');
+  assert.ok(mac.script.includes('&& pwd'), 'the && must be exact shell (kills && → || inside the script string)');
+  assert.ok(mac.script.replace(/\n/g, '').includes(b64encode(mf.replace(/\r\n/g,'\n')).b64), 'the Modelfile is embedded as base64 (wrapped)');
+  assert.ok(!mac.script.includes('"""'), 'no raw triple-quote fences leak into the script');
+
+  const linux = installerScript('linux', 'x', mf);
+  assert.equal(linux.filename, 'install-x.sh');
+  assert.ok(linux.script.includes('sh install-x.sh'));         // linux run hint (kills mac/linux branch)
+
+  const win = installerScript('windows', 'x', mf);
+  assert.equal(win.filename, 'install-x.bat');
+  assert.ok(win.script.startsWith('@echo off'));
+  assert.ok(win.script.includes('certutil'));
+  assert.ok(win.script.includes('ollama create x'));
+  assert.ok(!win.script.includes('"""'));
+
+  // round-trip: the base64 EMBEDDED IN THE SCRIPT decodes back to the exact Modelfile — proves the
+  // installer actually reconstructs the model, not just that b64encode works.
+  const between = mac.script.match(/<<'FF_B64_EOF'\n([\s\S]*?)\nFF_B64_EOF/);
+  assert.ok(between, 'the mac script has a heredoc of base64');
+  assert.equal(Buffer.from(between[1].replace(/\n/g, ''), 'base64').toString('utf8'), mf.replace(/\r\n/g,'\n'));
 });

@@ -161,6 +161,12 @@
   table.proof-tbl td{font-family:var(--mono);font-size:.8rem;color:#d7d1e2}
   table.proof-tbl .hit{color:var(--good)} table.proof-tbl .miss{color:var(--bad)}
   .proof-verdict{font-family:var(--serif);font-size:1.15rem;padding:10px 16px;border-radius:10px;display:inline-block}
+  .os-switch{display:inline-flex;gap:0;margin-top:12px;border:1px solid var(--line);border-radius:9px;overflow:hidden}
+  .os-switch .os{background:transparent;color:var(--dim);border:none;border-right:1px solid var(--line);padding:9px 18px;font-size:.9rem;cursor:pointer;font-family:var(--sans)}
+  .os-switch .os:last-child{border-right:none}
+  .os-switch .os.on{background:var(--forge);color:#20120a;font-weight:600}
+  .own-panel{background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:18px;margin-top:14px}
+  #osHowRun b, #osTerminal b{color:var(--cream)}
 </style>
 </head>
 <body>
@@ -241,23 +247,37 @@
       <span class="pill good">built in your browser</span>
     </div>
     <p class="kv" style="margin-top:10px">Fingerprint (a unique ID for these exact bytes): <span class="fingerprint" id="fp"></span></p>
-    <label class="fld" style="margin-top:14px">Your Modelfile — the recipe that becomes your private model</label>
+
+    <label class="fld" style="margin-top:16px" for="modelName">Name your model <span style="text-transform:none;letter-spacing:0">(letters, numbers and dashes)</span></label>
+    <input type="text" id="modelName" value="my-model" spellcheck="false" style="max-width:340px" />
+
+    <label class="fld" style="margin-top:16px">Your Modelfile — the recipe that becomes your private model</label>
     <pre class="code" id="modelfile"></pre>
-    <div class="cta-row">
-      <button class="btn forge" id="dlBtn">⤓ Download Modelfile</button>
-      <button class="btn ghost" id="copyBtn">Copy the recipe</button>
+
+    <h3 style="font-size:1.15rem;margin-top:24px;color:var(--cream)">Now make it yours</h3>
+    <p class="muted" style="font-size:.9rem;margin-top:4px">First, install the free <a href="https://ollama.com/download" target="_blank" rel="noopener">Ollama</a> app (Mac, Windows or Linux) — one minute, one time. Then pick your system:</p>
+    <div class="os-switch" id="osSwitch">
+      <button class="os" data-os="mac" type="button">macOS</button>
+      <button class="os" data-os="windows" type="button">Windows</button>
+      <button class="os" data-os="linux" type="button">Linux</button>
     </div>
 
-    <h3 style="font-size:1.1rem;margin-top:26px;color:var(--cream)">Now make it yours — three simple steps</h3>
-    <ol class="steps" style="margin-top:14px">
-      <li><b>Install the free app.</b> Go to <span class="fingerprint" style="color:var(--forge)">ollama.com</span> in your browser and download Ollama (Mac, Windows or Linux). It's free and takes a minute.</li>
-      <li><b>Save the file.</b> Press “Download Modelfile” above. It saves a file called <b>Modelfile</b> to your computer.</li>
-      <li><b>Paste two lines.</b> Open the Terminal app, go to where the file saved, and paste these two lines — one at a time:
-        <div class="cmd" id="cmd1">ollama create my-model -f Modelfile</div>
-        <div class="cmd" id="cmd2">ollama run my-model</div>
-        That's it — you now own a private model that does your job, running on your own machine, with no bill.
-      </li>
-    </ol>
+    <div class="own-panel">
+      <p style="margin:0 0 10px"><b style="color:var(--cream)">The easy way — one file.</b> <span class="muted">Download this installer and run it. It builds your model and starts it for you — no typing.</span></p>
+      <div class="cta-row">
+        <button class="btn forge" id="installBtn">⤓ Download one-click installer</button>
+        <button class="btn ghost" id="dlBtn">Just the Modelfile</button>
+        <button class="btn ghost" id="copyBtn">Copy the recipe</button>
+      </div>
+      <p class="muted" id="osHowRun" style="font-size:.86rem;margin-top:12px"></p>
+    </div>
+
+    <details style="margin-top:14px">
+      <summary style="cursor:pointer;font-size:.9rem;color:var(--dim)">Prefer to type it yourself? Two commands.</summary>
+      <p class="muted" id="osTerminal" style="font-size:.86rem;margin-top:10px"></p>
+      <div class="cmd" id="cmd1">ollama create my-model -f Modelfile</div>
+      <div class="cmd" id="cmd2">ollama run my-model</div>
+    </details>
     <p class="note">Want us to do all of this for you, and prove the model beats its starting point with a signed receipt before you pay a penny? That's the <a href="#pricing">done-for-you tier</a>.</p>
   </div>
 
@@ -680,6 +700,96 @@ function scorecard(rows) {
   return { ok: true, n, baseHits, mintedHits, baseRate: baseHits / n, mintedRate: mintedHits / n, delta, verdict, smallSample: n < 5 };
 }
 
+// ── frictionless own-it: a safe model name + a one-file installer they run to own the model ───────
+// The manual path is two commands; this makes it one download. The installer embeds the Modelfile as
+// base64 (bulletproof — no quoting/newline/unicode escaping to get wrong), decodes it, and runs
+// `ollama create`/`ollama run`. Honest: Ollama is still required; the script says so and links it.
+
+const B64 = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
+
+/** b64encode(text) — UTF-8 → RFC 4648 base64. Pure and total. */
+function b64encode(text) {
+  if (!isStr(text)) return { ok: false, why: 'b64encode takes a string' };
+  const bytes = new TextEncoder().encode(text);
+  let out = '';
+  for (let i = 0; i < bytes.length; i += 3) {
+    const has1 = i + 1 < bytes.length, has2 = i + 2 < bytes.length;
+    const b0 = bytes[i], b1 = has1 ? bytes[i + 1] : 0, b2 = has2 ? bytes[i + 2] : 0;
+    out += B64[b0 >> 2];
+    out += B64[((b0 & 3) << 4) | (b1 >> 4)];
+    out += has1 ? B64[((b1 & 15) << 2) | (b2 >> 6)] : '=';
+    out += has2 ? B64[b2 & 63] : '=';
+  }
+  return { ok: true, b64: out };
+}
+
+/** safeModelName(raw) — normalise any string into a valid, tidy Ollama model name; total, always a string. */
+function safeModelName(raw) {
+  const fallback = 'my-model';
+  if (!isStr(raw)) return fallback;
+  const s = raw.trim().toLowerCase()
+    .replace(/[^a-z0-9._-]+/g, '-')     // only letters, digits, dot, dash, underscore
+    .replace(/^[-._]+/, '')             // no leading punctuation
+    .slice(0, 40)                       // keep it short
+    .replace(/[-._]+$/, '');            // no trailing punctuation
+  return s.length > 0 ? s : fallback;
+}
+
+const INSTALLER_OS = ['mac', 'linux', 'windows'];
+
+/** installerScript(os, name, modelfile) — one file the buyer runs to own the model. */
+function installerScript(os, name, modelfile) {
+  if (!isStr(os) || !INSTALLER_OS.includes(os)) return { ok: false, why: 'os must be one of: ' + INSTALLER_OS.join(', ') };
+  if (!isStr(modelfile) || modelfile.trim().length === 0) return { ok: false, why: 'installerScript needs the Modelfile text' };
+  const n = safeModelName(name);
+  const enc = b64encode(modelfile.replace(/\r\n/g, '\n'));
+  if (!enc.ok) return enc;
+  const wrapped = enc.b64.match(/.{1,120}/g);   // modelfile is non-empty here, so this is always ≥1 chunk
+
+  if (os === 'windows') {
+    const echoes = wrapped.map((c) => 'echo ' + c + '>>"%B64%"').join('\r\n');
+    const script = [
+      '@echo off',
+      'REM FallForge Mint - one-file installer for "' + n + '". Double-click to own your model.',
+      'REM Needs Ollama (free): https://ollama.com/download',
+      'setlocal',
+      'set "B64=%TEMP%\\' + n + '.b64"',
+      'set "MF=%TEMP%\\' + n + '.Modelfile"',
+      'if exist "%B64%" del "%B64%"',
+      echoes,
+      'certutil -f -decode "%B64%" "%MF%" >nul',
+      'del "%B64%"',
+      'echo Minting your model "' + n + '"...',
+      'ollama create ' + n + ' -f "%MF%"',
+      'echo.',
+      'echo Your model "' + n + '" is ready. Starting it - type your task and press Enter:',
+      'ollama run ' + n,
+      'pause',
+    ].join('\r\n') + '\r\n';
+    return { ok: true, os, name: n, filename: 'install-' + n + '.bat', mime: 'application/octet-stream', script };
+  }
+
+  // mac + linux: a POSIX script; openssl decodes the base64 (present on both).
+  const DELIM = 'FF_B64_EOF';
+  const run = os === 'mac' ? 'Double-click this file to run it in Terminal.' : 'Run it with:  sh install-' + n + '.sh';
+  const script = [
+    '#!/bin/sh',
+    '# FallForge Mint - one-file installer for "' + n + '". ' + run,
+    '# Needs Ollama (free): https://ollama.com/download',
+    'set -e',
+    'DIR="$(cd "$(dirname "$0")" && pwd)"',
+    'openssl base64 -d > "$DIR/' + n + '.Modelfile" <<\'' + DELIM + '\'',
+    wrapped.join('\n'),
+    DELIM,
+    'echo "Minting your model \\"' + n + '\\"..."',
+    'ollama create ' + n + ' -f "$DIR/' + n + '.Modelfile"',
+    'echo ""',
+    'echo "Your model \\"' + n + '\\" is ready. Starting it - type your task and press Enter:"',
+    'ollama run ' + n,
+  ].join('\n') + '\n';
+  return { ok: true, os, name: n, filename: 'install-' + n + (os === 'mac' ? '.command' : '.sh'), mime: 'application/octet-stream', script };
+}
+
 // ── the manifest: the mint's whole story, canonically hashed, ready for a wallet signature ──────
 function makeManifest(m) {
   if (!isObj(m)) return { ok: false, why: 'makeManifest takes an object' };
@@ -864,9 +974,7 @@ function doMint(){
   lastMint = res;
   $('fp').textContent = res.fingerprint;
   $('modelfile').textContent = res.modelfile;
-  const name = 'my-model';
-  $('cmd1').textContent = 'ollama create ' + name + ' -f Modelfile';
-  $('cmd2').textContent = 'ollama run ' + name;
+  renderOwn();
   $('mintOut').classList.remove('hidden');
   $('proveWrap').classList.remove('hidden');
   $('proofOut').innerHTML = '';
@@ -874,12 +982,59 @@ function doMint(){
   return res;
 }
 $('mintBtn').addEventListener('click', doMint);
-$('dlBtn').addEventListener('click', () => {
-  if (!lastMint) return;
-  const blob = new Blob([lastMint.modelfile], { type: 'text/plain' });
+
+// ── frictionless own-it: name your model, pick your OS, download a one-file installer ──────────────
+function detectOS(){
+  const p = ((navigator.userAgentData && navigator.userAgentData.platform) || navigator.platform || navigator.userAgent || '').toLowerCase();
+  if (p.includes('win')) return 'windows';
+  if (p.includes('linux') && !p.includes('android')) return 'linux';
+  return 'mac';
+}
+let currentOS = detectOS();
+const OS_COPY = {
+  mac: {
+    howRun: '<b>On a Mac:</b> double-click the downloaded file — it opens Terminal and builds your model. The first time, if macOS blocks it, right-click the file → <b>Open</b> → Open.',
+    terminal: 'Open Terminal (press Cmd+Space, type "Terminal"), drag in the folder where the Modelfile saved, then run:'
+  },
+  windows: {
+    howRun: '<b>On Windows:</b> double-click the downloaded <b>.bat</b> file. If a blue "Windows protected your PC" box appears, click <b>More info → Run anyway</b>. It builds your model and starts it.',
+    terminal: 'Open PowerShell or Command Prompt, change to the folder where the Modelfile saved, then run:'
+  },
+  linux: {
+    howRun: '<b>On Linux:</b> open a terminal where the file downloaded and run <b>sh install-<name>.sh</b> — it builds your model and starts it.',
+    terminal: 'Open a terminal in the folder where the Modelfile saved, then run:'
+  }
+};
+function currentName(){ return safeModelName($('modelName').value); }
+function renderOwn(){
+  const name = currentName();
+  const os = currentOS;
+  document.querySelectorAll('#osSwitch .os').forEach((b)=>b.classList.toggle('on', b.dataset.os === os));
+  $('cmd1').textContent = 'ollama create ' + name + ' -f Modelfile';
+  $('cmd2').textContent = 'ollama run ' + name;
+  $('osHowRun').innerHTML = OS_COPY[os].howRun.replace('<name>', name);
+  $('osTerminal').textContent = OS_COPY[os].terminal;
+}
+document.querySelectorAll('#osSwitch .os').forEach((b)=>{
+  b.addEventListener('click', ()=>{ currentOS = b.dataset.os; renderOwn(); });
+});
+$('modelName').addEventListener('input', renderOwn);
+renderOwn();
+
+function download(text, filename, mime){
+  const blob = new Blob([text], { type: mime || 'text/plain' });
   const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob); a.download = 'Modelfile'; a.click();
+  a.href = URL.createObjectURL(blob); a.download = filename; a.click();
   URL.revokeObjectURL(a.href);
+}
+$('dlBtn').addEventListener('click', () => { if (lastMint) download(lastMint.modelfile, 'Modelfile', 'text/plain'); });
+$('installBtn').addEventListener('click', () => {
+  if (!lastMint) return;
+  const s = installerScript(currentOS, currentName(), lastMint.modelfile);
+  if (!s.ok){ alert(s.why); return; }
+  download(s.script, s.filename, s.mime);
+  $('installBtn').textContent = '⤓ Downloaded: ' + s.filename;
+  setTimeout(()=>$('installBtn').textContent = '⤓ Download one-click installer', 2500);
 });
 $('copyBtn').addEventListener('click', async () => {
   if (!lastMint) return;
