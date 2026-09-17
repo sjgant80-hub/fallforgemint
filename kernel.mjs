@@ -338,6 +338,53 @@ export function installerScript(os, name, modelfile) {
   return { ok: true, os, name: n, filename: 'install-' + n + (os === 'mac' ? '.command' : '.sh'), mime: 'application/octet-stream', script };
 }
 
+// ── the refinement loop: try a few honest variants of the spec, keep the one that measures best ────
+// The page runs each variant on HELD-OUT examples and grades it; these pure helpers build the variants
+// and pick the winner. Deterministic on purpose — a reliable format rule beats a 0.5B model trying to
+// rewrite its own prompt. It can, and will, report that nothing improved. Nothing here calls a model.
+
+/** inferFormat(examples) — read the answer shape from the examples and give a crisp instruction. */
+export function inferFormat(examples) {
+  if (!Array.isArray(examples) || examples.length === 0) return { ok: false, why: 'need examples to read the answer format' };
+  const outs = [];
+  for (const e of examples) {
+    if (!isObj(e) || !isStr(e.output) || e.output.trim().length === 0) return { ok: false, why: 'each example needs a non-empty answer' };
+    outs.push(e.output.trim());
+  }
+  const looksJson = (o) => (o.startsWith('{') && o.endsWith('}')) || (o.startsWith('[') && o.endsWith(']'));
+  const looksNumeric = (o) => /^-?\d+(\.\d+)?$/.test(o);
+  const looksLabel = (o) => o.length <= 40 && o.split(/\s+/).length <= 4;
+  if (outs.every(looksJson)) return { ok: true, format: 'json', instruction: 'Reply with only the JSON and nothing else — no explanation, no code fences, no extra words.' };
+  if (outs.every(looksNumeric)) return { ok: true, format: 'number', instruction: 'Reply with only the number and nothing else.' };
+  if (outs.every(looksLabel)) return { ok: true, format: 'label', instruction: 'Reply with only the short answer, in the same form as the examples — no sentences, no explanation.' };
+  return { ok: true, format: 'freeform', instruction: 'Match the style, length and format of the example answers exactly, and add nothing extra.' };
+}
+
+/** hardenSpec(spec, examples) — add a strict-format instruction if the system prompt doesn't already carry it. */
+export function hardenSpec(spec, examples) {
+  const v = validSpec(spec);
+  if (!v.ok) return v;
+  const f = inferFormat(examples);
+  if (!f.ok) return f;
+  if (spec.system.includes(f.instruction)) return { ok: true, spec, changed: false, format: f.format };
+  const system = spec.system + '\n' + f.instruction;
+  if (system.length > MAX_SYSTEM) return { ok: true, spec, changed: false, format: f.format };  // no room — leave it
+  return { ok: true, spec: { ...spec, system }, changed: true, format: f.format };
+}
+
+/** pickBest(rounds) — the highest score wins; on a tie the EARLIER (simpler/faster) candidate wins. */
+export function pickBest(rounds) {
+  if (!Array.isArray(rounds) || rounds.length === 0) return { ok: false, why: 'no rounds to choose from' };
+  for (const [i, r] of rounds.entries()) {
+    if (!isObj(r) || !isNum(r.score)) return { ok: false, why: 'round ' + (i + 1) + ' has no numeric score' };
+  }
+  let best = 0;
+  for (let i = 1; i < rounds.length; i++) {
+    if (rounds[i].score > rounds[best].score) best = i;   // strict > : ties keep the earlier candidate
+  }
+  return { ok: true, index: best, score: rounds[best].score };
+}
+
 // ── the manifest: the mint's whole story, canonically hashed, ready for a wallet signature ──────
 export function makeManifest(m) {
   if (!isObj(m)) return { ok: false, why: 'makeManifest takes an object' };

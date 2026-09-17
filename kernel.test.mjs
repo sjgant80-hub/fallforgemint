@@ -7,6 +7,7 @@ import {
   makeManifest, signable, attachSignature, verifyManifest,
   ownVsRent, specFromTask, planProof, gradeAnswer, scorecard,
   b64encode, safeModelName, installerScript, INSTALLER_OS,
+  inferFormat, hardenSpec, pickBest,
 } from './kernel.mjs';
 import { Buffer } from 'node:buffer';
 
@@ -481,4 +482,63 @@ test('installerScript: each OS embeds the real Modelfile + the ollama commands, 
   const between = mac.script.match(/<<'FF_B64_EOF'\n([\s\S]*?)\nFF_B64_EOF/);
   assert.ok(between, 'the mac script has a heredoc of base64');
   assert.equal(Buffer.from(between[1].replace(/\n/g, ''), 'base64').toString('utf8'), mf.replace(/\r\n/g,'\n'));
+});
+
+// ── the refinement loop: read the format, harden the spec, pick the measured best ─────────────────
+const O = (output) => ({ input: 'x', output });
+test('inferFormat: reads json / number / label / freeform, json wins precedence', () => {
+  assert.equal(inferFormat([O('{"a":1}'), O('[1,2]')]).format, 'json');
+  assert.equal(inferFormat([O('42'), O('-3.5')]).format, 'number');
+  assert.equal(inferFormat([O('refund'), O('high urgency')]).format, 'label');
+  assert.equal(inferFormat([O('This is a long sentence with plenty of words here.')]).format, 'freeform');
+  // a short JSON object is ALSO short/labelly — json must still win (kills the else-if order)
+  assert.equal(inferFormat([O('{"x":1}')]).format, 'json');
+  // looksJson needs BOTH braces: an open-brace-only string is NOT json → falls to label, not json
+  assert.equal(inferFormat([O('{oops no close')]).format, 'label');       // kills the && → || in the {} clause (mutant would call it json)
+  assert.equal(inferFormat([O('[1,2]')]).format, 'json');                 // bracket form (kills dropping the || second clause)
+  assert.equal(inferFormat([O('[oops no close')]).format, 'label');       // kills the && → || in the [] clause too
+  // label boundaries: exactly 40 chars / 4 words stays label; one past → freeform (kills <=40→<40, <=4→<4)
+  assert.equal(inferFormat([O('a'.repeat(40))]).format, 'label');
+  assert.equal(inferFormat([O('a'.repeat(41))]).format, 'freeform');
+  assert.equal(inferFormat([O('one two three four')]).format, 'label');
+  assert.equal(inferFormat([O('one two three four five')]).format, 'freeform');
+  // total
+  assert.equal(inferFormat([]).ok, false);
+  assert.equal(inferFormat('nope').ok, false);
+  assert.equal(inferFormat([{ input: 'x' }]).ok, false);
+  assert.ok(inferFormat([O('{"a":1}')]).instruction.length > 0);
+});
+
+test('hardenSpec: adds a strict-format rule once, idempotent, honest', () => {
+  const base = specFromTask('sort messages', [O('{"a":1}'), O('{"b":2}')]);
+  assert.equal(base.ok, true);
+  const h1 = hardenSpec(base.spec, [O('{"a":1}'), O('{"b":2}')]);
+  assert.equal(h1.ok, true);
+  assert.equal(h1.changed, true);
+  assert.equal(h1.format, 'json');
+  assert.ok(h1.spec.system.length > base.spec.system.length);
+  assert.ok(h1.spec.system.includes('only the JSON'));
+  // hardening again is a no-op (kills a mutant that always rebuilds)
+  const h2 = hardenSpec(h1.spec, [O('{"a":1}'), O('{"b":2}')]);
+  assert.equal(h2.changed, false);
+  assert.equal(hardenSpec({ nope: true }, [O('a')]).ok, false);   // invalid spec refused
+  // length guard is exact: a system that lands ON MAX_SYSTEM after hardening is still applied; one over is not.
+  const instr = inferFormat([O('{"a":1}')]).instruction;
+  const mkSpec = (sysLen) => ({ system: 'x'.repeat(sysLen), fewshot: [], params: { temperature: 0, num_predict: 200 } });
+  const atBound = hardenSpec(mkSpec(MAX_SYSTEM - 1 - instr.length), [O('{"a":1}')]);   // final length === MAX_SYSTEM
+  assert.equal(atBound.changed, true);                                                 // kills > → >=
+  const overBound = hardenSpec(mkSpec(MAX_SYSTEM - instr.length), [O('{"a":1}')]);      // final length === MAX_SYSTEM + 1
+  assert.equal(overBound.changed, false);
+});
+
+test('pickBest: highest score wins; a tie keeps the earlier candidate', () => {
+  assert.equal(pickBest([{ score: 0.5 }, { score: 0.9 }, { score: 0.7 }]).index, 1);
+  assert.equal(pickBest([{ score: 1 }]).index, 0);
+  assert.equal(pickBest([{ score: 0.8 }, { score: 0.8 }]).index, 0);   // tie → earlier (kills > → >=)
+  assert.equal(pickBest([{ score: 0.3 }, { score: 0.3 }, { score: 0.9 }]).index, 2);
+  assert.equal(pickBest([]).ok, false);
+  assert.equal(pickBest('nope').ok, false);
+  const bad = pickBest([{ score: 0.5 }, { nope: 1 }]);
+  assert.equal(bad.ok, false);
+  assert.ok(bad.why.includes('round 2'), 'names the bad round, got: ' + bad.why);
 });

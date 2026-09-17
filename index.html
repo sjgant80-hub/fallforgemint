@@ -295,6 +295,21 @@
     <div class="muted wl-progtxt" style="font-size:.82rem"></div>
     <div id="proofOut" style="margin-top:14px"></div>
   </div>
+
+  <!-- auto-improve (spec-refinement loop) -->
+  <div id="tuneWrap" class="card hidden" style="margin-top:16px">
+    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px">
+      <h3 style="font-size:1.25rem;color:var(--cream)">◊ Auto-improve — try a few versions, keep the best</h3>
+      <span class="pill brass">live · in your browser</span>
+    </div>
+    <p class="muted" style="font-size:.92rem;margin-top:8px">This tries a few honest variations of your model — how many of your examples to include, and a strict “answer in exactly this format” rule — and measures each one on examples it held back. It keeps whichever scores best, and tells you plainly when nothing beats what you already have.</p>
+    <div class="cta-row" style="margin-top:14px">
+      <button class="btn forge" id="tuneBtn">Auto-improve my model</button>
+    </div>
+    <div id="tuneProg" class="progress wl-prog hidden" style="margin:12px 0"><i></i></div>
+    <div class="muted wl-progtxt" style="font-size:.82rem"></div>
+    <div id="tuneOut" style="margin-top:14px"></div>
+  </div>
 </div></section>
 
 <!-- VERIFY -->
@@ -790,6 +805,53 @@ function installerScript(os, name, modelfile) {
   return { ok: true, os, name: n, filename: 'install-' + n + (os === 'mac' ? '.command' : '.sh'), mime: 'application/octet-stream', script };
 }
 
+// ── the refinement loop: try a few honest variants of the spec, keep the one that measures best ────
+// The page runs each variant on HELD-OUT examples and grades it; these pure helpers build the variants
+// and pick the winner. Deterministic on purpose — a reliable format rule beats a 0.5B model trying to
+// rewrite its own prompt. It can, and will, report that nothing improved. Nothing here calls a model.
+
+/** inferFormat(examples) — read the answer shape from the examples and give a crisp instruction. */
+function inferFormat(examples) {
+  if (!Array.isArray(examples) || examples.length === 0) return { ok: false, why: 'need examples to read the answer format' };
+  const outs = [];
+  for (const e of examples) {
+    if (!isObj(e) || !isStr(e.output) || e.output.trim().length === 0) return { ok: false, why: 'each example needs a non-empty answer' };
+    outs.push(e.output.trim());
+  }
+  const looksJson = (o) => (o.startsWith('{') && o.endsWith('}')) || (o.startsWith('[') && o.endsWith(']'));
+  const looksNumeric = (o) => /^-?\d+(\.\d+)?$/.test(o);
+  const looksLabel = (o) => o.length <= 40 && o.split(/\s+/).length <= 4;
+  if (outs.every(looksJson)) return { ok: true, format: 'json', instruction: 'Reply with only the JSON and nothing else — no explanation, no code fences, no extra words.' };
+  if (outs.every(looksNumeric)) return { ok: true, format: 'number', instruction: 'Reply with only the number and nothing else.' };
+  if (outs.every(looksLabel)) return { ok: true, format: 'label', instruction: 'Reply with only the short answer, in the same form as the examples — no sentences, no explanation.' };
+  return { ok: true, format: 'freeform', instruction: 'Match the style, length and format of the example answers exactly, and add nothing extra.' };
+}
+
+/** hardenSpec(spec, examples) — add a strict-format instruction if the system prompt doesn't already carry it. */
+function hardenSpec(spec, examples) {
+  const v = validSpec(spec);
+  if (!v.ok) return v;
+  const f = inferFormat(examples);
+  if (!f.ok) return f;
+  if (spec.system.includes(f.instruction)) return { ok: true, spec, changed: false, format: f.format };
+  const system = spec.system + '\n' + f.instruction;
+  if (system.length > MAX_SYSTEM) return { ok: true, spec, changed: false, format: f.format };  // no room — leave it
+  return { ok: true, spec: { ...spec, system }, changed: true, format: f.format };
+}
+
+/** pickBest(rounds) — the highest score wins; on a tie the EARLIER (simpler/faster) candidate wins. */
+function pickBest(rounds) {
+  if (!Array.isArray(rounds) || rounds.length === 0) return { ok: false, why: 'no rounds to choose from' };
+  for (const [i, r] of rounds.entries()) {
+    if (!isObj(r) || !isNum(r.score)) return { ok: false, why: 'round ' + (i + 1) + ' has no numeric score' };
+  }
+  let best = 0;
+  for (let i = 1; i < rounds.length; i++) {
+    if (rounds[i].score > rounds[best].score) best = i;   // strict > : ties keep the earlier candidate
+  }
+  return { ok: true, index: best, score: rounds[best].score };
+}
+
 // ── the manifest: the mint's whole story, canonically hashed, ready for a wallet signature ──────
 function makeManifest(m) {
   if (!isObj(m)) return { ok: false, why: 'makeManifest takes an object' };
@@ -977,7 +1039,9 @@ function doMint(){
   renderOwn();
   $('mintOut').classList.remove('hidden');
   $('proveWrap').classList.remove('hidden');
+  $('tuneWrap').classList.remove('hidden');
   $('proofOut').innerHTML = '';
+  $('tuneOut').innerHTML = '';
   $('mintOut').scrollIntoView({ behavior: 'smooth', block: 'start' });
   return res;
 }
@@ -1192,6 +1256,80 @@ function renderScorecard(sc, rows){
   h += '</tbody></table>';
   if (sc.smallSample) h += '<p class="note">Small sample (' + sc.n + ' example' + (sc.n>1?'s':'') + ') — a live sanity check, not a full benchmark. The done-for-you tier proves it on a proper held-out set and hands you a signed receipt.</p>';
   out.innerHTML = h;
+}
+
+// ── auto-improve: build honest variants of the spec, measure each on held-out data, keep the best ──
+$('tuneBtn').addEventListener('click', autoTune);
+let tuneCands = null, tuneBestIdx = -1;
+async function autoTune(){
+  const out = $('tuneOut');
+  const bad = (m) => { out.innerHTML = '<span class="pill bad">' + m + '</span>'; };
+  if (!('gpu' in navigator)){ bad(noGpuMsg()); return; }
+  const examples = readExamples();
+  const plan = planProof(examples, examples.length >= 5 ? 2 : 1);
+  if (!plan.ok){ bad('⚠ ' + plan.why + ' (auto-improve needs at least two examples — one to learn from, one to test on).'); return; }
+  const task = $('task').value, base = $('base').value;
+  const cands = [];
+  for (let k = 1; k <= plan.train.length; k++){
+    const s = specFromTask(task, plan.train.slice(0, k), base);
+    if (s.ok) cands.push({ label: k + ' example' + (k > 1 ? 's' : ''), spec: s.spec, base: s.base });
+  }
+  const full = specFromTask(task, plan.train, base);
+  if (full.ok){ const h = hardenSpec(full.spec, plan.train); if (h.ok && h.changed) cands.push({ label: 'all examples + strict format', spec: h.spec, base: full.base }); }
+  if (cands.length < 2){ bad('Not enough to compare yet — add another example or two and try again.'); return; }
+  out.innerHTML = '<span class="muted">Loading a small model and testing ' + cands.length + ' versions on ' + plan.holdout.length + ' held-out example' + (plan.holdout.length > 1 ? 's' : '') + '…</span>';
+  $('tuneBtn').disabled = true;
+  try{
+    await ensureEngine();
+    for (let i = 0; i < cands.length; i++){
+      out.innerHTML = '<span class="muted">Testing version ' + (i + 1) + ' of ' + cands.length + '…</span>';
+      let hits = 0;
+      for (const h of plan.holdout){
+        const g = gradeAnswer(h.output, await ask(mintedMessages(cands[i].spec, h.input)));
+        if (g.ok && g.hit) hits++;
+      }
+      cands[i].hits = hits;
+      cands[i].score = hits / plan.holdout.length;
+    }
+    renderTune(cands, plan.holdout.length);
+  }catch(e){ hideProg(); bad('Couldn\'t run auto-improve here (' + (e && e.message ? e.message : 'load failed') + '). Your minted model still works.'); }
+  $('tuneBtn').disabled = false;
+}
+function renderTune(cands, valN){
+  const out = $('tuneOut');
+  const best = pickBest(cands);
+  if (!best.ok){ out.innerHTML = '<span class="pill bad">⚠ ' + best.why + '</span>'; return; }
+  tuneCands = cands; tuneBestIdx = best.index;
+  const winner = cands[best.index];
+  let h = '<table class="proof-tbl"><thead><tr><th>version</th><th>score on held-out</th></tr></thead><tbody>';
+  cands.forEach((c, i) => {
+    const win = i === best.index;
+    h += '<tr' + (win ? ' style="background:rgba(224,123,62,.10)"' : '') + '><td>' + esc(c.label) + (win ? ' &nbsp;<span class="pill brass" style="font-size:.7rem">best</span>' : '') + '</td>'
+      + '<td class="' + (c.hits === valN ? 'hit' : '') + '">' + c.hits + '/' + valN + '</td></tr>';
+  });
+  h += '</tbody></table>';
+  const allSame = cands.every(c => c.hits === cands[0].hits);
+  if (allSame){
+    h += '<p class="note">Every version scored the same on this small held-out set — your current model is already as good, so there\'s nothing to change. (More examples give a sharper read.)</p>';
+  } else {
+    h += '<div class="cta-row" style="margin-top:14px"><button class="btn forge" id="applyTuneBtn">Use the best version (' + esc(winner.label) + ')</button></div>';
+    h += '<p class="note">Measured on ' + valN + ' held-out example' + (valN > 1 ? 's' : '') + ' — a live check, not a full benchmark. The done-for-you tier tunes on a proper set with a signed receipt.</p>';
+  }
+  out.innerHTML = h;
+  const btn = $('applyTuneBtn');
+  if (btn) btn.addEventListener('click', () => applyVersion(cands[best.index]));
+}
+function applyVersion(c){
+  const mf = assembleModelfile(c.base, c.spec);
+  if (!mf.ok) return;
+  const fp = sha256(mf.modelfile);
+  if (!fp.ok) return;
+  lastMint = { ok: true, base: c.base, spec: c.spec, modelfile: mf.modelfile, fingerprint: fp.hash, exampleCount: c.spec.fewshot.length };
+  $('fp').textContent = fp.hash;
+  $('modelfile').textContent = mf.modelfile;
+  renderOwn();
+  $('tuneOut').innerHTML = '<span class="pill good">✓ Applied “' + esc(c.label) + '”. Your Modelfile and installer above now use this version.</span>';
+  $('mintOut').scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 </script>
 </body>
