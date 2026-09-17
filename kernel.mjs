@@ -283,6 +283,38 @@ export function safeModelName(raw) {
   return s.length > 0 ? s : fallback;
 }
 
+// suggestNames(task) — a few sensible model-name presets read from the task. Deterministic: a recognised
+// action verb maps to a role (sort → sorter), paired with the task's content words. Pure and total —
+// garbage or an empty task returns ['my-model']. The buyer can always click one, or type their own.
+const NAME_STOP = new Set(['the', 'a', 'an', 'and', 'or', 'of', 'to', 'in', 'on', 'for', 'with', 'into', 'only', 'its', 'it', 'is', 'are', 'was', 'that', 'this', 'these', 'those', 'your', 'you', 'them', 'they', 'give', 'gives', 'back', 'same', 'form', 'not', 'each', 'from', 'as', 'be', 'reply', 'replies', 'answer', 'answers', 'nothing', 'else', 'explanation', 'word', 'words', 'sentence', 'sentences', 'about', 'how', 'what', 'which', 'should', 'must', 'does', 'just', 'new', 'one', 'two', 'few', 'handful', 'real', 'correct', 'right', 'thing', 'things', 'style', 'exactly', 'level', 'detail',
+  // generic verbs and format fillers make weak names — drop them so the real nouns lead
+  'read', 'reads', 'write', 'writes', 'make', 'makes', 'create', 'creates', 'build', 'builds', 'process', 'handle', 'check', 'checks', 'look', 'find', 'finds', 'turn', 'turns', 'take', 'takes', 'get', 'gets', 'use', 'uses', 'send', 'sends', 'put', 'keep', 'run', 'runs', 'based',
+  'text', 'object', 'number', 'value', 'phrase', 'short', 'true', 'false', 'key']);
+const NAME_ROLES = { sort: 'sorter', classify: 'classifier', categorize: 'classifier', categorise: 'classifier', extract: 'extractor', pull: 'extractor', route: 'router', tag: 'tagger', label: 'labeller', score: 'scorer', rank: 'ranker', summarize: 'summariser', summarise: 'summariser', moderate: 'moderator', translate: 'translator', detect: 'detector', match: 'matcher', draft: 'drafter', respond: 'responder', flag: 'flagger', grade: 'grader', rate: 'rater', decide: 'decider' };
+
+export function suggestNames(task) {
+  if (!isStr(task)) return { ok: true, names: ['my-model'] };
+  const words = task.toLowerCase().split(/[^a-z0-9]+/).filter((w) => w.length >= 3 && !NAME_STOP.has(w));
+  const content = [...new Set(words)];
+  let role = null, verb = null;
+  for (const w of content) { if (NAME_ROLES[w]) { role = NAME_ROLES[w]; verb = w; break; } }
+  const nouns = content.filter((w) => w !== verb && !NAME_ROLES[w]);
+  const candidates = [];
+  if (role && nouns[0]) candidates.push(nouns[0] + '-' + role);
+  if (verb && nouns[0]) candidates.push(verb + '-' + nouns[0]);
+  if (nouns[0] && nouns[1]) candidates.push(nouns[0] + '-' + nouns[1]);
+  if (role && nouns[1]) candidates.push(nouns[1] + '-' + role);
+  if (nouns[0]) candidates.push(nouns[0] + '-node');
+  const names = [];
+  for (const c of candidates) {
+    const s = safeModelName(c);
+    if (s !== 'my-model' && !names.includes(s)) names.push(s);
+    if (names.length >= 3) break;
+  }
+  if (names.length === 0) names.push('my-model');
+  return { ok: true, names };
+}
+
 export const INSTALLER_OS = ['mac', 'linux', 'windows'];
 
 /** installerScript(os, name, modelfile) — one file the buyer runs to own the model. */

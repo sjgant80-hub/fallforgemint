@@ -6,7 +6,7 @@ import {
   sha256, canon, validSpec, assembleModelfile, mintVerdict,
   makeManifest, signable, attachSignature, verifyManifest,
   ownVsRent, specFromTask, planProof, gradeAnswer, scorecard,
-  b64encode, safeModelName, installerScript, INSTALLER_OS,
+  b64encode, safeModelName, installerScript, INSTALLER_OS, suggestNames,
   inferFormat, hardenSpec, pickBest,
   scorecardReceipt, verifyScorecardReceipt, scorecardSignable,
 } from './kernel.mjs';
@@ -483,6 +483,39 @@ test('installerScript: each OS embeds the real Modelfile + the ollama commands, 
   const between = mac.script.match(/<<'FF_B64_EOF'\n([\s\S]*?)\nFF_B64_EOF/);
   assert.ok(between, 'the mac script has a heredoc of base64');
   assert.equal(Buffer.from(between[1].replace(/\n/g, ''), 'base64').toString('utf8'), mf.replace(/\r\n/g,'\n'));
+});
+
+// ── model-name presets: a few sensible names read from the task ───────────────────────────────────
+test('suggestNames: verb→role + nouns, capped at three, honest fallback', () => {
+  const a = suggestNames('sort support messages into JSON category and urgency');
+  assert.equal(a.ok, true);
+  assert.equal(a.names.length, 3);                         // capped (kills >= 3 → > 3)
+  assert.equal(a.names[0], 'support-sorter');              // role from the verb 'sort', paired with the first noun
+  assert.ok(a.names.includes('sort-support'));             // verb + noun variant
+  // no recognised verb → noun-only names, no role suffix
+  const b = suggestNames('customer feedback tone');
+  assert.equal(b.names[0], 'customer-feedback');
+  assert.ok(b.names.includes('customer-node'));
+  assert.ok(!b.names.some((n) => /sorter|classifier|extractor/.test(n)));
+  // a 3-character verb still counts (kills the length >= 3 → > 3 filter)
+  assert.ok(suggestNames('tag leads').names.includes('tag-leads'));
+  // a 2-character word is dropped (kills length >= 3 → >= 2): 'ab' must not appear
+  const c = suggestNames('ab support');
+  assert.equal(c.names[0], 'support-node');
+  assert.ok(!c.names.includes('ab-support'));
+  // empty / all-stopwords / non-string → the default, never a broken name
+  assert.deepEqual(suggestNames('').names, ['my-model']);
+  assert.deepEqual(suggestNames('the a an of to').names, ['my-model']);
+  assert.deepEqual(suggestNames(7).names, ['my-model']);
+  // every suggestion is a valid, tidy name
+  for (const n of a.names) assert.equal(safeModelName(n), n);
+  // a SECOND action verb is a role-word, not a noun — it must not appear in the names (kills && → || in the noun filter)
+  assert.ok(!suggestNames('sort and rank leads').names.some((n) => n.includes('rank')));
+  // with only ONE noun, the role+secondNoun template must not fire and inject "undefined" (kills && → || there)
+  assert.ok(!suggestNames('tag leads').names.some((n) => n.includes('undefined')));
+  // duplicate candidates are de-duplicated (kills && → || in the dedup guard)
+  const dup = suggestNames('sort tickets sorter').names;
+  assert.equal(new Set(dup).size, dup.length);
 });
 
 // ── the refinement loop: read the format, harden the spec, pick the measured best ─────────────────
