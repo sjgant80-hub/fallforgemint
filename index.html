@@ -152,6 +152,15 @@
   .progress{height:8px;background:var(--panel2);border-radius:999px;overflow:hidden;border:1px solid var(--line)}
   .progress > i{display:block;height:100%;width:0;background:var(--forge);transition:width .2s}
   .live-out{background:#08070b;border:1px solid var(--line);border-radius:10px;padding:14px 16px;min-height:52px;font-family:var(--mono);font-size:.9rem;color:var(--cream);white-space:pre-wrap}
+  .tmpl-row{display:flex;flex-wrap:wrap;gap:8px}
+  .tmpl{background:var(--panel2);border:1px solid var(--line);color:var(--ink);border-radius:999px;padding:7px 15px;font-size:.85rem;cursor:pointer;font-family:var(--sans);transition:border-color .15s,color .15s}
+  .tmpl:hover{border-color:var(--forge);color:var(--forge)}
+  table.proof-tbl{width:100%;border-collapse:collapse;margin-top:12px;font-size:.85rem}
+  table.proof-tbl th,table.proof-tbl td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+  table.proof-tbl th{color:var(--dim);text-transform:uppercase;letter-spacing:.04em;font-size:.72rem;font-weight:500}
+  table.proof-tbl td{font-family:var(--mono);font-size:.8rem;color:#d7d1e2}
+  table.proof-tbl .hit{color:var(--good)} table.proof-tbl .miss{color:var(--bad)}
+  .proof-verdict{font-family:var(--serif);font-size:1.15rem;padding:10px 16px;border-radius:10px;display:inline-block}
 </style>
 </head>
 <body>
@@ -187,10 +196,10 @@
   <p class="sub">Type what you want the model to do, then paste a handful of real examples of the job done right. Press the button and you'll get a real model recipe you can run on your own computer. Everything happens in your browser.</p>
 
   <div class="card" style="margin-top:22px">
-    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px">
-      <label class="fld" for="task" style="margin:0">1 · What should your model do?</label>
-      <button class="btn ghost" id="sampleBtn" style="padding:7px 14px;font-size:.85rem">Load a worked example</button>
-    </div>
+    <label class="fld" style="margin:0 0 8px">Start from a template — or write your own below</label>
+    <div id="templates" class="tmpl-row"></div>
+
+    <label class="fld" for="task" style="margin-top:20px">1 · What should your model do?</label>
     <textarea id="task" placeholder="e.g. Read a customer support message and reply with only a JSON object giving its category and how urgent it is."></textarea>
 
     <label class="fld" style="margin-top:20px">2 · Show it a few examples (an input, and the correct answer)</label>
@@ -214,8 +223,8 @@
       <span class="pill brass">private · on your device</span>
     </div>
     <p class="muted" style="font-size:.9rem;margin-top:8px">This downloads a tiny model once (about 400&nbsp;MB, cached after) and runs it right here — nothing is sent anywhere. It uses your task and examples above to answer the test input below. Your owned model can be bigger; this just proves the idea works before you install anything.</p>
-    <div id="liveProgress" class="progress hidden" style="margin:12px 0"><i></i></div>
-    <div id="liveProgressTxt" class="muted" style="font-size:.82rem"></div>
+    <div id="liveProgress" class="progress wl-prog hidden" style="margin:12px 0"><i></i></div>
+    <div id="liveProgressTxt" class="muted wl-progtxt" style="font-size:.82rem"></div>
     <label class="fld" style="margin-top:12px" for="liveIn">A test input to try</label>
     <textarea id="liveIn" placeholder="Paste one new input to see how your model would answer it."></textarea>
     <div class="cta-row" style="margin-top:12px">
@@ -250,6 +259,21 @@
       </li>
     </ol>
     <p class="note">Want us to do all of this for you, and prove the model beats its starting point with a signed receipt before you pay a penny? That's the <a href="#pricing">done-for-you tier</a>.</p>
+  </div>
+
+  <!-- prove it on THEIR data -->
+  <div id="proveWrap" class="card hidden" style="margin-top:16px">
+    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px">
+      <h3 style="font-size:1.25rem;color:var(--cream)">◊ Prove it beats the base — on your own examples</h3>
+      <span class="pill brass">live · in your browser</span>
+    </div>
+    <p class="muted" style="font-size:.92rem;margin-top:8px">This holds back one or two of your examples, then runs the plain base model and your minted model on them — examples your model never saw — and grades both against your correct answers. It can, and sometimes will, say your model tied or lost. That's the honesty that makes the win mean something.</p>
+    <div class="cta-row" style="margin-top:14px">
+      <button class="btn forge" id="proveBtn">Run the proof</button>
+    </div>
+    <div id="proveProg" class="progress wl-prog hidden" style="margin:12px 0"><i></i></div>
+    <div class="muted wl-progtxt" style="font-size:.82rem"></div>
+    <div id="proofOut" style="margin-top:14px"></div>
   </div>
 </div></section>
 
@@ -612,6 +636,50 @@ function specFromTask(task, examples, base) {
   return { ok: true, base: b, spec, modelfile: mf.modelfile, fingerprint: h.hash, exampleCount: fewshot.length };
 }
 
+// ── prove it on THEIR data: split a holdout, grade base vs minted, score honestly ─────────────────
+// The conversion moment: don't ask them to trust our receipt, show the minted model beating the base
+// on examples IT NEVER SAW. planProof holds out the last N examples (the model learns from the rest);
+// the page runs both models on the holdout inputs; scorecard grades them. It can — and will — return
+// LOSES or TIES, and flags a small sample honestly. Pure and total: bad input → { ok:false, why }.
+
+/** planProof(examples, holdoutCount) — split into train (few-shot) and a held-out test set. */
+function planProof(examples, holdoutCount) {
+  if (!Array.isArray(examples)) return { ok: false, why: 'examples must be a list' };
+  if (!isInt(holdoutCount) || holdoutCount < 1) return { ok: false, why: 'hold out at least one example to test on' };
+  if (examples.length < holdoutCount + 1) return { ok: false, why: 'you need at least one example to learn from plus ' + holdoutCount + ' to test on — add more examples' };
+  const cut = examples.length - holdoutCount;
+  return { ok: true, train: examples.slice(0, cut), holdout: examples.slice(cut) };
+}
+
+/** gradeAnswer(correct, got) — a lenient, honest match: whitespace/case-normalised exact, or the
+ *  correct answer appearing inside a chattier reply. Not a semantic judge — deterministic and checkable. */
+function gradeAnswer(correct, got) {
+  if (!isStr(correct) || !isStr(got)) return { ok: false, why: 'grading needs the correct answer and the model output as text' };
+  const norm = (s) => s.trim().toLowerCase().replace(/\s+/g, ' ');
+  const c = norm(correct), g = norm(got);
+  if (c.length === 0) return { ok: false, why: 'the correct answer is empty — nothing to grade against' };
+  const exact = g === c;
+  const contains = !exact && g.includes(c);
+  return { ok: true, hit: exact || contains, exact, contains };
+}
+
+/** scorecard(rows) — rows of { correct, baseOut, mintedOut } → the honest tally + verdict. */
+function scorecard(rows) {
+  if (!Array.isArray(rows) || rows.length === 0) return { ok: false, why: 'give at least one held-out example to score' };
+  let baseHits = 0, mintedHits = 0;
+  for (const [i, r] of rows.entries()) {
+    if (!isObj(r)) return { ok: false, why: 'row ' + (i + 1) + ' must be an object' };
+    const gb = gradeAnswer(r.correct, r.baseOut); if (!gb.ok) return gb;
+    const gm = gradeAnswer(r.correct, r.mintedOut); if (!gm.ok) return gm;
+    if (gb.hit) baseHits++;
+    if (gm.hit) mintedHits++;
+  }
+  const n = rows.length;
+  const delta = mintedHits - baseHits;
+  const verdict = delta > 0 ? 'BEATS' : (delta < 0 ? 'LOSES' : 'TIES');
+  return { ok: true, n, baseHits, mintedHits, baseRate: baseHits / n, mintedRate: mintedHits / n, delta, verdict, smallSample: n < 5 };
+}
+
 // ── the manifest: the mint's whole story, canonically hashed, ready for a wallet signature ──────
 function makeManifest(m) {
   if (!isObj(m)) return { ok: false, why: 'makeManifest takes an object' };
@@ -697,14 +765,66 @@ const $ = (id) => document.getElementById(id);
 const esc = (s) => s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 
 // ── the mint UI ──────────────────────────────────────────────────────────────────────────────────
-const SAMPLE = {
-  task: 'Read a customer support message and reply with only a JSON object: its category (refund, delivery, fault, other) and how urgent it is (high, low).',
-  examples: [
-    { input: 'The kettle I ordered arrived smashed, order 8842. I need this sorted today.', output: '{"category":"fault","urgency":"high"}' },
-    { input: 'Hi, just wondering roughly when my parcel might turn up?', output: '{"category":"delivery","urgency":"low"}' },
-    { input: 'Please refund me, the jacket is the wrong size.', output: '{"category":"refund","urgency":"low"}' }
-  ]
-};
+const TEMPLATES = [
+  {
+    label: 'Support triage',
+    task: 'Read a customer support message and reply with only a JSON object: its category (refund, delivery, fault, other) and how urgent it is (high, low).',
+    liveIn: 'My order 5501 never arrived and it has been two weeks.',
+    examples: [
+      { input: 'The kettle I ordered arrived smashed, order 8842. I need this sorted today.', output: '{"category":"fault","urgency":"high"}' },
+      { input: 'Hi, just wondering roughly when my parcel might turn up?', output: '{"category":"delivery","urgency":"low"}' },
+      { input: 'Please refund me, the jacket is the wrong size.', output: '{"category":"refund","urgency":"low"}' },
+      { input: 'The app keeps crashing when I open my basket and I have a payment stuck.', output: '{"category":"fault","urgency":"high"}' }
+    ]
+  },
+  {
+    label: 'Invoice / receipt extraction',
+    task: 'Read the text from an invoice or receipt and reply with only a JSON object: supplier, total (a number), and date (YYYY-MM-DD).',
+    liveIn: 'ACME LTD  Invoice 22194  Date: 3 March 2026  Widgets x4 ... Amount due: £128.50',
+    examples: [
+      { input: 'BrightSpark Electrics  Receipt  14/02/2026  Call-out + parts  Total: £240.00', output: '{"supplier":"BrightSpark Electrics","total":240.00,"date":"2026-02-14"}' },
+      { input: 'Green Grocer Co  INV-8831  Issued 2026-01-09  Fruit boxes  Grand total 76.20 GBP', output: '{"supplier":"Green Grocer Co","total":76.20,"date":"2026-01-09"}' },
+      { input: 'North Cafe  Thank you!  05 Apr 2026  2x coffee 1x cake  PAID £11.40', output: '{"supplier":"North Cafe","total":11.40,"date":"2026-04-05"}' }
+    ]
+  },
+  {
+    label: 'Review moderation',
+    task: 'Decide if a product review should be published. Reply with only a JSON object: publish (true or false) and reason (a short phrase).',
+    liveIn: 'Absolute garbage, and the seller is a well-known scammer, here is their home address:',
+    examples: [
+      { input: 'Lovely mug, arrived quickly, exactly as pictured.', output: '{"publish":true,"reason":"genuine product feedback"}' },
+      { input: 'Terrible. Buy from anyone else. Total waste of money.', output: '{"publish":true,"reason":"negative but legitimate opinion"}' },
+      { input: 'Click here for free crypto >> scam-link dot biz', output: '{"publish":false,"reason":"spam link"}' }
+    ]
+  },
+  {
+    label: 'Lead scoring',
+    task: 'Score a sales enquiry. Reply with only a JSON object: score (hot, warm, cold) and why (a short phrase).',
+    liveIn: 'We are a 200-person firm, budget approved, need to go live within a month. Can we talk today?',
+    examples: [
+      { input: 'Just browsing, might buy something one day maybe.', output: '{"score":"cold","why":"no intent or timeline"}' },
+      { input: 'Comparing options for next quarter, mid-size team, no budget yet.', output: '{"score":"warm","why":"real need, no budget yet"}' },
+      { input: 'Budget signed off, need it live this month, who do I pay?', output: '{"score":"hot","why":"budget and urgency"}' }
+    ]
+  }
+];
+const SAMPLE = TEMPLATES[0];
+function loadTemplate(t){
+  $('task').value = t.task;
+  $('examples').innerHTML = '';
+  t.examples.forEach((e) => $('examples').append(exampleRow(e.input, e.output)));
+  $('liveIn').value = t.liveIn || '';
+}
+function renderTemplates(){
+  const row = $('templates');
+  TEMPLATES.forEach((t) => {
+    const b = document.createElement('button');
+    b.className = 'tmpl'; b.type = 'button'; b.textContent = t.label;
+    b.addEventListener('click', () => loadTemplate(t));
+    row.append(b);
+  });
+}
+renderTemplates();
 
 function exampleRow(input, output){
   const div = document.createElement('div');
@@ -730,13 +850,6 @@ $('addEx').addEventListener('click', () => {
   if (document.querySelectorAll('#examples .exrow').length >= MAX_EXAMPLES) return;
   $('examples').append(exampleRow('', ''));
 });
-$('sampleBtn').addEventListener('click', () => {
-  $('task').value = SAMPLE.task;
-  $('examples').innerHTML = '';
-  SAMPLE.examples.forEach((e) => $('examples').append(exampleRow(e.input, e.output)));
-  $('liveIn').value = 'My order 5501 never arrived and it has been two weeks.';
-});
-
 let lastMint = null;
 function doMint(){
   const err = $('mintErr');
@@ -755,6 +868,8 @@ function doMint(){
   $('cmd1').textContent = 'ollama create ' + name + ' -f Modelfile';
   $('cmd2').textContent = 'ollama run ' + name;
   $('mintOut').classList.remove('hidden');
+  $('proveWrap').classList.remove('hidden');
+  $('proofOut').innerHTML = '';
   $('mintOut').scrollIntoView({ behavior: 'smooth', block: 'start' });
   return res;
 }
@@ -829,9 +944,35 @@ function recalc(){
 ['c_calls','c_tokens','c_rent','c_fee','c_run'].forEach((id)=>$(id).addEventListener('input', recalc));
 recalc();
 
-// ── live preview (WebLLM · progressive enhancement, nothing to install) ───────────────────────────
-let engine = null, loading = false;
+// ── WebLLM (progressive enhancement, nothing to install) — shared by the live preview AND the proof ─
+let engine = null;
 const LIVE_MODEL = 'Qwen2.5-0.5B-Instruct-q4f16_1-MLC';
+function hideProg(){ document.querySelectorAll('.wl-prog').forEach((e)=>e.classList.add('hidden')); }
+async function ensureEngine(){
+  if (engine) return engine;
+  document.querySelectorAll('.wl-prog').forEach((e)=>e.classList.remove('hidden'));
+  const webllm = await import('https://esm.run/@mlc-ai/web-llm');
+  engine = await webllm.CreateMLCEngine(LIVE_MODEL, { initProgressCallback: (p) => {
+    const t = p.text || 'loading…';
+    document.querySelectorAll('.wl-progtxt').forEach((e)=>e.textContent = t);
+    if (typeof p.progress === 'number') document.querySelectorAll('.wl-prog > i').forEach((b)=>b.style.width = Math.round(p.progress*100) + '%');
+  }});
+  hideProg();
+  return engine;
+}
+async function ask(messages){
+  const r = await engine.chat.completions.create({ messages, temperature: 0 });
+  return (r.choices && r.choices[0] && r.choices[0].message && r.choices[0].message.content) || '';
+}
+function mintedMessages(spec, input){
+  const m = [{ role:'system', content: spec.system }];
+  for (const s of spec.fewshot){ m.push({role:'user',content:s.user}); m.push({role:'assistant',content:s.assistant}); }
+  m.push({ role:'user', content: input });
+  return m;
+}
+function noGpuMsg(){ return 'Your browser can\'t run models locally (no WebGPU). This works in a recent desktop Chrome, Edge or Brave. You can still build and download your Modelfile — that\'s the part that makes the model truly yours.'; }
+
+// live preview
 $('liveBtn').addEventListener('click', () => {
   $('liveWrap').classList.toggle('hidden');
   if (!$('liveWrap').classList.contains('hidden')) $('liveWrap').scrollIntoView({behavior:'smooth',block:'nearest'});
@@ -839,42 +980,63 @@ $('liveBtn').addEventListener('click', () => {
 $('liveRun').addEventListener('click', runLive);
 async function runLive(){
   const out = $('liveOut');
-  if (!('gpu' in navigator)){
-    out.className = 'live-out'; out.style.color = 'var(--bad)';
-    out.textContent = 'Your browser can\'t run models locally (it has no WebGPU). This works in a recent Chrome, Edge or Brave on a desktop. You can still build and download your Modelfile above — that\'s the part that makes the model truly yours.';
-    return;
-  }
+  if (!('gpu' in navigator)){ out.style.color='var(--bad)'; out.textContent = noGpuMsg(); return; }
   const spec = specFromTask($('task').value, readExamples(), $('base').value);
   if (!spec.ok){ out.style.color='var(--bad)'; out.textContent = '⚠ ' + spec.why; return; }
   const testIn = $('liveIn').value.trim();
   if (!testIn){ out.style.color='var(--bad)'; out.textContent = 'Type a test input above first.'; return; }
-  out.style.color = ''; out.textContent = 'Warming up the model…';
+  out.style.color=''; out.textContent = 'Warming up the model…';
   try{
-    if (!engine){
-      if (loading) return; loading = true;
-      $('liveProgress').classList.remove('hidden');
-      const webllm = await import('https://esm.run/@mlc-ai/web-llm');
-      engine = await webllm.CreateMLCEngine(LIVE_MODEL, { initProgressCallback: (p) => {
-        $('liveProgressTxt').textContent = p.text || 'loading…';
-        if (typeof p.progress === 'number') $('liveProgress').firstElementChild.style.width = Math.round(p.progress*100) + '%';
-      }});
-      $('liveProgress').classList.add('hidden');
-      loading = false;
-    }
-    const messages = [{ role:'system', content: spec.spec.system }];
-    for (const m of spec.spec.fewshot){ messages.push({role:'user',content:m.user}); messages.push({role:'assistant',content:m.assistant}); }
-    messages.push({ role:'user', content: testIn });
+    await ensureEngine();
     out.textContent = '';
-    const stream = await engine.chat.completions.create({ messages, temperature: 0, stream: true });
-    for await (const chunk of stream){
-      const t = chunk.choices?.[0]?.delta?.content || '';
-      out.textContent += t;
+    const stream = await engine.chat.completions.create({ messages: mintedMessages(spec.spec, testIn), temperature:0, stream:true });
+    for await (const chunk of stream){ out.textContent += (chunk.choices && chunk.choices[0] && chunk.choices[0].delta && chunk.choices[0].delta.content) || ''; }
+  }catch(e){ hideProg(); out.style.color='var(--bad)'; out.textContent = 'Couldn\'t run the live preview here (' + (e && e.message ? e.message : 'model load failed') + '). The Modelfile mint above still works — that\'s the part you own.'; }
+}
+
+// prove it beats the base on THEIR held-out examples
+$('proveBtn').addEventListener('click', runProof);
+async function runProof(){
+  const out = $('proofOut');
+  const bad = (m) => { out.innerHTML = '<span class="pill bad">' + m + '</span>'; };
+  if (!('gpu' in navigator)){ bad(noGpuMsg()); return; }
+  const examples = readExamples();
+  const plan = planProof(examples, examples.length >= 4 ? 2 : 1);
+  if (!plan.ok){ bad('⚠ ' + plan.why + ' (the proof needs at least two examples — one to learn from, one to test on).'); return; }
+  const minted = specFromTask($('task').value, plan.train, $('base').value);
+  if (!minted.ok){ bad('⚠ ' + minted.why); return; }
+  out.innerHTML = '<span class="muted">Loading a small model and testing on ' + plan.holdout.length + ' held-out example' + (plan.holdout.length>1?'s':'') + ' your model never saw…</span>';
+  $('proveBtn').disabled = true;
+  try{
+    await ensureEngine();
+    const rows = [];
+    for (const h of plan.holdout){
+      const baseOut = await ask([{ role:'user', content: h.input }]);
+      const mintedOut = await ask(mintedMessages(minted.spec, h.input));
+      rows.push({ input: h.input, correct: h.output, baseOut, mintedOut });
     }
-  }catch(e){
-    loading = false; $('liveProgress').classList.add('hidden');
-    out.style.color = 'var(--bad)';
-    out.textContent = 'Couldn\'t run the live preview here (' + (e && e.message ? e.message : 'model load failed') + '). The Modelfile mint above still works — that\'s the part you own.';
+    renderScorecard(scorecard(rows.map(r=>({correct:r.correct, baseOut:r.baseOut, mintedOut:r.mintedOut}))), rows);
+  }catch(e){ hideProg(); bad('Couldn\'t run the proof here (' + (e && e.message ? e.message : 'load failed') + '). The mint still works.'); }
+  $('proveBtn').disabled = false;
+}
+function renderScorecard(sc, rows){
+  const out = $('proofOut');
+  if (!sc.ok){ out.innerHTML = '<span class="pill bad">⚠ ' + sc.why + '</span>'; return; }
+  const col = sc.verdict==='BEATS' ? 'var(--good)' : (sc.verdict==='LOSES' ? 'var(--bad)' : 'var(--brass)');
+  const bg = sc.verdict==='BEATS' ? 'rgba(86,184,119,.12)' : (sc.verdict==='LOSES' ? 'rgba(224,106,95,.12)' : 'rgba(217,164,65,.12)');
+  let h = '<div class="proof-verdict" style="color:' + col + ';background:' + bg + '">Your model ' + sc.mintedHits + '/' + sc.n + ' &nbsp;·&nbsp; the base model ' + sc.baseHits + '/' + sc.n + ' &nbsp;—&nbsp; ' + sc.verdict + '</div>';
+  h += '<table class="proof-tbl"><thead><tr><th>held-out input</th><th>base model</th><th>your model</th><th>correct</th></tr></thead><tbody>';
+  for (const r of rows){
+    const gb = gradeAnswer(r.correct, r.baseOut), gm = gradeAnswer(r.correct, r.mintedOut);
+    const bh = gb.ok && gb.hit, mh = gm.ok && gm.hit;
+    h += '<tr><td>' + esc(r.input) + '</td>'
+      + '<td class="' + (bh?'hit':'miss') + '">' + (bh?'✓ ':'✗ ') + esc(r.baseOut.slice(0,90)) + '</td>'
+      + '<td class="' + (mh?'hit':'miss') + '">' + (mh?'✓ ':'✗ ') + esc(r.mintedOut.slice(0,90)) + '</td>'
+      + '<td>' + esc(r.correct) + '</td></tr>';
   }
+  h += '</tbody></table>';
+  if (sc.smallSample) h += '<p class="note">Small sample (' + sc.n + ' example' + (sc.n>1?'s':'') + ') — a live sanity check, not a full benchmark. The done-for-you tier proves it on a proper held-out set and hands you a signed receipt.</p>';
+  out.innerHTML = h;
 }
 </script>
 </body>

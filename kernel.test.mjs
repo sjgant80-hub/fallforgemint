@@ -5,7 +5,7 @@ import {
   MONTHS_PER_YEAR, MAX_EXAMPLES,
   sha256, canon, validSpec, assembleModelfile, mintVerdict,
   makeManifest, signable, attachSignature, verifyManifest,
-  ownVsRent, specFromTask,
+  ownVsRent, specFromTask, planProof, gradeAnswer, scorecard,
 } from './kernel.mjs';
 
 test('sha256 + canon: FIPS-pinned, order-blind, primitive-distinct', () => {
@@ -323,4 +323,93 @@ test('specFromTask: every bad input is refused with a plain-English reason', () 
   const secondRow = specFromTask('x', [EX[0], { input: 'a' }]);
   assert.equal(secondRow.ok, false);
   assert.ok(secondRow.why.includes('example 2'), 'second bad row must name row 2, got: ' + secondRow.why);
+});
+
+// ── planProof: split train (few-shot) from a held-out test set the model never saw ───────────────
+test('planProof: holds out the LAST n; bounds are exact', () => {
+  const ex = [{input:'a',output:'1'},{input:'b',output:'2'},{input:'c',output:'3'}];
+  const p = planProof(ex, 1);
+  assert.equal(p.ok, true);
+  assert.equal(p.train.length, 2);
+  assert.equal(p.holdout.length, 1);
+  assert.equal(p.holdout[0].input, 'c');            // the LAST one is held out (kills a slice-index swap)
+  assert.equal(p.train[0].input, 'a');
+  const p2 = planProof(ex, 2);
+  assert.equal(p2.train.length, 1);
+  assert.equal(p2.holdout.length, 2);
+  assert.equal(p2.holdout[0].input, 'b');           // last TWO
+  // bounds
+  assert.equal(planProof([{input:'a',output:'1'},{input:'b',output:'2'}], 1).ok, true);  // AT the min (2 = 1+1)
+  assert.equal(planProof([{input:'a',output:'1'}], 1).ok, false);                         // one too few (1 < 2)
+  assert.equal(planProof(ex, 0).ok, false);         // must hold out at least 1 (kills < 1 → < 0)
+  assert.equal(planProof(ex, -1).ok, false);
+  assert.equal(planProof(ex, 1.5).ok, false);       // integer only
+  assert.equal(planProof('nope', 1).ok, false);
+});
+
+// ── gradeAnswer: lenient, honest, deterministic ──────────────────────────────────────────────────
+test('gradeAnswer: exact (normalised) or contained; never a semantic guess', () => {
+  const exact = gradeAnswer('{"category":"refund"}', '  {"CATEGORY":"refund"}  '.replace('CATEGORY','category'));
+  assert.equal(exact.ok, true);
+  assert.equal(gradeAnswer('Refund', ' refund ').exact, true);     // whitespace + case normalised
+  assert.equal(gradeAnswer('Refund', ' refund ').hit, true);
+  const wrapped = gradeAnswer('refund', 'the answer is refund here');
+  assert.equal(wrapped.exact, false);
+  assert.equal(wrapped.contains, true);                            // contained in a chattier reply
+  assert.equal(wrapped.hit, true);
+  const miss = gradeAnswer('refund', 'delivery');
+  assert.equal(miss.hit, false);
+  assert.equal(miss.contains, false);
+  // on an EXACT match, contains must be false (kills dropping the !exact guard)
+  const both = gradeAnswer('refund', 'refund');
+  assert.equal(both.exact, true);
+  assert.equal(both.contains, false);
+  assert.equal(both.hit, true);
+  // total
+  assert.equal(gradeAnswer('', 'x').ok, false);                    // empty correct
+  assert.equal(gradeAnswer('x', 7).ok, false);
+  assert.equal(gradeAnswer(7, 'x').ok, false);
+});
+
+// ── scorecard: the honest tally — BEATS / LOSES / TIES, small-sample flagged ──────────────────────
+test('scorecard: counts base vs minted independently and picks the right verdict', () => {
+  // minted gets both, base gets neither → BEATS by 2
+  const beats = scorecard([
+    { correct: 'refund', baseOut: 'delivery', mintedOut: 'refund' },
+    { correct: 'fault', baseOut: 'other', mintedOut: 'fault' },
+  ]);
+  assert.equal(beats.ok, true);
+  assert.equal(beats.baseHits, 0);
+  assert.equal(beats.mintedHits, 2);
+  assert.equal(beats.delta, 2);
+  assert.equal(beats.verdict, 'BEATS');
+  assert.equal(beats.mintedRate, 1);
+  assert.equal(beats.baseRate, 0);
+  assert.equal(beats.smallSample, true);            // n=2 < 5
+  // base beats minted → LOSES, and proves base/minted aren't swapped (kills the ++ swap and delta order)
+  const loses = scorecard([
+    { correct: 'refund', baseOut: 'refund', mintedOut: 'delivery' },
+    { correct: 'fault', baseOut: 'fault', mintedOut: 'other' },
+  ]);
+  assert.equal(loses.baseHits, 2);
+  assert.equal(loses.mintedHits, 0);
+  assert.equal(loses.delta, -2);
+  assert.equal(loses.verdict, 'LOSES');
+  // equal → TIES
+  const ties = scorecard([{ correct: 'a', baseOut: 'a', mintedOut: 'a' }]);
+  assert.equal(ties.delta, 0);
+  assert.equal(ties.verdict, 'TIES');
+  // small-sample boundary: exactly 5 rows is NOT flagged (kills < 5 → <= 5)
+  const five = scorecard(Array(5).fill({ correct: 'a', baseOut: 'a', mintedOut: 'a' }));
+  assert.equal(five.n, 5);
+  assert.equal(five.smallSample, false);
+  const four = scorecard(Array(4).fill({ correct: 'a', baseOut: 'a', mintedOut: 'a' }));
+  assert.equal(four.smallSample, true);
+  // total
+  assert.equal(scorecard([]).ok, false);
+  assert.equal(scorecard('nope').ok, false);
+  assert.equal(scorecard([{ correct: 'a', baseOut: 'a' /* no mintedOut */ }]).ok, false);
+  const badRow = scorecard([{ correct: 'a', baseOut: 'a', mintedOut: 'a' }, 7]);
+  assert.equal(badRow.ok, false);
+  assert.ok(badRow.why.includes('row 2'), 'bad second row names row 2, got: ' + badRow.why);
 });

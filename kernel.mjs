@@ -204,6 +204,50 @@ export function specFromTask(task, examples, base) {
   return { ok: true, base: b, spec, modelfile: mf.modelfile, fingerprint: h.hash, exampleCount: fewshot.length };
 }
 
+// ── prove it on THEIR data: split a holdout, grade base vs minted, score honestly ─────────────────
+// The conversion moment: don't ask them to trust our receipt, show the minted model beating the base
+// on examples IT NEVER SAW. planProof holds out the last N examples (the model learns from the rest);
+// the page runs both models on the holdout inputs; scorecard grades them. It can — and will — return
+// LOSES or TIES, and flags a small sample honestly. Pure and total: bad input → { ok:false, why }.
+
+/** planProof(examples, holdoutCount) — split into train (few-shot) and a held-out test set. */
+export function planProof(examples, holdoutCount) {
+  if (!Array.isArray(examples)) return { ok: false, why: 'examples must be a list' };
+  if (!isInt(holdoutCount) || holdoutCount < 1) return { ok: false, why: 'hold out at least one example to test on' };
+  if (examples.length < holdoutCount + 1) return { ok: false, why: 'you need at least one example to learn from plus ' + holdoutCount + ' to test on — add more examples' };
+  const cut = examples.length - holdoutCount;
+  return { ok: true, train: examples.slice(0, cut), holdout: examples.slice(cut) };
+}
+
+/** gradeAnswer(correct, got) — a lenient, honest match: whitespace/case-normalised exact, or the
+ *  correct answer appearing inside a chattier reply. Not a semantic judge — deterministic and checkable. */
+export function gradeAnswer(correct, got) {
+  if (!isStr(correct) || !isStr(got)) return { ok: false, why: 'grading needs the correct answer and the model output as text' };
+  const norm = (s) => s.trim().toLowerCase().replace(/\s+/g, ' ');
+  const c = norm(correct), g = norm(got);
+  if (c.length === 0) return { ok: false, why: 'the correct answer is empty — nothing to grade against' };
+  const exact = g === c;
+  const contains = !exact && g.includes(c);
+  return { ok: true, hit: exact || contains, exact, contains };
+}
+
+/** scorecard(rows) — rows of { correct, baseOut, mintedOut } → the honest tally + verdict. */
+export function scorecard(rows) {
+  if (!Array.isArray(rows) || rows.length === 0) return { ok: false, why: 'give at least one held-out example to score' };
+  let baseHits = 0, mintedHits = 0;
+  for (const [i, r] of rows.entries()) {
+    if (!isObj(r)) return { ok: false, why: 'row ' + (i + 1) + ' must be an object' };
+    const gb = gradeAnswer(r.correct, r.baseOut); if (!gb.ok) return gb;
+    const gm = gradeAnswer(r.correct, r.mintedOut); if (!gm.ok) return gm;
+    if (gb.hit) baseHits++;
+    if (gm.hit) mintedHits++;
+  }
+  const n = rows.length;
+  const delta = mintedHits - baseHits;
+  const verdict = delta > 0 ? 'BEATS' : (delta < 0 ? 'LOSES' : 'TIES');
+  return { ok: true, n, baseHits, mintedHits, baseRate: baseHits / n, mintedRate: mintedHits / n, delta, verdict, smallSample: n < 5 };
+}
+
 // ── the manifest: the mint's whole story, canonically hashed, ready for a wallet signature ──────
 export function makeManifest(m) {
   if (!isObj(m)) return { ok: false, why: 'makeManifest takes an object' };
