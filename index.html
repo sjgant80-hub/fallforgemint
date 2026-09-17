@@ -1,0 +1,881 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>FallForge Mint · bring your task, walk out owning the model</title>
+<meta name="description" content="Paste one job you do a lot and a few worked examples. FallForge Mint builds you a real, private small model that does that job — a model you own and run on your own machine, not one you rent per token. Free to try in your browser. Nothing to sign up for." />
+<link rel="canonical" href="https://sjgant80-hub.github.io/fallforgemint/" />
+<meta property="og:type" content="website" />
+<meta property="og:title" content="FallForge Mint · own the model, don't rent it" />
+<meta property="og:description" content="Bring one repetitive task and a few examples. Walk out owning a private small model that does it — on your own machine, no per-token bill. Free to try, nothing to install to see it work." />
+<meta property="og:url" content="https://sjgant80-hub.github.io/fallforgemint/" />
+<meta name="twitter:card" content="summary_large_image" />
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%230b0a0f'/%3E%3Ctext x='16' y='23' font-family='serif' font-size='20' fill='%23e07b3e' text-anchor='middle'%3E%E2%97%8A%3C/text%3E%3C/svg%3E" />
+<link rel="manifest" href="manifest.webmanifest" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&family=DM+Sans:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "SoftwareApplication",
+      "name": "FallForge Mint",
+      "applicationCategory": "DeveloperApplication",
+      "operatingSystem": "Any (runs in the browser)",
+      "description": "A tool that turns one repetitive task plus a few worked examples into a real, private, owned small model. It builds a deterministic Ollama Modelfile you run on your own machine, and can preview the model live in your browser. Free to try; nothing to sign up for.",
+      "offers": { "@type": "Offer", "price": "0", "priceCurrency": "GBP" },
+      "featureList": [
+        "Build a private model from your own examples",
+        "Own the model file — no per-token bill",
+        "Runs on your own machine, offline",
+        "In-browser live preview, nothing to install",
+        "Every result carries its own signed, checkable proof"
+      ],
+      "publisher": { "@type": "Organization", "name": "AI-Native Solutions" }
+    },
+    {
+      "@type": "Service",
+      "serviceType": "Custom small-model minting (own, don't rent)",
+      "provider": { "@type": "Organization", "name": "AI-Native Solutions" },
+      "areaServed": "Worldwide",
+      "description": "Bring one repetitive task you feed a large rented AI model. We mint you a small model specialised to it, prove it beats its baseline with a signed receipt, and hand you a model you own and run privately. If the receipt does not say it beats your baseline, you do not pay.",
+      "offers": [
+        { "@type": "Offer", "name": "Do-it-yourself", "price": "0", "priceCurrency": "GBP", "description": "Build and download your Modelfile here, free. Run it on your own machine. You own it." },
+        { "@type": "Offer", "name": "Done-for-you node", "priceCurrency": "GBP", "description": "We mint, prove and hand over one owned node for a fixed fee, quoted before any work. You only pay if the signed receipt says it beats your baseline." },
+        { "@type": "Offer", "name": "Run-it-for-you", "priceCurrency": "GBP", "description": "Monthly retainer: we host, monitor and re-mint your nodes as your data changes." }
+      ]
+    },
+    {
+      "@type": "FAQPage",
+      "mainEntity": [
+        { "@type": "Question", "name": "Do I really own the model?", "acceptedAnswer": { "@type": "Answer", "text": "Yes. The mint produces a Modelfile — a plain text recipe — that you run on your own machine with a free tool called Ollama. The resulting model lives on your computer. There is no account, no per-token bill, and it keeps working with your internet off." } },
+        { "@type": "Question", "name": "Do I need to be technical?", "acceptedAnswer": { "@type": "Answer", "text": "No. You paste your task and a few examples and press one button. To run the model yourself you install a free app and paste two lines we give you, step by step. If you would rather not, our done-for-you tier sets it up for you." } },
+        { "@type": "Question", "name": "Is my data safe?", "acceptedAnswer": { "@type": "Answer", "text": "Yes. Everything on this page runs inside your own browser. Your task and examples are never sent to us or anyone else. The model you build runs on your machine." } },
+        { "@type": "Question", "name": "What is the catch with owning instead of renting?", "acceptedAnswer": { "@type": "Answer", "text": "A small owned model is cheaper and private, but it is specialised — brilliant at the one job you trained it on, not a general chatbot. For a narrow, repetitive, high-volume task that is exactly what you want. The calculator on this page shows, honestly, when renting is actually the better deal." } },
+        { "@type": "Question", "name": "How do I know it is any good?", "acceptedAnswer": { "@type": "Answer", "text": "Every minted node is measured against its starting point by a deterministic gate, and the result is written into a signed receipt that can — and sometimes does — say it lost. You can re-check that proof yourself in your browser on this page. Nobody renting you a black box can offer that." } },
+        { "@type": "Question", "name": "What does it cost?", "acceptedAnswer": { "@type": "Answer", "text": "Building and downloading your Modelfile here is free — you own it. A done-for-you node, minted and proven for you, is a fixed fee quoted before any work, and you only pay if the receipt says it beats your baseline. Running it for you is a monthly retainer." } }
+      ]
+    }
+  ]
+}
+</script>
+<style>
+  :root{
+    --void:#0b0a0f; --panel:#15131c; --panel2:#1c1926; --line:#2a2733;
+    --ink:#ece7f2; --dim:#9b95a8; --forge:#e07b3e; --brass:#d9a441; --cream:#f4ecdf;
+    --good:#56b877; --bad:#e06a5f;
+    --serif:'Libre Baskerville',Georgia,serif; --sans:'DM Sans',system-ui,sans-serif; --mono:'IBM Plex Mono',ui-monospace,monospace;
+    --wrap:1080px;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{margin:0;background:var(--void);color:var(--ink);font-family:var(--sans);line-height:1.6;
+    background-image:radial-gradient(1200px 600px at 80% -10%, rgba(224,123,62,.10), transparent 60%),radial-gradient(900px 500px at -10% 10%, rgba(217,164,65,.06), transparent 55%);}
+  a{color:var(--forge);text-decoration:none}
+  a:hover{text-decoration:underline}
+  .wrap{max-width:var(--wrap);margin:0 auto;padding:0 20px}
+  h1,h2,h3{font-family:var(--serif);font-weight:700;line-height:1.15;text-wrap:balance;margin:0}
+  .glyph{color:var(--forge)}
+  header.site{position:sticky;top:0;z-index:20;backdrop-filter:blur(8px);background:rgba(11,10,15,.72);border-bottom:1px solid var(--line)}
+  header.site .wrap{display:flex;align-items:center;gap:18px;height:60px}
+  .brand{font-family:var(--serif);font-weight:700;color:var(--cream);font-size:1.15rem;display:flex;align-items:center;gap:8px}
+  .brand .co{font-family:var(--sans);font-weight:500;color:var(--dim);font-size:.72rem;letter-spacing:.04em;text-transform:uppercase}
+  nav.top{margin-left:auto;display:flex;gap:20px;font-size:.9rem}
+  nav.top a{color:var(--dim)}
+  nav.top a:hover{color:var(--ink);text-decoration:none}
+  @media(max-width:760px){nav.top{display:none}}
+  section{padding:64px 0;border-bottom:1px solid var(--line)}
+  .eyebrow{font-family:var(--mono);font-size:.74rem;letter-spacing:.18em;text-transform:uppercase;color:var(--forge);margin-bottom:14px}
+  .hero h1{font-size:clamp(2.3rem,6vw,3.9rem)}
+  .hero .em{color:var(--forge);font-style:italic}
+  .lede{font-size:1.16rem;color:#cfc9db;max-width:60ch;margin:20px 0 0}
+  .cta-row{display:flex;flex-wrap:wrap;gap:12px;margin-top:30px}
+  .btn{font-family:var(--sans);font-weight:600;font-size:.98rem;border-radius:10px;padding:13px 22px;border:1px solid transparent;cursor:pointer;display:inline-flex;align-items:center;gap:8px;transition:transform .06s ease, background .2s}
+  .btn:hover{text-decoration:none;transform:translateY(-1px)}
+  .btn.forge{background:var(--forge);color:#20120a;border-color:var(--forge)}
+  .btn.forge:hover{background:#ef8b4d}
+  .btn.ghost{background:transparent;color:var(--cream);border-color:var(--line)}
+  .btn.ghost:hover{border-color:var(--forge);color:var(--forge)}
+  .btn.brass{background:var(--brass);color:#241c06;border-color:var(--brass)}
+  .btn[disabled]{opacity:.5;cursor:not-allowed;transform:none}
+  h2.sec{font-size:clamp(1.7rem,4vw,2.5rem)}
+  .sub{color:var(--dim);margin-top:10px;max-width:62ch}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:22px}
+  .grid{display:grid;gap:16px}
+  .g3{grid-template-columns:repeat(3,1fr)}
+  @media(max-width:820px){.g3{grid-template-columns:1fr}}
+  label.fld{display:block;font-size:.82rem;color:var(--dim);text-transform:uppercase;letter-spacing:.05em;margin:0 0 6px}
+  textarea,input[type=text],input[type=number]{width:100%;background:var(--void);border:1px solid var(--line);border-radius:9px;color:var(--ink);font-family:var(--sans);font-size:.98rem;padding:11px 13px}
+  textarea{resize:vertical;min-height:64px;font-family:var(--mono);font-size:.9rem}
+  input:focus,textarea:focus{outline:none;border-color:var(--forge)}
+  .exrow{display:grid;grid-template-columns:1fr 1fr auto;gap:10px;align-items:start;margin-bottom:10px}
+  .exrow .x{background:transparent;border:1px solid var(--line);color:var(--dim);border-radius:8px;width:38px;height:38px;cursor:pointer;font-size:1.1rem;margin-top:22px}
+  .exrow .x:hover{border-color:var(--bad);color:var(--bad)}
+  @media(max-width:680px){.exrow{grid-template-columns:1fr}.exrow .x{margin-top:0;width:100%}}
+  pre.code{background:#08070b;border:1px solid var(--line);border-radius:10px;padding:14px 16px;overflow-x:auto;font-family:var(--mono);font-size:.84rem;color:#d7d1e2;white-space:pre;line-height:1.5}
+  .cmd{background:#08070b;border:1px solid var(--line);border-left:3px solid var(--forge);border-radius:8px;padding:11px 14px;font-family:var(--mono);font-size:.86rem;color:var(--cream);overflow-x:auto;margin:8px 0}
+  .pill{display:inline-block;font-family:var(--mono);font-size:.74rem;letter-spacing:.05em;padding:3px 10px;border-radius:999px;border:1px solid var(--line)}
+  .pill.good{color:var(--good);border-color:rgba(86,184,119,.5);background:rgba(86,184,119,.08)}
+  .pill.bad{color:var(--bad);border-color:rgba(224,106,95,.5);background:rgba(224,106,95,.08)}
+  .pill.brass{color:var(--brass);border-color:rgba(217,164,65,.5);background:rgba(217,164,65,.08)}
+  .muted{color:var(--dim)}
+  .fingerprint{font-family:var(--mono);font-size:.8rem;color:var(--brass);word-break:break-all}
+  .hidden{display:none}
+  .note{font-size:.86rem;color:var(--dim);border-left:2px solid var(--line);padding-left:12px;margin-top:14px}
+  .steps{counter-reset:step;list-style:none;padding:0;margin:18px 0 0}
+  .steps li{counter-increment:step;position:relative;padding:0 0 18px 46px;min-height:34px}
+  .steps li::before{content:counter(step);position:absolute;left:0;top:0;width:32px;height:32px;border-radius:50%;background:var(--panel2);border:1px solid var(--forge);color:var(--forge);font-family:var(--serif);display:flex;align-items:center;justify-content:center}
+  .steps li b{color:var(--cream)}
+  .price{display:flex;flex-direction:column;height:100%}
+  .price .amt{font-family:var(--serif);font-size:2rem;color:var(--cream);margin:6px 0}
+  .price ul{list-style:none;padding:0;margin:14px 0;flex:1}
+  .price li{padding:6px 0 6px 22px;position:relative;font-size:.94rem}
+  .price li::before{content:'◊';position:absolute;left:0;color:var(--forge)}
+  .price.feature{border-color:var(--forge);box-shadow:0 0 0 1px rgba(224,123,62,.25)}
+  details.faq{border-bottom:1px solid var(--line);padding:16px 0}
+  details.faq summary{cursor:pointer;font-family:var(--serif);font-size:1.08rem;color:var(--cream);list-style:none}
+  details.faq summary::-webkit-details-marker{display:none}
+  details.faq summary::before{content:'+';color:var(--forge);margin-right:12px;font-family:var(--mono)}
+  details.faq[open] summary::before{content:'–'}
+  details.faq p{color:var(--dim);margin:12px 0 0}
+  .kv{display:flex;gap:10px;flex-wrap:wrap;font-size:.9rem;margin:4px 0}
+  .kv b{color:var(--cream)}
+  footer{padding:40px 0;color:var(--dim);font-size:.88rem}
+  .calc-out{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-top:16px}
+  @media(max-width:560px){.calc-out{grid-template-columns:1fr}}
+  .stat{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:12px 14px}
+  .stat .n{font-family:var(--serif);font-size:1.5rem;color:var(--cream)}
+  .stat .l{font-size:.76rem;color:var(--dim);text-transform:uppercase;letter-spacing:.05em}
+  .progress{height:8px;background:var(--panel2);border-radius:999px;overflow:hidden;border:1px solid var(--line)}
+  .progress > i{display:block;height:100%;width:0;background:var(--forge);transition:width .2s}
+  .live-out{background:#08070b;border:1px solid var(--line);border-radius:10px;padding:14px 16px;min-height:52px;font-family:var(--mono);font-size:.9rem;color:var(--cream);white-space:pre-wrap}
+</style>
+</head>
+<body>
+<header class="site"><div class="wrap">
+  <span class="brand"><span class="glyph">◊</span> FallForge Mint <span class="co">AI-Native Solutions</span></span>
+  <nav class="top">
+    <a href="#mint">Mint one</a>
+    <a href="#verify">Proof</a>
+    <a href="#calc">Own vs rent</a>
+    <a href="#pricing">Pricing</a>
+    <a href="#how">How</a>
+    <a href="#faq">FAQ</a>
+  </nav>
+</div></header>
+
+<main>
+<!-- HERO -->
+<section class="hero"><div class="wrap">
+  <div class="eyebrow">◊ Own the model · don't rent it</div>
+  <h1>Bring one job you do a lot.<br /><span class="em">Walk out owning the model that does it.</span></h1>
+  <p class="lede">You are renting a giant AI model by the token to do a small, repetitive job. FallForge Mint turns a few of your own examples into a <b>private model that does just that job</b> — one you own, run on your own machine, and never pay per use again. Try it free below. Nothing to sign up for. Your examples never leave your browser.</p>
+  <div class="cta-row">
+    <a class="btn forge" href="#mint">Mint my model — free →</a>
+    <a class="btn ghost" href="#verify">See the proof it's real</a>
+  </div>
+  <p class="note">Honest about what this is: your model is <b>specialised</b> — excellent at the one job you give it, not a general chatbot. That's the point, and it's why it can be small, private and cheap.</p>
+</div></section>
+
+<!-- THE WORKING MINT -->
+<section id="mint"><div class="wrap">
+  <div class="eyebrow">The 60-second mint</div>
+  <h2 class="sec">Tell it the job. Show it a few examples. Get your model.</h2>
+  <p class="sub">Type what you want the model to do, then paste a handful of real examples of the job done right. Press the button and you'll get a real model recipe you can run on your own computer. Everything happens in your browser.</p>
+
+  <div class="card" style="margin-top:22px">
+    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px">
+      <label class="fld" for="task" style="margin:0">1 · What should your model do?</label>
+      <button class="btn ghost" id="sampleBtn" style="padding:7px 14px;font-size:.85rem">Load a worked example</button>
+    </div>
+    <textarea id="task" placeholder="e.g. Read a customer support message and reply with only a JSON object giving its category and how urgent it is."></textarea>
+
+    <label class="fld" style="margin-top:20px">2 · Show it a few examples (an input, and the correct answer)</label>
+    <div id="examples"></div>
+    <button class="btn ghost" id="addEx" style="padding:8px 16px;font-size:.88rem">+ Add another example</button>
+
+    <label class="fld" style="margin-top:20px" for="base">3 · Which base model to build on? <span style="text-transform:none;letter-spacing:0">(leave as-is if unsure)</span></label>
+    <input type="text" id="base" value="llama3.2:1b" spellcheck="false" />
+
+    <div class="cta-row" style="margin-top:22px">
+      <button class="btn forge" id="mintBtn">◊ Mint my model</button>
+      <button class="btn ghost" id="liveBtn">▸ Try it live in my browser first</button>
+    </div>
+    <p id="mintErr" class="pill bad hidden" style="margin-top:16px"></p>
+  </div>
+
+  <!-- live preview -->
+  <div id="liveWrap" class="card hidden" style="margin-top:16px">
+    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px">
+      <h3 style="font-size:1.15rem">Live preview — a small model, running in your browser</h3>
+      <span class="pill brass">private · on your device</span>
+    </div>
+    <p class="muted" style="font-size:.9rem;margin-top:8px">This downloads a tiny model once (about 400&nbsp;MB, cached after) and runs it right here — nothing is sent anywhere. It uses your task and examples above to answer the test input below. Your owned model can be bigger; this just proves the idea works before you install anything.</p>
+    <div id="liveProgress" class="progress hidden" style="margin:12px 0"><i></i></div>
+    <div id="liveProgressTxt" class="muted" style="font-size:.82rem"></div>
+    <label class="fld" style="margin-top:12px" for="liveIn">A test input to try</label>
+    <textarea id="liveIn" placeholder="Paste one new input to see how your model would answer it."></textarea>
+    <div class="cta-row" style="margin-top:12px">
+      <button class="btn brass" id="liveRun">Run it</button>
+    </div>
+    <label class="fld" style="margin-top:14px">The model's answer</label>
+    <div id="liveOut" class="live-out muted">(the answer will appear here)</div>
+  </div>
+
+  <!-- mint result -->
+  <div id="mintOut" class="card hidden" style="margin-top:16px;border-color:var(--forge)">
+    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px">
+      <h3 style="font-size:1.25rem;color:var(--cream)">◊ Your model recipe is ready</h3>
+      <span class="pill good">built in your browser</span>
+    </div>
+    <p class="kv" style="margin-top:10px">Fingerprint (a unique ID for these exact bytes): <span class="fingerprint" id="fp"></span></p>
+    <label class="fld" style="margin-top:14px">Your Modelfile — the recipe that becomes your private model</label>
+    <pre class="code" id="modelfile"></pre>
+    <div class="cta-row">
+      <button class="btn forge" id="dlBtn">⤓ Download Modelfile</button>
+      <button class="btn ghost" id="copyBtn">Copy the recipe</button>
+    </div>
+
+    <h3 style="font-size:1.1rem;margin-top:26px;color:var(--cream)">Now make it yours — three simple steps</h3>
+    <ol class="steps" style="margin-top:14px">
+      <li><b>Install the free app.</b> Go to <span class="fingerprint" style="color:var(--forge)">ollama.com</span> in your browser and download Ollama (Mac, Windows or Linux). It's free and takes a minute.</li>
+      <li><b>Save the file.</b> Press “Download Modelfile” above. It saves a file called <b>Modelfile</b> to your computer.</li>
+      <li><b>Paste two lines.</b> Open the Terminal app, go to where the file saved, and paste these two lines — one at a time:
+        <div class="cmd" id="cmd1">ollama create my-model -f Modelfile</div>
+        <div class="cmd" id="cmd2">ollama run my-model</div>
+        That's it — you now own a private model that does your job, running on your own machine, with no bill.
+      </li>
+    </ol>
+    <p class="note">Want us to do all of this for you, and prove the model beats its starting point with a signed receipt before you pay a penny? That's the <a href="#pricing">done-for-you tier</a>.</p>
+  </div>
+</div></section>
+
+<!-- VERIFY -->
+<section id="verify"><div class="wrap">
+  <div class="eyebrow">Proof, not promises</div>
+  <h2 class="sec">Don't trust us — check the maths yourself.</h2>
+  <p class="sub">When we mint a model for you, the result comes with a signed receipt that carries its own proof. Here's a real one from a model we minted, called <b>review-1b</b>. Press the buttons — the check runs in your browser, on the real signed record below.</p>
+
+  <div class="card" style="margin-top:22px">
+    <div class="grid g3">
+      <div class="stat"><div class="n" id="vNode">review-1b</div><div class="l">the minted model</div></div>
+      <div class="stat"><div class="n" style="color:var(--good)">BEATS +31pts</div><div class="l">vs its own starting model, certified</div></div>
+      <div class="stat"><div class="n" style="color:var(--bad)">LOSES</div><div class="l">vs a model 7× its size — shown honestly</div></div>
+    </div>
+    <p class="muted" style="font-size:.9rem;margin-top:14px">That second line is the point: the receipt is allowed to say the model <b>lost</b>. A measurement you can't fail isn't a measurement. Renting a black box gives you no receipt at all.</p>
+
+    <div class="cta-row" style="margin-top:18px">
+      <button class="btn forge" id="checkBtn">Re-check the proof</button>
+      <button class="btn ghost" id="tamperBtn">Now tamper with one byte</button>
+      <button class="btn ghost" id="resetBtn">Reset</button>
+    </div>
+    <p id="verifyOut" class="pill" style="margin-top:16px;display:none"></p>
+    <label class="fld" style="margin-top:16px">The signed record being checked</label>
+    <pre class="code" id="manifestView" style="max-height:220px"></pre>
+  </div>
+</div></section>
+
+<!-- OWN VS RENT CALCULATOR -->
+<section id="calc"><div class="wrap">
+  <div class="eyebrow">Your real numbers</div>
+  <h2 class="sec">Own vs rent — see which actually wins for you.</h2>
+  <p class="sub">Owning isn't always cheaper, and we won't pretend it is. Put your real numbers in and this tells you the truth — including when you should just keep renting.</p>
+
+  <div class="card grid" style="margin-top:22px;grid-template-columns:1fr 1fr;gap:22px">
+    <div>
+      <label class="fld" for="c_calls">How many times a month do you run this task?</label>
+      <input type="number" id="c_calls" value="500000" min="1" />
+      <label class="fld" style="margin-top:14px" for="c_tokens">Roughly how many tokens per run? (a token ≈ ¾ of a word, in + out)</label>
+      <input type="number" id="c_tokens" value="800" min="1" />
+      <label class="fld" style="margin-top:14px" for="c_rent">What you pay the rented model, £ per million tokens</label>
+      <input type="number" id="c_rent" value="4" min="0" step="0.5" />
+      <label class="fld" style="margin-top:14px" for="c_fee">One-off fee to mint your own node, £</label>
+      <input type="number" id="c_fee" value="2500" min="0" step="100" />
+      <label class="fld" style="margin-top:14px" for="c_run">Cost to run your own node, £ per month</label>
+      <input type="number" id="c_run" value="60" min="0" step="10" />
+    </div>
+    <div>
+      <div id="verdictBadge" class="pill brass" style="font-size:.9rem">—</div>
+      <div class="calc-out">
+        <div class="stat"><div class="n" id="o_rentmo">—</div><div class="l">renting, per month</div></div>
+        <div class="stat"><div class="n" id="o_rentyr">—</div><div class="l">renting, per year</div></div>
+        <div class="stat"><div class="n" id="o_own1">—</div><div class="l">owning, year one (fee + running)</div></div>
+        <div class="stat"><div class="n" id="o_save">—</div><div class="l">saved in year one</div></div>
+        <div class="stat"><div class="n" id="o_be">—</div><div class="l">months to pay back the fee</div></div>
+        <div class="stat"><div class="n" id="o_tok">—</div><div class="l">tokens a month</div></div>
+      </div>
+      <p id="calcMsg" class="note"></p>
+    </div>
+  </div>
+</div></section>
+
+<!-- PRICING -->
+<section id="pricing"><div class="wrap">
+  <div class="eyebrow">Pricing</div>
+  <h2 class="sec">Start free. Pay only when it's proven to win.</h2>
+  <p class="sub">You can build and own a model here for nothing. The paid tiers are for when you'd rather we did the work — and proved it — for you.</p>
+  <div class="grid g3" style="margin-top:22px">
+    <div class="card price">
+      <span class="pill">Do it yourself</span>
+      <div class="amt">Free</div>
+      <p class="muted" style="font-size:.9rem">Everything on this page, forever.</p>
+      <ul>
+        <li>Build your Modelfile above</li>
+        <li>Preview it live in your browser</li>
+        <li>Download it and own it outright</li>
+        <li>No account, no per-token bill</li>
+      </ul>
+      <a class="btn ghost" href="#mint">Mint one now</a>
+    </div>
+    <div class="card price feature">
+      <span class="pill brass">Done for you</span>
+      <div class="amt">Fixed fee</div>
+      <p class="muted" style="font-size:.9rem">Quoted up front, by the task. You only pay if the receipt says it beats your baseline.</p>
+      <ul>
+        <li>We mint, tune and prove one owned node</li>
+        <li>Weight-level tuning where it helps</li>
+        <li>A signed receipt — the proof it works</li>
+        <li>Set up private on your machine</li>
+        <li>You own it outright, no per-token bill</li>
+      </ul>
+      <a class="btn forge" href="#contact">Ask for a quote</a>
+    </div>
+    <div class="card price">
+      <span class="pill">Run it for you</span>
+      <div class="amt">Monthly</div>
+      <p class="muted" style="font-size:.9rem">We keep it sharp as your work changes.</p>
+      <ul>
+        <li>We host, watch and re-mint your nodes</li>
+        <li>Add new nodes as new jobs appear</li>
+        <li>Nodes that cross-check each other</li>
+        <li>Your own private AI stack, maintained</li>
+      </ul>
+      <a class="btn ghost" href="#contact">Talk to us</a>
+    </div>
+  </div>
+  <p class="note">Not on the menu: anything regulated — legal advice, tax, medical or financial products. Those need proper professional sign-off first, and we won't pretend otherwise. This is for the everyday, high-volume, unregulated work you're overpaying to rent.</p>
+</div></section>
+
+<!-- HOW (plain english) -->
+<section id="how"><div class="wrap">
+  <div class="eyebrow">In plain English</div>
+  <h2 class="sec">What's actually happening here.</h2>
+  <p class="sub">No jargon. Here is the whole journey, start to finish.</p>
+  <ol class="steps" style="margin-top:20px;max-width:70ch">
+    <li><b>You describe one job.</b> Something you currently ask a big AI to do over and over — sorting messages, pulling facts out of text, tagging things, drafting the same kind of reply.</li>
+    <li><b>You show it a few examples.</b> Three to eight is plenty. Each one is an input and the answer you'd want back. This is how the model learns your exact style.</li>
+    <li><b>Your browser builds a recipe.</b> Right here, with nothing sent anywhere, it writes a <b>Modelfile</b> — a short, plain recipe that bakes your job and your examples into a small model.</li>
+    <li><b>You run two lines to make it yours.</b> You install a free app called Ollama, and paste the two lines we give you. Now a private model that does your job lives on your own computer.</li>
+    <li><b>It's yours, and it's private.</b> No monthly bill, no per-use charge, no data leaving your machine. It keeps working with the internet switched off.</li>
+    <li><b>If you'd rather not touch any of that</b>, we'll do it for you and prove the result beats your starting point with a signed receipt — and you only pay if it does.</li>
+  </ol>
+</div></section>
+
+<!-- FAQ -->
+<section id="faq"><div class="wrap">
+  <div class="eyebrow">Questions</div>
+  <h2 class="sec">The things people ask.</h2>
+  <div style="margin-top:20px">
+    <details class="faq" open><summary>Do I really own the model?</summary><p>Yes. The mint produces a Modelfile — a plain text recipe — that you run on your own machine with a free tool called Ollama. The resulting model lives on your computer. There's no account, no per-token bill, and it keeps working with your internet off.</p></details>
+    <details class="faq"><summary>Do I need to be technical?</summary><p>No. You paste your task and a few examples and press one button. To run the model yourself you install a free app and paste two lines we give you, step by step. If you'd rather not, our done-for-you tier sets it up for you.</p></details>
+    <details class="faq"><summary>Is my data safe?</summary><p>Yes. Everything on this page runs inside your own browser. Your task and examples are never sent to us or anyone else. The model you build runs on your machine.</p></details>
+    <details class="faq"><summary>What's the catch with owning instead of renting?</summary><p>A small owned model is cheaper and private, but it's specialised — brilliant at the one job you trained it on, not a general chatbot. For a narrow, repetitive, high-volume task that's exactly what you want. The calculator above shows, honestly, when renting is actually the better deal.</p></details>
+    <details class="faq"><summary>How do I know it's any good?</summary><p>Every minted node is measured against its starting point by a deterministic gate, and the result is written into a signed receipt that can — and sometimes does — say it lost. You can re-check that proof yourself in your browser, in the Proof section above. Nobody renting you a black box can offer that.</p></details>
+    <details class="faq"><summary>What does it cost?</summary><p>Building and downloading your Modelfile here is free — you own it. A done-for-you node, minted and proven for you, is a fixed fee quoted before any work, and you only pay if the receipt says it beats your baseline. Running it for you is a monthly retainer.</p></details>
+  </div>
+</div></section>
+
+<!-- CONTACT -->
+<section id="contact"><div class="wrap">
+  <div class="eyebrow">Bring me one task</div>
+  <h2 class="sec">One job you do a lot. I'll mint you a proof node, free.</h2>
+  <p class="sub">Tell me the repetitive thing you feed an AI most. I'll build you an owned model for it and send you the signed receipt. If it's good, we talk. If it isn't, you've lost nothing and I'll say so plainly.</p>
+  <div class="cta-row" style="margin-top:22px">
+    <a class="btn forge" id="mailBtn" href="mailto:sjgant80@gmail.com?subject=Mint%20me%20a%20proof%20node&body=Here's%20the%20repetitive%20task%20I%20want%20a%20model%20for%3A%0A%0A(a%20few%20example%20inputs%20and%20the%20correct%20answers%20help%20most)">📩 Email me one task</a>
+    <a class="btn ghost" href="#mint">Or just mint one yourself</a>
+  </div>
+</div></section>
+</main>
+
+<footer><div class="wrap">
+  <span class="glyph">◊</span> <b style="color:var(--cream)">FallForge Mint</b> · own the model, don't rent it · by AI-Native Solutions · everything runs in your browser · MIT · ◊·κ=1
+</div></footer>
+
+<script type="module">
+// ⟦KERNEL-BEGIN⟧ generated from kernel.mjs by make-page.mjs — do not edit here
+// FallForge Mint — the minting pipeline's pure core. Layer 2 of the sovereign-node factory:
+// a limb model writes a SPEC (system prompt + few-shot exemplars), this kernel assembles it
+// deterministically into a Modelfile, the minted node is gated by fallforge-gate against its
+// own raw base, and the whole mint is sealed into a signable manifest. v1 mints PROMPT-TUNED
+// nodes (Modelfile-level — owned, private, reproducible); weight-level LoRA is v2 and lands
+// in these same stages. A node is MINTED only on a certified BEATS receipt — the pipeline
+// cannot declare success, it can only measure it.
+// No I/O here. Pure and total: garbage in → { ok:false, why }, never a throw.
+
+const MAX_SYSTEM = 4000;      // a spec is a distillation, not a dataset dump
+const MAX_FEWSHOT = 8;
+const MAX_MSG = 2000;
+const MAX_ROUNDS = 5;         // refinement is bounded — a mint that needs more is a bad spec
+const TEMP_MIN = 0, TEMP_MAX = 1;
+const PREDICT_MIN = 16, PREDICT_MAX = 1024;
+
+const isStr = (v) => typeof v === 'string';
+const isNum = (v) => typeof v === 'number' && Number.isFinite(v);
+const isInt = (v) => Number.isInteger(v);
+const isObj = (v) => typeof v === 'object' && v !== null && !Array.isArray(v);
+const HEX = /^[0-9a-f]+$/;
+
+// ── SHA-256 + canonical JSON (the same proven pair the gate runs on) ────────────────────────────
+const K256 = new Uint32Array([
+  0x428a2f98, 0x71374491, 0xb5c0fbcf, 0xe9b5dba5, 0x3956c25b, 0x59f111f1, 0x923f82a4, 0xab1c5ed5,
+  0xd807aa98, 0x12835b01, 0x243185be, 0x550c7dc3, 0x72be5d74, 0x80deb1fe, 0x9bdc06a7, 0xc19bf174,
+  0xe49b69c1, 0xefbe4786, 0x0fc19dc6, 0x240ca1cc, 0x2de92c6f, 0x4a7484aa, 0x5cb0a9dc, 0x76f988da,
+  0x983e5152, 0xa831c66d, 0xb00327c8, 0xbf597fc7, 0xc6e00bf3, 0xd5a79147, 0x06ca6351, 0x14292967,
+  0x27b70a85, 0x2e1b2138, 0x4d2c6dfc, 0x53380d13, 0x650a7354, 0x766a0abb, 0x81c2c92e, 0x92722c85,
+  0xa2bfe8a1, 0xa81a664b, 0xc24b8b70, 0xc76c51a3, 0xd192e819, 0xd6990624, 0xf40e3585, 0x106aa070,
+  0x19a4c116, 0x1e376c08, 0x2748774c, 0x34b0bcb5, 0x391c0cb3, 0x4ed8aa4a, 0x5b9cca4f, 0x682e6ff3,
+  0x748f82ee, 0x78a5636f, 0x84c87814, 0x8cc70208, 0x90befffa, 0xa4506ceb, 0xbef9a3f7, 0xc67178f2,
+]);
+
+function sha256(text) {
+  if (!isStr(text)) return { ok: false, why: 'sha256 takes a string' };
+  const data = new TextEncoder().encode(text);
+  const len = data.length;
+  const padded = new Uint8Array((((len + 8) >> 6) << 6) + 64);
+  padded.set(data);
+  padded[len] = 0x80;
+  const dv = new DataView(padded.buffer);
+  const bitLen = len * 8;
+  dv.setUint32(padded.length - 8, Math.floor(bitLen / 4294967296));
+  dv.setUint32(padded.length - 4, bitLen >>> 0);
+  let h0 = 0x6a09e667, h1 = 0xbb67ae85, h2 = 0x3c6ef372, h3 = 0xa54ff53a;
+  let h4 = 0x510e527f, h5 = 0x9b05688c, h6 = 0x1f83d9ab, h7 = 0x5be0cd19;
+  const w = new Uint32Array(64);
+  for (let i = 0; i < padded.length; i += 64) {
+    for (let t = 0; t < 16; t++) w[t] = dv.getUint32(i + t * 4);
+    for (let t = 16; t < 64; t++) {
+      const x = w[t - 15], y = w[t - 2];
+      const s0 = (((x >>> 7) | (x << 25)) ^ ((x >>> 18) | (x << 14)) ^ (x >>> 3)) >>> 0;
+      const s1 = (((y >>> 17) | (y << 15)) ^ ((y >>> 19) | (y << 13)) ^ (y >>> 10)) >>> 0;
+      w[t] = (w[t - 16] + s0 + w[t - 7] + s1) >>> 0;
+    }
+    let a = h0, b = h1, c = h2, d = h3, e = h4, f = h5, g = h6, hh = h7;
+    for (let t = 0; t < 64; t++) {
+      const S1 = (((e >>> 6) | (e << 26)) ^ ((e >>> 11) | (e << 21)) ^ ((e >>> 25) | (e << 7))) >>> 0;
+      const ch = ((e & f) ^ (~e & g)) >>> 0;
+      const t1 = (hh + S1 + ch + K256[t] + w[t]) >>> 0;
+      const S0 = (((a >>> 2) | (a << 30)) ^ ((a >>> 13) | (a << 19)) ^ ((a >>> 22) | (a << 10))) >>> 0;
+      const maj = ((a & b) ^ (a & c) ^ (b & c)) >>> 0;
+      const t2 = (S0 + maj) >>> 0;
+      hh = g; g = f; f = e; e = (d + t1) >>> 0; d = c; c = b; b = a; a = (t1 + t2) >>> 0;
+    }
+    h0 = (h0 + a) >>> 0; h1 = (h1 + b) >>> 0; h2 = (h2 + c) >>> 0; h3 = (h3 + d) >>> 0;
+    h4 = (h4 + e) >>> 0; h5 = (h5 + f) >>> 0; h6 = (h6 + g) >>> 0; h7 = (h7 + hh) >>> 0;
+  }
+  const hex = (n) => n.toString(16).padStart(8, '0');
+  return { ok: true, hash: hex(h0) + hex(h1) + hex(h2) + hex(h3) + hex(h4) + hex(h5) + hex(h6) + hex(h7) };
+}
+
+function canon(v) {
+  if (v === null || typeof v === 'number' || typeof v === 'boolean') return JSON.stringify(v);
+  if (typeof v === 'string') return JSON.stringify(v);
+  if (Array.isArray(v)) return '[' + v.map(canon).join(',') + ']';
+  if (typeof v === 'object') return '{' + Object.keys(v).sort().map((k) => JSON.stringify(k) + ':' + canon(v[k])).join(',') + '}';
+  return '"?"';
+}
+
+// ── the spec: what the limb writes, bounded and clean ───────────────────────────────────────────
+const FENCE = '"""';
+
+function validSpec(spec) {
+  if (!isObj(spec)) return { ok: false, why: 'a spec is an object' };
+  if (!isStr(spec.system) || spec.system.trim().length === 0) return { ok: false, why: 'a spec needs a non-empty system prompt' };
+  if (spec.system.length > MAX_SYSTEM) return { ok: false, why: 'system prompt exceeds ' + MAX_SYSTEM + ' characters — a spec is a distillation, not a dump' };
+  if (spec.system.includes(FENCE)) return { ok: false, why: 'system prompt may not contain a triple-quote fence' };
+  if (!Array.isArray(spec.fewshot)) return { ok: false, why: 'fewshot must be an array (it may be empty)' };
+  if (spec.fewshot.length > MAX_FEWSHOT) return { ok: false, why: 'more than ' + MAX_FEWSHOT + ' few-shot exemplars — trim the spec' };
+  for (const [i, m] of spec.fewshot.entries()) {
+    if (!isObj(m) || !isStr(m.user) || !isStr(m.assistant)) return { ok: false, why: 'fewshot ' + i + ' must be { user, assistant } strings' };
+    if (m.user.trim().length === 0 || m.assistant.trim().length === 0) return { ok: false, why: 'fewshot ' + i + ' has an empty side' };
+    if (m.user.length > MAX_MSG || m.assistant.length > MAX_MSG) return { ok: false, why: 'fewshot ' + i + ' exceeds ' + MAX_MSG + ' characters' };
+    if (m.user.includes(FENCE) || m.assistant.includes(FENCE)) return { ok: false, why: 'fewshot ' + i + ' may not contain a triple-quote fence' };
+  }
+  if (!isObj(spec.params)) return { ok: false, why: 'a spec needs params' };
+  if (!isNum(spec.params.temperature) || spec.params.temperature < TEMP_MIN || spec.params.temperature > TEMP_MAX) return { ok: false, why: 'temperature must be within ' + TEMP_MIN + '..' + TEMP_MAX };
+  if (!isInt(spec.params.num_predict) || spec.params.num_predict < PREDICT_MIN || spec.params.num_predict > PREDICT_MAX) return { ok: false, why: 'num_predict must be an integer within ' + PREDICT_MIN + '..' + PREDICT_MAX };
+  return { ok: true };
+}
+
+/** assembleModelfile(base, spec) — the deterministic mint: same spec, same bytes, every time. */
+function assembleModelfile(base, spec) {
+  if (!isStr(base) || base.trim().length === 0) return { ok: false, why: 'a mint needs a base model name' };
+  if (/\s/.test(base)) return { ok: false, why: 'a base model name may not contain whitespace' };
+  const v = validSpec(spec);
+  if (!v.ok) return v;
+  const lines = [
+    'FROM ' + base,
+    'PARAMETER temperature ' + spec.params.temperature,
+    'PARAMETER num_predict ' + spec.params.num_predict,
+    'SYSTEM ' + FENCE + spec.system + FENCE,
+  ];
+  for (const m of spec.fewshot) {
+    lines.push('MESSAGE user ' + FENCE + m.user + FENCE);
+    lines.push('MESSAGE assistant ' + FENCE + m.assistant + FENCE);
+  }
+  return { ok: true, modelfile: lines.join('\n') + '\n' };
+}
+
+// ── the mint verdict: only a certified BEATS receipt mints a node ───────────────────────────────
+function mintVerdict(receipt) {
+  if (!isObj(receipt)) return { ok: false, why: 'mintVerdict takes a receipt' };
+  if (receipt.kind !== 'fallforge-gate-receipt') return { ok: false, why: 'not a fallforge-gate receipt' };
+  if (!isStr(receipt.verdict)) return { ok: false, why: 'the receipt has no verdict' };
+  if (receipt.verdict !== 'BEATS') return { ok: true, minted: false, why: 'the candidate did not beat its base — verdict ' + receipt.verdict };
+  if (receipt.certified !== true) return { ok: true, minted: false, why: 'the win is not certified — not enough evidence' };
+  return { ok: true, minted: true, why: 'certified BEATS — the mint measurably improved the base' };
+}
+
+// ── own vs rent: the honest economics of owning a node vs renting a frontier model per token ─────
+// Pure and total: garbage in → { ok:false, why }, never a throw. It can, and does, return RENT_WINS
+// — a calculator that could only ever say "own" would be marketing, not a measurement. All money is
+// in whole pounds-per-million-tokens and pounds-per-month; the page formats, the kernel just counts.
+const MONTHS_PER_YEAR = 12;
+
+function ownVsRent(input) {
+  if (!isObj(input)) return { ok: false, why: 'ownVsRent takes an object of numbers' };
+  const { callsPerMonth, tokensPerCall, rentPerMillion, mintFee, runPerMonth } = input;
+  const above0 = (v) => isNum(v) && v > 0;
+  const atLeast0 = (v) => isNum(v) && v >= 0;
+  if (!above0(callsPerMonth)) return { ok: false, why: 'calls per month must be a number above zero' };
+  if (!above0(tokensPerCall)) return { ok: false, why: 'tokens per call must be a number above zero' };
+  if (!above0(rentPerMillion)) return { ok: false, why: 'the rented price per million tokens must be a number above zero' };
+  if (!atLeast0(mintFee)) return { ok: false, why: 'the one-off mint fee must be zero or more' };
+  if (!atLeast0(runPerMonth)) return { ok: false, why: 'the monthly cost to run your own node must be zero or more' };
+
+  const tokensPerMonth = callsPerMonth * tokensPerCall;
+  const rentMonthly = (tokensPerMonth / 1000000) * rentPerMillion;
+  const rentAnnual = rentMonthly * MONTHS_PER_YEAR;
+  const ownedYear1 = mintFee + runPerMonth * MONTHS_PER_YEAR;
+  const monthlySaving = rentMonthly - runPerMonth;
+  const year1Saving = rentAnnual - ownedYear1;
+
+  let verdict, breakEvenMonths;
+  if (monthlySaving <= 0) {
+    breakEvenMonths = null;
+    verdict = 'RENT_WINS';                                   // owning your node costs as much to run as renting — say so
+  } else {
+    breakEvenMonths = mintFee / monthlySaving;
+    verdict = breakEvenMonths <= MONTHS_PER_YEAR ? 'OWN_WINS' : 'OWN_LATER';
+  }
+  return { ok: true, tokensPerMonth, rentMonthly, rentAnnual, ownedYear1, monthlySaving, year1Saving, breakEvenMonths, verdict };
+}
+
+// ── the working mint: turn a plain task + a few worked examples into a real, ownable Modelfile ────
+// This is the sovereign path the live page runs. It distils the visitor's examples into a spec
+// (deterministically — same examples, same spec, same bytes) and assembles the Ollama Modelfile that
+// `ollama create` turns into a private specialist they own. Honest scope: this is prompt-/few-shot-
+// tuned at the Modelfile level — a real, owned, reproducible node, NOT weight fine-tuning (that is the
+// done-for-you tier). Pure and total: bad input → { ok:false, why } a non-technical person can read.
+const MAX_EXAMPLES = MAX_FEWSHOT;
+
+function specFromTask(task, examples, base) {
+  if (!isStr(task) || task.trim().length === 0) return { ok: false, why: 'tell the model what its job is — the task box is empty' };
+  if (task.length > MAX_SYSTEM - 400) return { ok: false, why: 'the task description is too long — keep it under ' + (MAX_SYSTEM - 400) + ' characters, it is an instruction not a manual' };
+  if (task.includes(FENCE)) return { ok: false, why: 'the task may not contain a triple-quote (""") — remove it' };
+  if (!Array.isArray(examples)) return { ok: false, why: 'examples must be a list' };
+  if (examples.length === 0) return { ok: false, why: 'add at least one worked example — one input and the correct answer' };
+  if (examples.length > MAX_EXAMPLES) return { ok: false, why: 'that is more than ' + MAX_EXAMPLES + ' examples — a handful of clear ones works better than many' };
+  const fewshot = [];
+  for (const [i, ex] of examples.entries()) {
+    const n = i + 1;
+    if (!isObj(ex) || !isStr(ex.input) || !isStr(ex.output)) return { ok: false, why: 'example ' + n + ' needs both an input and the correct answer' };
+    if (ex.input.trim().length === 0) return { ok: false, why: 'example ' + n + ' has an empty input' };
+    if (ex.output.trim().length === 0) return { ok: false, why: 'example ' + n + ' has an empty answer' };
+    if (ex.input.length > MAX_MSG || ex.output.length > MAX_MSG) return { ok: false, why: 'example ' + n + ' is too long — keep each side under ' + MAX_MSG + ' characters' };
+    if (ex.input.includes(FENCE) || ex.output.includes(FENCE)) return { ok: false, why: 'example ' + n + ' may not contain a triple-quote (""")' };
+    fewshot.push({ user: ex.input, assistant: ex.output });
+  }
+  const system = 'You do one job: ' + task.trim()
+    + '\nFollow the worked examples exactly — match their style, format and level of detail.'
+    + '\nIf you are unsure, give your single best answer in the same shape as the examples. Do not explain yourself unless an example does.';
+  const spec = { system, fewshot, params: { temperature: 0, num_predict: 512 } };
+  const v = validSpec(spec);
+  if (!v.ok) return v;
+  const b = isStr(base) && base.trim().length > 0 ? base.trim() : 'llama3.2:1b';
+  const mf = assembleModelfile(b, spec);
+  if (!mf.ok) return mf;
+  const h = sha256(mf.modelfile);
+  if (!h.ok) return { ok: false, why: h.why };
+  return { ok: true, base: b, spec, modelfile: mf.modelfile, fingerprint: h.hash, exampleCount: fewshot.length };
+}
+
+// ── the manifest: the mint's whole story, canonically hashed, ready for a wallet signature ──────
+function makeManifest(m) {
+  if (!isObj(m)) return { ok: false, why: 'makeManifest takes an object' };
+  for (const f of ['node', 'base', 'limb', 'evalName', 'trainHash', 'modelfile', 'createdAt']) {
+    if (!isStr(m[f]) || m[f].length === 0) return { ok: false, why: 'manifest needs a non-empty ' + f };
+  }
+  if (!isInt(m.rounds) || m.rounds < 1 || m.rounds > MAX_ROUNDS) return { ok: false, why: 'rounds must be an integer within 1..' + MAX_ROUNDS };
+  if (m.trainHash.length !== 64 || !HEX.test(m.trainHash)) return { ok: false, why: 'trainHash must be 64 lowercase hex chars' };
+  if (!Array.isArray(m.receipts) || m.receipts.length === 0) return { ok: false, why: 'a manifest carries at least one receipt reference' };
+  for (const [i, r] of m.receipts.entries()) {
+    if (!isObj(r) || !isStr(r.vs) || r.vs.length === 0) return { ok: false, why: 'receipt ' + i + ' needs a vs model name' };
+    if (!isStr(r.hash) || r.hash.length !== 64 || !HEX.test(r.hash)) return { ok: false, why: 'receipt ' + i + ' needs a 64-hex hash' };
+    if (!isStr(r.verdict) || r.verdict.length === 0) return { ok: false, why: 'receipt ' + i + ' needs a verdict' };
+    if (typeof r.certified !== 'boolean') return { ok: false, why: 'receipt ' + i + ' needs a boolean certified flag' };
+  }
+  const mf = sha256(m.modelfile);
+  if (!mf.ok) return { ok: false, why: mf.why };
+  const body = {
+    v: 1,
+    kind: 'fallforge-mint-manifest',
+    node: m.node, base: m.base, limb: m.limb,
+    tuning: 'prompt-tuned (Modelfile) — weight-level LoRA is v2',
+    rounds: m.rounds,
+    evalName: m.evalName,
+    trainHash: m.trainHash,
+    modelfileHash: mf.hash,
+    receipts: m.receipts.map((r) => ({ vs: r.vs, hash: r.hash, verdict: r.verdict, certified: r.certified })),
+    createdAt: m.createdAt,
+    scope: 'receipts are scoped to their probe sets — a mint is a measurement, never a general claim',
+  };
+  const h = sha256(canon(body));
+  if (!h.ok) return { ok: false, why: h.why };
+  return { ok: true, manifest: { ...body, hash: h.hash } };
+}
+
+/** signable(manifest) — the EXACT bytes a wallet signs: the canonical body, hash included. */
+function signable(manifest) {
+  if (!isObj(manifest) || manifest.kind !== 'fallforge-mint-manifest' || !isStr(manifest.hash)) return { ok: false, why: 'signable takes a fallforge-mint manifest' };
+  const unsigned = { ...manifest };
+  delete unsigned.signature;
+  return { ok: true, payload: canon(unsigned) };
+}
+
+function attachSignature(manifest, pubHex, sigHex) {
+  const s = signable(manifest);
+  if (!s.ok) return s;
+  if (!isStr(pubHex) || pubHex.length < 32 || pubHex.length % 2 !== 0 || !HEX.test(pubHex)) return { ok: false, why: 'public key must be even-length hex, at least 32 chars' };
+  if (!isStr(sigHex) || sigHex.length !== 128 || !HEX.test(sigHex)) return { ok: false, why: 'an Ed25519 signature is 128 hex chars' };
+  return { ok: true, manifest: { ...manifest, signature: { alg: 'Ed25519', pub: pubHex, sig: sigHex } } };
+}
+
+/** verifyManifest(m) — internal consistency: the facts match their own hash. Signature bytes are
+ *  checked at the edge (WebCrypto / node:crypto) over signable(); the kernel pins WHAT is signed. */
+function verifyManifest(m) {
+  if (!isObj(m) || m.kind !== 'fallforge-mint-manifest' || !isStr(m.hash)) return { ok: false, why: 'not a fallforge-mint manifest' };
+  const body = { ...m };
+  delete body.hash;
+  delete body.signature;
+  const h = sha256(canon({ ...body, }));
+  if (!h.ok) return { ok: false, why: h.why };
+  if (h.hash !== m.hash) return { ok: true, valid: false, why: 'hash mismatch — the manifest does not match its own facts' };
+  return { ok: true, valid: true, why: 'manifest intact' };
+}
+// ⟦KERNEL-END⟧
+
+// ── the real signed record for the "verify, don't trust" demo (a genuine mint we shipped) ─────────
+const REAL_MANIFEST = {
+  "v":1,"kind":"fallforge-mint-manifest","node":"review-1b","base":"llama3.2:1b","limb":"qwen2.5:14b",
+  "tuning":"prompt-tuned (Modelfile) — weight-level LoRA is v2","rounds":1,"evalName":"code-review-v1",
+  "trainHash":"f50d2f1ba62a71fb4fb477194f0f0040098e2a9210638a0c040ea5c477870717",
+  "modelfileHash":"69cd0c622467504ead22fdfc148292a34b038d7d21ff0ce298d5c40c1af787b9",
+  "receipts":[
+    {"vs":"llama3.2:1b","hash":"52517cbf310f94124165ea6bd1d31fdb83901696c6aa43aba6ace6a6344f4a74","verdict":"BEATS","certified":true},
+    {"vs":"qwen2.5:7b","hash":"82fa7701ba5319cb2f76b6c54c5d4d8a5c7af28384545fd463d9235eaae7d728","verdict":"LOSES","certified":false}
+  ],
+  "createdAt":"2026-09-14T21:49:02.243Z",
+  "scope":"receipts are scoped to their probe sets — a mint is a measurement, never a general claim",
+  "hash":"41a7c0a902725a4e142410d401328f0ed7ac319ddf6a8456e438291fff87d57a",
+  "signature":{"alg":"Ed25519","pub":"302a300506032b65700321005fdc6d87aaead5ae124f74a837b236646301101483a5789a2e97b10041caa0a6","sig":"a414442dbc35a04f8abb39b5a5997429822d28554425c225bb2ec85ee1533f7bbdbd5d33f9e2f360f37fe04d94fa7ad9cc0178d5367c778092dabe13eeac8309"}
+};
+
+const $ = (id) => document.getElementById(id);
+const esc = (s) => s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+
+// ── the mint UI ──────────────────────────────────────────────────────────────────────────────────
+const SAMPLE = {
+  task: 'Read a customer support message and reply with only a JSON object: its category (refund, delivery, fault, other) and how urgent it is (high, low).',
+  examples: [
+    { input: 'The kettle I ordered arrived smashed, order 8842. I need this sorted today.', output: '{"category":"fault","urgency":"high"}' },
+    { input: 'Hi, just wondering roughly when my parcel might turn up?', output: '{"category":"delivery","urgency":"low"}' },
+    { input: 'Please refund me, the jacket is the wrong size.', output: '{"category":"refund","urgency":"low"}' }
+  ]
+};
+
+function exampleRow(input, output){
+  const div = document.createElement('div');
+  div.className = 'exrow';
+  div.innerHTML =
+    '<div><label class="fld">Input</label><textarea class="ex-in" placeholder="an example input"></textarea></div>'
+    + '<div><label class="fld">Correct answer</label><textarea class="ex-out" placeholder="the answer you want back"></textarea></div>'
+    + '<button class="x" title="remove this example">×</button>';
+  div.querySelector('.ex-in').value = input || '';
+  div.querySelector('.ex-out').value = output || '';
+  div.querySelector('.x').addEventListener('click', () => div.remove());
+  return div;
+}
+function readExamples(){
+  return [...document.querySelectorAll('#examples .exrow')].map((r) => ({
+    input: r.querySelector('.ex-in').value,
+    output: r.querySelector('.ex-out').value,
+  })).filter((e) => e.input.trim() || e.output.trim());
+}
+// start with two blank rows
+$('examples').append(exampleRow('', ''), exampleRow('', ''));
+$('addEx').addEventListener('click', () => {
+  if (document.querySelectorAll('#examples .exrow').length >= MAX_EXAMPLES) return;
+  $('examples').append(exampleRow('', ''));
+});
+$('sampleBtn').addEventListener('click', () => {
+  $('task').value = SAMPLE.task;
+  $('examples').innerHTML = '';
+  SAMPLE.examples.forEach((e) => $('examples').append(exampleRow(e.input, e.output)));
+  $('liveIn').value = 'My order 5501 never arrived and it has been two weeks.';
+});
+
+let lastMint = null;
+function doMint(){
+  const err = $('mintErr');
+  const res = specFromTask($('task').value, readExamples(), $('base').value);
+  if (!res.ok){
+    err.textContent = '⚠ ' + res.why;
+    err.classList.remove('hidden');
+    $('mintOut').classList.add('hidden');
+    return null;
+  }
+  err.classList.add('hidden');
+  lastMint = res;
+  $('fp').textContent = res.fingerprint;
+  $('modelfile').textContent = res.modelfile;
+  const name = 'my-model';
+  $('cmd1').textContent = 'ollama create ' + name + ' -f Modelfile';
+  $('cmd2').textContent = 'ollama run ' + name;
+  $('mintOut').classList.remove('hidden');
+  $('mintOut').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  return res;
+}
+$('mintBtn').addEventListener('click', doMint);
+$('dlBtn').addEventListener('click', () => {
+  if (!lastMint) return;
+  const blob = new Blob([lastMint.modelfile], { type: 'text/plain' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob); a.download = 'Modelfile'; a.click();
+  URL.revokeObjectURL(a.href);
+});
+$('copyBtn').addEventListener('click', async () => {
+  if (!lastMint) return;
+  try { await navigator.clipboard.writeText(lastMint.modelfile); $('copyBtn').textContent = 'Copied ✓'; setTimeout(()=>$('copyBtn').textContent='Copy the recipe',1500); } catch { /* clipboard blocked; the code is visible to select */ }
+});
+
+// ── verify, don't trust ──────────────────────────────────────────────────────────────────────────
+let viewManifest = JSON.parse(JSON.stringify(REAL_MANIFEST));
+function renderManifest(){ $('manifestView').textContent = JSON.stringify(viewManifest, null, 2); }
+function showVerdict(ok, text){
+  const el = $('verifyOut');
+  el.style.display = 'inline-block';
+  el.className = 'pill ' + (ok ? 'good' : 'bad');
+  el.textContent = text;
+}
+renderManifest();
+$('checkBtn').addEventListener('click', () => {
+  const v = verifyManifest(viewManifest);
+  if (v.ok && v.valid) showVerdict(true, '✓ INTACT — the record matches its own signed fingerprint. ' + v.why);
+  else showVerdict(false, '✗ BROKEN — ' + (v.why || 'the record does not match its fingerprint'));
+});
+$('tamperBtn').addEventListener('click', () => {
+  viewManifest = JSON.parse(JSON.stringify(REAL_MANIFEST));
+  viewManifest.receipts[0].verdict = 'BEATS!';   // change one character of the signed facts
+  renderManifest();
+  const v = verifyManifest(viewManifest);
+  showVerdict(false, '✗ CAUGHT — we changed one character (BEATS → BEATS!) and the fingerprint no longer matches. ' + v.why);
+});
+$('resetBtn').addEventListener('click', () => {
+  viewManifest = JSON.parse(JSON.stringify(REAL_MANIFEST));
+  renderManifest();
+  $('verifyOut').style.display = 'none';
+});
+
+// ── own vs rent calculator ─────────────────────────────────────────────────────────────────────
+const gbp = (n) => '£' + Math.round(n).toLocaleString('en-GB');
+const num = (id) => parseFloat($(id).value);
+const VERDICTS = {
+  OWN_WINS: { cls:'good', txt:'OWN IT — pays for itself inside a year' },
+  OWN_LATER: { cls:'brass', txt:'OWN IT EVENTUALLY — pays back after the first year' },
+  RENT_WINS: { cls:'bad', txt:'KEEP RENTING — owning would cost as much or more here' },
+};
+function recalc(){
+  const r = ownVsRent({
+    callsPerMonth: num('c_calls'), tokensPerCall: num('c_tokens'),
+    rentPerMillion: num('c_rent'), mintFee: num('c_fee'), runPerMonth: num('c_run'),
+  });
+  const badge = $('verdictBadge');
+  if (!r.ok){ badge.className = 'pill bad'; badge.textContent = '⚠ ' + r.why; $('calcMsg').textContent=''; return; }
+  const v = VERDICTS[r.verdict];
+  badge.className = 'pill ' + v.cls; badge.textContent = v.txt;
+  $('o_rentmo').textContent = gbp(r.rentMonthly);
+  $('o_rentyr').textContent = gbp(r.rentAnnual);
+  $('o_own1').textContent = gbp(r.ownedYear1);
+  $('o_save').textContent = gbp(r.year1Saving);
+  $('o_be').textContent = r.breakEvenMonths === null ? '—' : (r.breakEvenMonths < 0.1 ? 'instant' : r.breakEvenMonths.toFixed(1));
+  $('o_tok').textContent = (r.tokensPerMonth/1e6).toLocaleString('en-GB',{maximumFractionDigits:0}) + 'M';
+  $('calcMsg').textContent = r.verdict === 'RENT_WINS'
+    ? 'Honest answer: at these numbers, renting is the better deal. Owning shines when your volume is high or the rented price per million is steep.'
+    : 'Owning saves ' + gbp(r.year1Saving) + ' in the first year — and every year after is cheaper still, because the fee is one-off.';
+}
+['c_calls','c_tokens','c_rent','c_fee','c_run'].forEach((id)=>$(id).addEventListener('input', recalc));
+recalc();
+
+// ── live preview (WebLLM · progressive enhancement, nothing to install) ───────────────────────────
+let engine = null, loading = false;
+const LIVE_MODEL = 'Qwen2.5-0.5B-Instruct-q4f16_1-MLC';
+$('liveBtn').addEventListener('click', () => {
+  $('liveWrap').classList.toggle('hidden');
+  if (!$('liveWrap').classList.contains('hidden')) $('liveWrap').scrollIntoView({behavior:'smooth',block:'nearest'});
+});
+$('liveRun').addEventListener('click', runLive);
+async function runLive(){
+  const out = $('liveOut');
+  if (!('gpu' in navigator)){
+    out.className = 'live-out'; out.style.color = 'var(--bad)';
+    out.textContent = 'Your browser can\'t run models locally (it has no WebGPU). This works in a recent Chrome, Edge or Brave on a desktop. You can still build and download your Modelfile above — that\'s the part that makes the model truly yours.';
+    return;
+  }
+  const spec = specFromTask($('task').value, readExamples(), $('base').value);
+  if (!spec.ok){ out.style.color='var(--bad)'; out.textContent = '⚠ ' + spec.why; return; }
+  const testIn = $('liveIn').value.trim();
+  if (!testIn){ out.style.color='var(--bad)'; out.textContent = 'Type a test input above first.'; return; }
+  out.style.color = ''; out.textContent = 'Warming up the model…';
+  try{
+    if (!engine){
+      if (loading) return; loading = true;
+      $('liveProgress').classList.remove('hidden');
+      const webllm = await import('https://esm.run/@mlc-ai/web-llm');
+      engine = await webllm.CreateMLCEngine(LIVE_MODEL, { initProgressCallback: (p) => {
+        $('liveProgressTxt').textContent = p.text || 'loading…';
+        if (typeof p.progress === 'number') $('liveProgress').firstElementChild.style.width = Math.round(p.progress*100) + '%';
+      }});
+      $('liveProgress').classList.add('hidden');
+      loading = false;
+    }
+    const messages = [{ role:'system', content: spec.spec.system }];
+    for (const m of spec.spec.fewshot){ messages.push({role:'user',content:m.user}); messages.push({role:'assistant',content:m.assistant}); }
+    messages.push({ role:'user', content: testIn });
+    out.textContent = '';
+    const stream = await engine.chat.completions.create({ messages, temperature: 0, stream: true });
+    for await (const chunk of stream){
+      const t = chunk.choices?.[0]?.delta?.content || '';
+      out.textContent += t;
+    }
+  }catch(e){
+    loading = false; $('liveProgress').classList.add('hidden');
+    out.style.color = 'var(--bad)';
+    out.textContent = 'Couldn\'t run the live preview here (' + (e && e.message ? e.message : 'model load failed') + '). The Modelfile mint above still works — that\'s the part you own.';
+  }
+}
+</script>
+</body>
+</html>

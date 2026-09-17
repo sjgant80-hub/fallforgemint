@@ -1,0 +1,16 @@
+{
+  "name": "FallForge Mint",
+  "short_name": "FallForge Mint",
+  "description": "Bring one task and a few examples; walk out owning a private small model that does it. Runs in your browser.",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#0b0a0f",
+  "theme_color": "#0b0a0f",
+  "icons": [
+    {
+      "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'%3E%3Crect width='192' height='192' fill='%230b0a0f'/%3E%3Ctext x='96' y='134' font-family='serif' font-size='120' fill='%23e07b3e' text-anchor='middle'%3E%E2%97%8A%3C/text%3E%3C/svg%3E",
+      "sizes": "192x192",
+      "type": "image/svg+xml"
+    }
+  ]
+}

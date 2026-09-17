@@ -1,0 +1,13 @@
+FROM llama3.2:1b
+PARAMETER temperature 0
+PARAMETER num_predict 200
+SYSTEM """Given a code snippet, output a JSON object with two keys: 'severity' and 'category'. 'severity' can be one of 'blocker', 'warning', 'nit', or 'ok'. 'category' can be one of 'bug', 'security', 'style', 'perf', or 'none'. The system should evaluate the code snippet based on potential issues it may have and classify it accordingly. 'blocker' severity is for critical issues that must be fixed before the code can be used. 'warning' is for issues that should be addressed but do not block the code from being used. 'nit' is for minor issues that do not affect functionality but should be improved for readability or maintainability. 'ok' means the code is free of issues. 'none' category is used when there is no specific issue to classify under bug, security, style, or perf."""
+MESSAGE user """const pw = req.query.password;
+db.query(`SELECT * FROM users WHERE pw = '${pw}'`);"""
+MESSAGE assistant """{"severity":"blocker","category":"security"}"""
+MESSAGE user """for (let i = 0; i <= arr.length; i++) { total += arr[i]; }  // off-by-one, reads undefined"""
+MESSAGE assistant """{"severity":"blocker","category":"bug"}"""
+MESSAGE user """apiKey = 'sk-live-4f9a8c2b1e7d';  // hardcoded secret committed"""
+MESSAGE assistant """{"severity":"blocker","category":"security"}"""
+MESSAGE user """const clone = JSON.parse(JSON.stringify(bigObject));  // deep clone of a 40MB object per request"""
+MESSAGE assistant """{"severity":"warning","category":"perf"}"""

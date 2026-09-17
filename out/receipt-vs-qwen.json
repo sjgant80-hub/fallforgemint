@@ -1,0 +1,25 @@
+{
+  "v": 1,
+  "kind": "fallforge-gate-receipt",
+  "task": "code-review-v1",
+  "probes": 16,
+  "candidate": {
+    "model": "review-1b",
+    "passed": 9,
+    "passRate": 0.5625,
+    "meanMs": 3235
+  },
+  "baseline": {
+    "model": "qwen2.5:7b",
+    "passed": 11,
+    "passRate": 0.6875,
+    "meanMs": 7003
+  },
+  "passDelta": -0.125,
+  "speedX": 2.17,
+  "verdict": "LOSES",
+  "certified": false,
+  "scoredAt": "2026-09-14T21:49:02.243Z",
+  "scope": "this probe set only — a receipt is a measurement, never a general claim",
+  "hash": "82fa7701ba5319cb2f76b6c54c5d4d8a5c7af28384545fd463d9235eaae7d728"
+}

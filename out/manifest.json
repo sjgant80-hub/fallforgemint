@@ -1,0 +1,34 @@
+{
+  "v": 1,
+  "kind": "fallforge-mint-manifest",
+  "node": "review-1b",
+  "base": "llama3.2:1b",
+  "limb": "qwen2.5:14b",
+  "tuning": "prompt-tuned (Modelfile) — weight-level LoRA is v2",
+  "rounds": 1,
+  "evalName": "code-review-v1",
+  "trainHash": "f50d2f1ba62a71fb4fb477194f0f0040098e2a9210638a0c040ea5c477870717",
+  "modelfileHash": "69cd0c622467504ead22fdfc148292a34b038d7d21ff0ce298d5c40c1af787b9",
+  "receipts": [
+    {
+      "vs": "llama3.2:1b",
+      "hash": "52517cbf310f94124165ea6bd1d31fdb83901696c6aa43aba6ace6a6344f4a74",
+      "verdict": "BEATS",
+      "certified": true
+    },
+    {
+      "vs": "qwen2.5:7b",
+      "hash": "82fa7701ba5319cb2f76b6c54c5d4d8a5c7af28384545fd463d9235eaae7d728",
+      "verdict": "LOSES",
+      "certified": false
+    }
+  ],
+  "createdAt": "2026-09-14T21:49:02.243Z",
+  "scope": "receipts are scoped to their probe sets — a mint is a measurement, never a general claim",
+  "hash": "41a7c0a902725a4e142410d401328f0ed7ac319ddf6a8456e438291fff87d57a",
+  "signature": {
+    "alg": "Ed25519",
+    "pub": "302a300506032b65700321005fdc6d87aaead5ae124f74a837b236646301101483a5789a2e97b10041caa0a6",
+    "sig": "a414442dbc35a04f8abb39b5a5997429822d28554425c225bb2ec85ee1533f7bbdbd5d33f9e2f360f37fe04d94fa7ad9cc0178d5367c778092dabe13eeac8309"
+  }
+}
