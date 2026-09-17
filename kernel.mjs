@@ -385,6 +385,66 @@ export function pickBest(rounds) {
   return { ok: true, index: best, score: rounds[best].score };
 }
 
+// ── the downloadable scorecard receipt: a tamper-evident record of the buyer's OWN measurement ────
+// Binds the exact model (fingerprint), the task (hash), the held-out test (evidence hash) and the
+// scores into one canonical, self-hashed bundle — like the mint manifest, so the same "re-hash to
+// check" proof works. HONEST SCOPE: self-issued, measured in the holder's own browser on their own
+// examples. It is tamper-evident, NOT a certification by the estate — the done-for-you tier issues an
+// issuer-signed receipt. An optional Ed25519 signature is attached at the edge (WebCrypto).
+
+const VERDICTS = ['BEATS', 'LOSES', 'TIES'];
+
+export function scorecardReceipt(input) {
+  if (!isObj(input)) return { ok: false, why: 'scorecardReceipt takes an object' };
+  const { base, modelFingerprint, taskHash, evidenceHash, sc, createdAt } = input;
+  if (!isStr(base) || base.trim().length === 0) return { ok: false, why: 'the receipt needs the base model name' };
+  for (const f of ['modelFingerprint', 'taskHash', 'evidenceHash']) {
+    const val = input[f];
+    if (!isStr(val) || val.length !== 64 || !HEX.test(val)) return { ok: false, why: f + ' must be a 64-character hex hash' };
+  }
+  if (!isStr(createdAt) || createdAt.length === 0) return { ok: false, why: 'the receipt needs a createdAt timestamp' };
+  if (!isObj(sc)) return { ok: false, why: 'the scorecard result is missing' };
+  if (!isInt(sc.n)) return { ok: false, why: 'the held-out count must be a whole number' };
+  if (sc.n < 1) return { ok: false, why: 'the scorecard needs at least one held-out result' };
+  if (!isInt(sc.baseHits)) return { ok: false, why: 'the base hit count must be a whole number' };
+  if (!isInt(sc.mintedHits)) return { ok: false, why: 'the minted hit count must be a whole number' };
+  if (sc.baseHits < 0) return { ok: false, why: 'the base hit count cannot be negative' };
+  if (sc.mintedHits < 0) return { ok: false, why: 'the minted hit count cannot be negative' };
+  if (sc.baseHits > sc.n) return { ok: false, why: 'the base hit count cannot exceed the held-out count' };
+  if (sc.mintedHits > sc.n) return { ok: false, why: 'the minted hit count cannot exceed the held-out count' };
+  if (!isStr(sc.verdict) || !VERDICTS.includes(sc.verdict)) return { ok: false, why: 'the verdict must be BEATS, LOSES or TIES' };
+  const body = {
+    v: 1,
+    kind: 'fallforgemint-scorecard',
+    base: base.trim(),
+    modelFingerprint, taskHash, evidenceHash,
+    heldOut: sc.n, baseHits: sc.baseHits, mintedHits: sc.mintedHits,
+    score: sc.mintedHits / sc.n,
+    verdict: sc.verdict,
+    smallSample: sc.n < 5,
+    createdAt,
+    scope: "Self-issued: measured in the holder's own browser on their own held-out examples. Tamper-evident (re-hash to check) but NOT a certification by AI-Native Solutions. The done-for-you tier issues an issuer-signed certified receipt.",
+  };
+  const h = sha256(canon(body));
+  if (!h.ok) return { ok: false, why: h.why };
+  return { ok: true, receipt: { ...body, hash: h.hash } };
+}
+
+/** verifyScorecardReceipt(r) — the facts match their own hash AND the score matches the hit counts. */
+export function verifyScorecardReceipt(r) {
+  if (!isObj(r) || r.kind !== 'fallforgemint-scorecard' || !isStr(r.hash)) return { ok: false, why: 'not a fallforgemint scorecard' };
+  const body = { ...r };
+  delete body.hash;
+  delete body.signature;
+  const h = sha256(canon(body));
+  if (!h.ok) return { ok: false, why: h.why };
+  if (h.hash !== r.hash) return { ok: true, valid: false, why: 'the scorecard does not match its own fingerprint — it was changed after it was issued' };
+  // a genuine receipt's score is the exact same float division, so an exact check is right (no epsilon):
+  // a NaN/Infinity from a missing or zero held-out count also fails this and is caught here.
+  if (r.score !== r.mintedHits / r.heldOut) return { ok: true, valid: false, why: 'the score does not match the hit counts' };
+  return { ok: true, valid: true, why: 'scorecard intact' };
+}
+
 // ── the manifest: the mint's whole story, canonically hashed, ready for a wallet signature ──────
 export function makeManifest(m) {
   if (!isObj(m)) return { ok: false, why: 'makeManifest takes an object' };

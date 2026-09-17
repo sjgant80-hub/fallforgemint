@@ -8,6 +8,7 @@ import {
   ownVsRent, specFromTask, planProof, gradeAnswer, scorecard,
   b64encode, safeModelName, installerScript, INSTALLER_OS,
   inferFormat, hardenSpec, pickBest,
+  scorecardReceipt, verifyScorecardReceipt,
 } from './kernel.mjs';
 import { Buffer } from 'node:buffer';
 
@@ -541,4 +542,63 @@ test('pickBest: highest score wins; a tie keeps the earlier candidate', () => {
   const bad = pickBest([{ score: 0.5 }, { nope: 1 }]);
   assert.equal(bad.ok, false);
   assert.ok(bad.why.includes('round 2'), 'names the bad round, got: ' + bad.why);
+});
+
+// ── the downloadable scorecard receipt: self-hashed, tamper-evident, honest ───────────────────────
+const RIN = {
+  base: 'llama3.2:1b',
+  modelFingerprint: 'a'.repeat(64), taskHash: 'b'.repeat(64), evidenceHash: 'c'.repeat(64),
+  sc: { n: 2, baseHits: 0, mintedHits: 2, verdict: 'BEATS' },
+  createdAt: '2026-09-17T00:00:00.000Z',
+};
+test('scorecardReceipt: builds a self-hashed receipt; refuses bad input', () => {
+  const r = scorecardReceipt(RIN);
+  assert.equal(r.ok, true);
+  assert.equal(r.receipt.kind, 'fallforgemint-scorecard');
+  assert.equal(r.receipt.score, 1);            // 2/2
+  assert.equal(r.receipt.smallSample, true);   // n=2 < 5
+  assert.equal(r.receipt.hash.length, 64);
+  assert.equal(verifyScorecardReceipt(r.receipt).valid, true);
+  // refusals — each guard isolated
+  assert.equal(scorecardReceipt('nope').ok, false);
+  assert.equal(scorecardReceipt({ ...RIN, base: '' }).ok, false);
+  assert.equal(scorecardReceipt({ ...RIN, modelFingerprint: 'short' }).ok, false);
+  assert.equal(scorecardReceipt({ ...RIN, taskHash: 'X'.repeat(64) }).ok, false);   // uppercase = non-hex
+  assert.equal(scorecardReceipt({ ...RIN, evidenceHash: 'c'.repeat(63) }).ok, false);
+  assert.equal(scorecardReceipt({ ...RIN, createdAt: '' }).ok, false);
+  assert.equal(scorecardReceipt({ ...RIN, sc: { n: 0, baseHits: 0, mintedHits: 0, verdict: 'TIES' } }).ok, false);
+  assert.equal(scorecardReceipt({ ...RIN, sc: { ...RIN.sc, verdict: 'MAYBE' } }).ok, false);
+  assert.equal(scorecardReceipt({ ...RIN, sc: { ...RIN.sc, mintedHits: 3 } }).ok, false);   // hits > n
+  assert.equal(scorecardReceipt({ ...RIN, sc: { ...RIN.sc, baseHits: -1 } }).ok, false);
+  assert.equal(scorecardReceipt({ ...RIN, sc: { ...RIN.sc, mintedHits: 1.5 } }).ok, false); // non-integer
+  assert.equal(scorecardReceipt({ ...RIN, sc: { ...RIN.sc, baseHits: 2, mintedHits: 2, verdict: 'TIES' } }).ok, true); // valid TIES
+  // exact boundaries (kill the split < / > guards)
+  assert.equal(scorecardReceipt({ ...RIN, sc: { n: 1, baseHits: 0, mintedHits: 1, verdict: 'BEATS' } }).ok, true);   // n=1 allowed (kills n<1 → n<=1)
+  assert.equal(scorecardReceipt({ ...RIN, sc: { n: 2, baseHits: 0, mintedHits: 0, verdict: 'TIES' } }).ok, true);    // zero hits allowed (kills <0 → <=0)
+  assert.equal(scorecardReceipt({ ...RIN, sc: { n: 2, baseHits: 2, mintedHits: 2, verdict: 'TIES' } }).receipt.verdict, 'TIES'); // hits === n allowed (kills >n → >=n)
+  assert.equal(scorecardReceipt({ ...RIN, sc: { n: 2, baseHits: 3, mintedHits: 2, verdict: 'BEATS' } }).ok, false);  // baseHits > n rejected
+  // smallSample boundary: n=5 is NOT small, n=4 is (kills n<5 → n<=5)
+  const five = { base: 'b', modelFingerprint: 'a'.repeat(64), taskHash: 'b'.repeat(64), evidenceHash: 'c'.repeat(64), createdAt: 't', sc: { n: 5, baseHits: 1, mintedHits: 5, verdict: 'BEATS' } };
+  assert.equal(scorecardReceipt(five).receipt.smallSample, false);
+  assert.equal(scorecardReceipt({ ...five, sc: { ...five.sc, n: 4, mintedHits: 4 } }).receipt.smallSample, true);
+});
+
+test('verifyScorecardReceipt: catches tampering and a lying score, refuses non-receipts', () => {
+  const rec = scorecardReceipt(RIN).receipt;
+  assert.equal(verifyScorecardReceipt(rec).valid, true);
+  // tamper any signed field → hash mismatch
+  assert.equal(verifyScorecardReceipt({ ...rec, mintedHits: 1 }).valid, false);
+  assert.equal(verifyScorecardReceipt({ ...rec, verdict: 'LOSES' }).valid, false);
+  assert.equal(verifyScorecardReceipt({ ...rec, base: 'other' }).valid, false);
+  // forge a receipt whose hash MATCHES its body but whose score lies vs the hits — the invariant catches it.
+  const body = { ...rec }; delete body.hash; delete body.signature; body.score = 0.5;
+  const forged = { ...body, hash: sha256(canon(body)).hash };
+  const v = verifyScorecardReceipt(forged);
+  assert.equal(v.valid, false);
+  assert.ok(v.why.includes('score'), 'the lie is named, got: ' + v.why);
+  // a signature does not disturb the hash (it is excluded from the body)
+  assert.equal(verifyScorecardReceipt({ ...rec, signature: { alg: 'Ed25519', pub: 'aa', sig: 'bb' } }).valid, true);
+  // not a receipt
+  assert.equal(verifyScorecardReceipt({ kind: 'other', hash: 'x' }).ok, false);
+  assert.equal(verifyScorecardReceipt({ kind: 'fallforgemint-scorecard' }).ok, false);   // no hash
 });

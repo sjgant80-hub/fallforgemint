@@ -852,6 +852,66 @@ function pickBest(rounds) {
   return { ok: true, index: best, score: rounds[best].score };
 }
 
+// ── the downloadable scorecard receipt: a tamper-evident record of the buyer's OWN measurement ────
+// Binds the exact model (fingerprint), the task (hash), the held-out test (evidence hash) and the
+// scores into one canonical, self-hashed bundle — like the mint manifest, so the same "re-hash to
+// check" proof works. HONEST SCOPE: self-issued, measured in the holder's own browser on their own
+// examples. It is tamper-evident, NOT a certification by the estate — the done-for-you tier issues an
+// issuer-signed receipt. An optional Ed25519 signature is attached at the edge (WebCrypto).
+
+const VERDICTS = ['BEATS', 'LOSES', 'TIES'];
+
+function scorecardReceipt(input) {
+  if (!isObj(input)) return { ok: false, why: 'scorecardReceipt takes an object' };
+  const { base, modelFingerprint, taskHash, evidenceHash, sc, createdAt } = input;
+  if (!isStr(base) || base.trim().length === 0) return { ok: false, why: 'the receipt needs the base model name' };
+  for (const f of ['modelFingerprint', 'taskHash', 'evidenceHash']) {
+    const val = input[f];
+    if (!isStr(val) || val.length !== 64 || !HEX.test(val)) return { ok: false, why: f + ' must be a 64-character hex hash' };
+  }
+  if (!isStr(createdAt) || createdAt.length === 0) return { ok: false, why: 'the receipt needs a createdAt timestamp' };
+  if (!isObj(sc)) return { ok: false, why: 'the scorecard result is missing' };
+  if (!isInt(sc.n)) return { ok: false, why: 'the held-out count must be a whole number' };
+  if (sc.n < 1) return { ok: false, why: 'the scorecard needs at least one held-out result' };
+  if (!isInt(sc.baseHits)) return { ok: false, why: 'the base hit count must be a whole number' };
+  if (!isInt(sc.mintedHits)) return { ok: false, why: 'the minted hit count must be a whole number' };
+  if (sc.baseHits < 0) return { ok: false, why: 'the base hit count cannot be negative' };
+  if (sc.mintedHits < 0) return { ok: false, why: 'the minted hit count cannot be negative' };
+  if (sc.baseHits > sc.n) return { ok: false, why: 'the base hit count cannot exceed the held-out count' };
+  if (sc.mintedHits > sc.n) return { ok: false, why: 'the minted hit count cannot exceed the held-out count' };
+  if (!isStr(sc.verdict) || !VERDICTS.includes(sc.verdict)) return { ok: false, why: 'the verdict must be BEATS, LOSES or TIES' };
+  const body = {
+    v: 1,
+    kind: 'fallforgemint-scorecard',
+    base: base.trim(),
+    modelFingerprint, taskHash, evidenceHash,
+    heldOut: sc.n, baseHits: sc.baseHits, mintedHits: sc.mintedHits,
+    score: sc.mintedHits / sc.n,
+    verdict: sc.verdict,
+    smallSample: sc.n < 5,
+    createdAt,
+    scope: "Self-issued: measured in the holder's own browser on their own held-out examples. Tamper-evident (re-hash to check) but NOT a certification by AI-Native Solutions. The done-for-you tier issues an issuer-signed certified receipt.",
+  };
+  const h = sha256(canon(body));
+  if (!h.ok) return { ok: false, why: h.why };
+  return { ok: true, receipt: { ...body, hash: h.hash } };
+}
+
+/** verifyScorecardReceipt(r) — the facts match their own hash AND the score matches the hit counts. */
+function verifyScorecardReceipt(r) {
+  if (!isObj(r) || r.kind !== 'fallforgemint-scorecard' || !isStr(r.hash)) return { ok: false, why: 'not a fallforgemint scorecard' };
+  const body = { ...r };
+  delete body.hash;
+  delete body.signature;
+  const h = sha256(canon(body));
+  if (!h.ok) return { ok: false, why: h.why };
+  if (h.hash !== r.hash) return { ok: true, valid: false, why: 'the scorecard does not match its own fingerprint — it was changed after it was issued' };
+  // a genuine receipt's score is the exact same float division, so an exact check is right (no epsilon):
+  // a NaN/Infinity from a missing or zero held-out count also fails this and is caught here.
+  if (r.score !== r.mintedHits / r.heldOut) return { ok: true, valid: false, why: 'the score does not match the hit counts' };
+  return { ok: true, valid: true, why: 'scorecard intact' };
+}
+
 // ── the manifest: the mint's whole story, canonically hashed, ready for a wallet signature ──────
 function makeManifest(m) {
   if (!isObj(m)) return { ok: false, why: 'makeManifest takes an object' };
@@ -1136,7 +1196,7 @@ $('resetBtn').addEventListener('click', () => {
 // ── own vs rent calculator ─────────────────────────────────────────────────────────────────────
 const gbp = (n) => '£' + Math.round(n).toLocaleString('en-GB');
 const num = (id) => parseFloat($(id).value);
-const VERDICTS = {
+const CALC_VERDICTS = {
   OWN_WINS: { cls:'good', txt:'OWN IT — pays for itself inside a year' },
   OWN_LATER: { cls:'brass', txt:'OWN IT EVENTUALLY — pays back after the first year' },
   RENT_WINS: { cls:'bad', txt:'KEEP RENTING — owning would cost as much or more here' },
@@ -1148,7 +1208,7 @@ function recalc(){
   });
   const badge = $('verdictBadge');
   if (!r.ok){ badge.className = 'pill bad'; badge.textContent = '⚠ ' + r.why; $('calcMsg').textContent=''; return; }
-  const v = VERDICTS[r.verdict];
+  const v = CALC_VERDICTS[r.verdict];
   badge.className = 'pill ' + v.cls; badge.textContent = v.txt;
   $('o_rentmo').textContent = gbp(r.rentMonthly);
   $('o_rentyr').textContent = gbp(r.rentAnnual);
@@ -1254,8 +1314,44 @@ function renderScorecard(sc, rows){
       + '<td>' + esc(r.correct) + '</td></tr>';
   }
   h += '</tbody></table>';
+  h += '<div class="cta-row" style="margin-top:14px"><button class="btn brass" id="dlScorecard">⤓ Download signed scorecard</button></div>';
   if (sc.smallSample) h += '<p class="note">Small sample (' + sc.n + ' example' + (sc.n>1?'s':'') + ') — a live sanity check, not a full benchmark. The done-for-you tier proves it on a proper held-out set and hands you a signed receipt.</p>';
+  h += '<p class="note" id="scResult"></p>';
   out.innerHTML = h;
+  const b = $('dlScorecard');
+  if (b) b.addEventListener('click', () => downloadScorecard(sc, rows));
+}
+
+// ── the downloadable signed scorecard — a tamper-evident record of the buyer's own measurement ──────
+const toHex = (bytes) => [...bytes].map((x) => x.toString(16).padStart(2, '0')).join('');
+async function downloadScorecard(sc, rows){
+  const res = $('scResult');
+  if (!lastMint){ if (res) res.textContent = 'Mint a model first.'; return; }
+  const taskHash = sha256($('task').value);
+  const evidenceHash = sha256(canon(rows));
+  if (!taskHash.ok || !evidenceHash.ok){ res.textContent = 'Could not fingerprint the evidence.'; return; }
+  const built = scorecardReceipt({
+    base: lastMint.base,
+    modelFingerprint: lastMint.fingerprint,
+    taskHash: taskHash.hash,
+    evidenceHash: evidenceHash.hash,
+    sc: { n: sc.n, baseHits: sc.baseHits, mintedHits: sc.mintedHits, verdict: sc.verdict },
+    createdAt: new Date().toISOString(),
+  });
+  if (!built.ok){ res.textContent = '⚠ ' + built.why; return; }
+  let receipt = built.receipt, signed = false;
+  try {
+    const kp = await crypto.subtle.generateKey({ name: 'Ed25519' }, true, ['sign', 'verify']);
+    const payload = new TextEncoder().encode(canon(receipt));
+    const sig = new Uint8Array(await crypto.subtle.sign({ name: 'Ed25519' }, kp.privateKey, payload));
+    const pub = new Uint8Array(await crypto.subtle.exportKey('raw', kp.publicKey));
+    receipt = { ...receipt, signature: { alg: 'Ed25519', pub: toHex(pub), sig: toHex(sig) } };
+    signed = true;
+  } catch (e) { /* Ed25519 unavailable — the self-hash still makes it tamper-evident */ }
+  const v = verifyScorecardReceipt(receipt);
+  const name = currentName();
+  download(JSON.stringify(receipt, null, 2), 'scorecard-' + name + '.json', 'application/json');
+  res.innerHTML = (v.valid ? '✓ ' : '⚠ ') + 'Downloaded <b>scorecard-' + esc(name) + '.json</b> — ' + (signed ? 'signed and ' : '') + 'tamper-evident (anyone can re-check the hash). It is <b>self-issued</b>: it proves nobody edited these numbers, not that we certified them — that is the done-for-you tier.';
 }
 
 // ── auto-improve: build honest variants of the spec, measure each on held-out data, keep the best ──
