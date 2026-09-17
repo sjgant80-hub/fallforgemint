@@ -445,6 +445,15 @@ export function verifyScorecardReceipt(r) {
   return { ok: true, valid: true, why: 'scorecard intact' };
 }
 
+/** scorecardSignable(receipt) — the EXACT canonical bytes an Ed25519 signature covers: the receipt with
+ *  its signature removed. Used to sign AND to verify, so both sides canonicalise identically. */
+export function scorecardSignable(receipt) {
+  if (!isObj(receipt) || receipt.kind !== 'fallforgemint-scorecard' || !isStr(receipt.hash)) return { ok: false, why: 'not a fallforgemint scorecard' };
+  const body = { ...receipt };
+  delete body.signature;
+  return { ok: true, payload: canon(body) };
+}
+
 // ── the manifest: the mint's whole story, canonically hashed, ready for a wallet signature ──────
 export function makeManifest(m) {
   if (!isObj(m)) return { ok: false, why: 'makeManifest takes an object' };

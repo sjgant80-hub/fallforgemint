@@ -167,6 +167,16 @@
   .os-switch .os.on{background:var(--forge);color:#20120a;font-weight:600}
   .own-panel{background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:18px;margin-top:14px}
   #osHowRun b, #osTerminal b{color:var(--cream)}
+  .dropzone{margin-top:14px;border:1.5px dashed var(--line);border-radius:12px;padding:28px 18px;text-align:center;color:var(--dim);cursor:pointer;transition:border-color .15s,background .15s,color .15s}
+  .dropzone:hover,.dropzone:focus{border-color:var(--forge);color:var(--ink);outline:none}
+  .dropzone.drag{border-color:var(--forge);background:rgba(224,123,62,.08);color:var(--cream)}
+  .dropzone b{color:var(--cream)}
+  .verdict-box{border-radius:12px;padding:16px 18px;border:1px solid var(--line)}
+  .verdict-box.good{border-color:rgba(86,184,119,.5);background:rgba(86,184,119,.08)}
+  .verdict-box.bad{border-color:rgba(224,106,95,.5);background:rgba(224,106,95,.08)}
+  .verdict-box .big{font-family:var(--serif);font-size:1.3rem}
+  .verdict-box .kvline{font-size:.86rem;color:var(--dim);margin-top:4px}
+  .verdict-box .kvline b{color:var(--cream)}
 </style>
 </head>
 <body>
@@ -334,6 +344,22 @@
     <p id="verifyOut" class="pill" style="margin-top:16px;display:none"></p>
     <label class="fld" style="margin-top:16px">The signed record being checked</label>
     <pre class="code" id="manifestView" style="max-height:220px"></pre>
+  </div>
+
+  <!-- verify a scorecard someone sent you -->
+  <div class="card" style="margin-top:16px">
+    <h3 style="font-size:1.25rem;color:var(--cream)">◊ Someone sent you a scorecard? Check it's genuine.</h3>
+    <p class="muted" style="font-size:.92rem;margin-top:8px">If someone gives you a <b>scorecard-….json</b> from FallForge Mint, drop it here. This checks — entirely in your browser, nothing uploaded — that nobody changed the numbers since it was issued, and that its signature matches.</p>
+    <div id="dropZone" class="dropzone" tabindex="0" role="button">
+      <span class="dz-idle">⤓ Drop a <b>scorecard-….json</b> here, or click to choose a file</span>
+    </div>
+    <input type="file" id="scFile" accept="application/json,.json" hidden />
+    <details style="margin-top:12px">
+      <summary style="cursor:pointer;font-size:.9rem;color:var(--dim)">…or paste the JSON instead</summary>
+      <textarea id="scPaste" placeholder="Paste the whole contents of the scorecard file" style="margin-top:10px"></textarea>
+      <div class="cta-row" style="margin-top:10px"><button class="btn ghost" id="scPasteBtn">Check pasted scorecard</button></div>
+    </details>
+    <div id="scVerifyOut" style="margin-top:14px"></div>
   </div>
 </div></section>
 
@@ -912,6 +938,15 @@ function verifyScorecardReceipt(r) {
   return { ok: true, valid: true, why: 'scorecard intact' };
 }
 
+/** scorecardSignable(receipt) — the EXACT canonical bytes an Ed25519 signature covers: the receipt with
+ *  its signature removed. Used to sign AND to verify, so both sides canonicalise identically. */
+function scorecardSignable(receipt) {
+  if (!isObj(receipt) || receipt.kind !== 'fallforgemint-scorecard' || !isStr(receipt.hash)) return { ok: false, why: 'not a fallforgemint scorecard' };
+  const body = { ...receipt };
+  delete body.signature;
+  return { ok: true, payload: canon(body) };
+}
+
 // ── the manifest: the mint's whole story, canonically hashed, ready for a wallet signature ──────
 function makeManifest(m) {
   if (!isObj(m)) return { ok: false, why: 'makeManifest takes an object' };
@@ -1342,7 +1377,7 @@ async function downloadScorecard(sc, rows){
   let receipt = built.receipt, signed = false;
   try {
     const kp = await crypto.subtle.generateKey({ name: 'Ed25519' }, true, ['sign', 'verify']);
-    const payload = new TextEncoder().encode(canon(receipt));
+    const payload = new TextEncoder().encode(scorecardSignable(receipt).payload);
     const sig = new Uint8Array(await crypto.subtle.sign({ name: 'Ed25519' }, kp.privateKey, payload));
     const pub = new Uint8Array(await crypto.subtle.exportKey('raw', kp.publicKey));
     receipt = { ...receipt, signature: { alg: 'Ed25519', pub: toHex(pub), sig: toHex(sig) } };
@@ -1352,6 +1387,61 @@ async function downloadScorecard(sc, rows){
   const name = currentName();
   download(JSON.stringify(receipt, null, 2), 'scorecard-' + name + '.json', 'application/json');
   res.innerHTML = (v.valid ? '✓ ' : '⚠ ') + 'Downloaded <b>scorecard-' + esc(name) + '.json</b> — ' + (signed ? 'signed and ' : '') + 'tamper-evident (anyone can re-check the hash). It is <b>self-issued</b>: it proves nobody edited these numbers, not that we certified them — that is the done-for-you tier.';
+}
+
+// ── verify a scorecard someone sent you (recipient side, all in-browser) ───────────────────────────
+const fromHex = (h) => new Uint8Array((h.match(/../g) || []).map((x) => parseInt(x, 16)));
+const dz = $('dropZone');
+dz.addEventListener('click', () => $('scFile').click());
+dz.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); $('scFile').click(); } });
+dz.addEventListener('dragover', (e) => { e.preventDefault(); dz.classList.add('drag'); });
+dz.addEventListener('dragleave', () => dz.classList.remove('drag'));
+dz.addEventListener('drop', (e) => {
+  e.preventDefault(); dz.classList.remove('drag');
+  const f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
+  if (f) readAndVerify(f);
+});
+$('scFile').addEventListener('change', (e) => { const f = e.target.files[0]; if (f) readAndVerify(f); });
+$('scPasteBtn').addEventListener('click', () => verifyScorecardText($('scPaste').value));
+function readAndVerify(file){
+  const r = new FileReader();
+  r.onload = () => verifyScorecardText(String(r.result));
+  r.onerror = () => scVerdict(false, 'Could not read that file.', null, null);
+  r.readAsText(file);
+}
+async function verifyScorecardText(text){
+  let receipt;
+  try { receipt = JSON.parse(text); } catch (e) { scVerdict(false, 'That is not valid JSON — paste or drop the whole scorecard file.', null, null); return; }
+  const v = verifyScorecardReceipt(receipt);
+  if (!v.ok){ scVerdict(false, 'This is not a FallForge Mint scorecard.', null, null); return; }
+  if (!v.valid){ scVerdict(false, 'CHANGED — ' + v.why, receipt, 'tampered'); return; }
+  // the hash + score invariant hold. Now the signature, if there is one.
+  let sig = 'unsigned';
+  if (receipt.signature && receipt.signature.alg === 'Ed25519' && typeof receipt.signature.pub === 'string' && typeof receipt.signature.sig === 'string'){
+    try {
+      const sp = scorecardSignable(receipt);
+      const pub = await crypto.subtle.importKey('raw', fromHex(receipt.signature.pub), { name: 'Ed25519' }, false, ['verify']);
+      const okSig = await crypto.subtle.verify({ name: 'Ed25519' }, pub, fromHex(receipt.signature.sig), new TextEncoder().encode(sp.payload));
+      sig = okSig ? 'valid' : 'invalid';
+    } catch (e) { sig = 'uncheckable'; }
+  }
+  if (sig === 'invalid'){ scVerdict(false, 'CHANGED — the signature does not match; this file was edited after it was signed.', receipt, 'tampered'); return; }
+  scVerdict(true, 'GENUINE', receipt, sig);
+}
+function scVerdict(good, headline, receipt, sig){
+  const out = $('scVerifyOut');
+  let h = '<div class="verdict-box ' + (good ? 'good' : 'bad') + '"><div class="big" style="color:var(--' + (good ? 'good' : 'bad') + ')">' + (good ? '✓ ' : '✗ ') + esc(headline) + '</div>';
+  if (receipt && receipt.kind === 'fallforgemint-scorecard'){
+    const vcol = receipt.verdict === 'BEATS' ? 'var(--good)' : (receipt.verdict === 'LOSES' ? 'var(--bad)' : 'var(--brass)');
+    h += '<div class="kvline">Result: <b style="color:' + vcol + '">' + esc(receipt.verdict) + '</b> — the model scored <b>' + receipt.mintedHits + '/' + receipt.heldOut + '</b>, its base scored <b>' + receipt.baseHits + '/' + receipt.heldOut + '</b>.</div>';
+    h += '<div class="kvline">Model fingerprint: <b>' + esc(String(receipt.modelFingerprint || '').slice(0, 16)) + '…</b> · issued <b>' + esc(String(receipt.createdAt || '')) + '</b></div>';
+    if (good){
+      const sigMsg = sig === 'valid' ? 'The signature is valid — nobody edited it since it was signed.' : (sig === 'unsigned' ? 'It has no signature, but the numbers match its own fingerprint (unedited).' : 'The signature could not be checked in this browser, but the numbers match its own fingerprint.');
+      h += '<div class="kvline" style="margin-top:8px">' + sigMsg + ' Remember: it is <b>self-issued</b> — it proves the sender didn\'t edit it, not that AI-Native Solutions certified the scores.</div>';
+    }
+  }
+  h += '</div>';
+  out.innerHTML = h;
 }
 
 // ── auto-improve: build honest variants of the spec, measure each on held-out data, keep the best ──

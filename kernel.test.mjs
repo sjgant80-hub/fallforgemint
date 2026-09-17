@@ -8,7 +8,7 @@ import {
   ownVsRent, specFromTask, planProof, gradeAnswer, scorecard,
   b64encode, safeModelName, installerScript, INSTALLER_OS,
   inferFormat, hardenSpec, pickBest,
-  scorecardReceipt, verifyScorecardReceipt,
+  scorecardReceipt, verifyScorecardReceipt, scorecardSignable,
 } from './kernel.mjs';
 import { Buffer } from 'node:buffer';
 
@@ -601,4 +601,18 @@ test('verifyScorecardReceipt: catches tampering and a lying score, refuses non-r
   // not a receipt
   assert.equal(verifyScorecardReceipt({ kind: 'other', hash: 'x' }).ok, false);
   assert.equal(verifyScorecardReceipt({ kind: 'fallforgemint-scorecard' }).ok, false);   // no hash
+});
+
+test('scorecardSignable: the signed bytes exclude the signature and nothing else', () => {
+  const rec = scorecardReceipt(RIN).receipt;
+  const s = scorecardSignable(rec);
+  assert.equal(s.ok, true);
+  assert.equal(s.payload.includes('"signature"'), false);   // the signature is NOT part of what is signed
+  assert.equal(s.payload.includes(rec.hash), true);          // the self-hash IS signed
+  // attaching a signature does not move the payload → sign side and verify side agree
+  const signed = { ...rec, signature: { alg: 'Ed25519', pub: 'aa', sig: 'bb' } };
+  assert.equal(scorecardSignable(signed).payload, s.payload);
+  // refuses non-receipts
+  assert.equal(scorecardSignable({ kind: 'other', hash: 'x' }).ok, false);
+  assert.equal(scorecardSignable({ kind: 'fallforgemint-scorecard' }).ok, false);   // no hash
 });
