@@ -147,11 +147,27 @@ export function ownVsRent(input) {
   if (!atLeast0(mintFee)) return { ok: false, why: 'the one-off mint fee must be zero or more' };
   if (!atLeast0(runPerMonth)) return { ok: false, why: 'the monthly cost to run your own node must be zero or more' };
 
+  // optional fold-cycle recycling factor — cuts the OWN-side run cost on RECURRING content only. Default OFF
+  // (absent → no effect, so the receipt never overstates). A measured proxy (kar-foldcycle capacity-pooling
+  // recycles repeated embeddings/prefixes), scoped to the recurring fraction the operator supplies — the
+  // fold-cycle control showed ZERO saving on all-unique work, so an operator who runs unique work leaves it off.
+  let effectiveRun = runPerMonth, recyclingApplied = false, runSavedPerMonth = 0;
+  if (input.recycling !== undefined) {
+    const rc = input.recycling;
+    if (!isObj(rc)) return { ok: false, why: 'recycling must be an object { savingPct, recurringFraction } or omitted' };
+    if (!(isNum(rc.savingPct) && rc.savingPct >= 0 && rc.savingPct <= 100)) return { ok: false, why: 'recycling.savingPct must be a number from 0 to 100' };
+    if (!(isNum(rc.recurringFraction) && rc.recurringFraction >= 0 && rc.recurringFraction <= 1)) return { ok: false, why: 'recycling.recurringFraction must be a number from 0 to 1 (the share of runs on repeated content)' };
+    const cut = (rc.savingPct / 100) * rc.recurringFraction;   // only the recurring share of the run cost is saved
+    runSavedPerMonth = runPerMonth * cut;
+    effectiveRun = runPerMonth - runSavedPerMonth;
+    recyclingApplied = cut > 0;
+  }
+
   const tokensPerMonth = callsPerMonth * tokensPerCall;
   const rentMonthly = (tokensPerMonth / 1000000) * rentPerMillion;
   const rentAnnual = rentMonthly * MONTHS_PER_YEAR;
-  const ownedYear1 = mintFee + runPerMonth * MONTHS_PER_YEAR;
-  const monthlySaving = rentMonthly - runPerMonth;
+  const ownedYear1 = mintFee + effectiveRun * MONTHS_PER_YEAR;  // recycling lowers the own-side run cost, when applied
+  const monthlySaving = rentMonthly - effectiveRun;
   const year1Saving = rentAnnual - ownedYear1;
 
   let verdict, breakEvenMonths;
@@ -162,7 +178,8 @@ export function ownVsRent(input) {
     breakEvenMonths = mintFee / monthlySaving;
     verdict = breakEvenMonths <= MONTHS_PER_YEAR ? 'OWN_WINS' : 'OWN_LATER';
   }
-  return { ok: true, tokensPerMonth, rentMonthly, rentAnnual, ownedYear1, monthlySaving, year1Saving, breakEvenMonths, verdict };
+  return { ok: true, tokensPerMonth, rentMonthly, rentAnnual, ownedYear1, monthlySaving, year1Saving, breakEvenMonths, verdict,
+    recyclingApplied, effectiveRunPerMonth: effectiveRun, runSavedPerMonth };
 }
 
 // ── the working mint: turn a plain task + a few worked examples into a real, ownable Modelfile ────

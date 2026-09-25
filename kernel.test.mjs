@@ -233,6 +233,51 @@ test('ownVsRent: the three verdicts sit on exact boundaries (kills <=0, <=12 mut
   assert.equal(later.verdict, 'OWN_LATER');
 });
 
+test('ownVsRent recycling: opt-in, default OFF — an absent factor leaves the receipt untouched', () => {
+  const base = ownVsRent({ callsPerMonth: 1000000, tokensPerCall: 1000, rentPerMillion: 5, mintFee: 2000, runPerMonth: 100 });
+  assert.equal(base.recyclingApplied, false, 'no recycling key → not applied');
+  assert.equal(base.effectiveRunPerMonth, 100, 'run cost unchanged');
+  assert.equal(base.runSavedPerMonth, 0);
+});
+
+test('ownVsRent recycling: cuts the OWN-side run cost only on the recurring share', () => {
+  // 60% saving on a 50%-recurring workload → the run cost drops 30%
+  const r = ownVsRent({ callsPerMonth: 1000000, tokensPerCall: 1000, rentPerMillion: 5, mintFee: 2000, runPerMonth: 100, recycling: { savingPct: 60, recurringFraction: 0.5 } });
+  assert.equal(r.recyclingApplied, true);
+  assert.equal(r.runSavedPerMonth, 30);
+  assert.equal(r.effectiveRunPerMonth, 70);
+  assert.equal(r.ownedYear1, 2000 + 70 * 12, 'the year-1 own cost uses the reduced run');
+  // the boundary: savingPct EXACTLY 100 on all-recurring is valid → run cost to zero (kills <=100 → <100)
+  const full = ownVsRent({ callsPerMonth: 1000000, tokensPerCall: 1000, rentPerMillion: 5, mintFee: 2000, runPerMonth: 100, recycling: { savingPct: 100, recurringFraction: 1 } });
+  assert.equal(full.ok, true);
+  assert.equal(full.effectiveRunPerMonth, 0);
+});
+
+test('ownVsRent recycling: all-unique work or 0% saving = NO discount, honestly', () => {
+  const unique = ownVsRent({ callsPerMonth: 1000000, tokensPerCall: 1000, rentPerMillion: 5, mintFee: 2000, runPerMonth: 100, recycling: { savingPct: 90, recurringFraction: 0 } });
+  assert.equal(unique.recyclingApplied, false, 'nothing recurs → nothing saved');
+  assert.equal(unique.effectiveRunPerMonth, 100);
+  const noSave = ownVsRent({ callsPerMonth: 1000000, tokensPerCall: 1000, rentPerMillion: 5, mintFee: 2000, runPerMonth: 100, recycling: { savingPct: 0, recurringFraction: 1 } });
+  assert.equal(noSave.effectiveRunPerMonth, 100);
+});
+
+test('ownVsRent recycling: can flip RENT_WINS into OWN, but only via a real run-cost cut', () => {
+  const inp = { callsPerMonth: 1000000, tokensPerCall: 200, rentPerMillion: 1, mintFee: 600, runPerMonth: 200 }; // rent 200/mo == run 200 → RENT_WINS
+  assert.equal(ownVsRent(inp).verdict, 'RENT_WINS');
+  const withRecycle = ownVsRent({ ...inp, recycling: { savingPct: 50, recurringFraction: 1 } }); // run drops to 100 → own wins
+  assert.equal(withRecycle.effectiveRunPerMonth, 100);
+  assert.equal(withRecycle.verdict, 'OWN_WINS');
+});
+
+test('ownVsRent recycling: a malformed factor is refused, never silently ignored', () => {
+  const base = { callsPerMonth: 1000000, tokensPerCall: 1000, rentPerMillion: 5, mintFee: 2000, runPerMonth: 100 };
+  assert.equal(ownVsRent({ ...base, recycling: 5 }).ok, false, 'not an object');
+  assert.equal(ownVsRent({ ...base, recycling: { savingPct: 120, recurringFraction: 0.5 } }).ok, false, 'savingPct > 100');
+  assert.equal(ownVsRent({ ...base, recycling: { savingPct: -1, recurringFraction: 0.5 } }).ok, false, 'savingPct < 0');
+  assert.equal(ownVsRent({ ...base, recycling: { savingPct: 50, recurringFraction: 1.5 } }).ok, false, 'fraction > 1');
+  assert.equal(ownVsRent({ ...base, recycling: { savingPct: 50 } }).ok, false, 'fraction missing');
+});
+
 test('ownVsRent: free mint (fee 0) pays back instantly; total on every garbage input', () => {
   const free = ownVsRent({ callsPerMonth: 1000000, tokensPerCall: 200, rentPerMillion: 1, mintFee: 0, runPerMonth: 100 });
   assert.equal(free.mintFee === undefined, true);   // not echoed

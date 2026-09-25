@@ -382,6 +382,17 @@
       <input type="number" id="c_fee" value="2500" min="0" step="100" />
       <label class="fld" style="margin-top:14px" for="c_run">Cost to run your own node, £ per month</label>
       <input type="number" id="c_run" value="60" min="0" step="10" />
+      <label class="fld" style="margin-top:14px;display:flex;align-items:center;gap:8px;cursor:pointer">
+        <input type="checkbox" id="c_recycle_on" style="width:auto" />
+        Recycling on (the fold-cycle) — cheaper on repeated content
+      </label>
+      <div id="recycleFields" hidden>
+        <label class="fld" for="c_savingpct">Measured saving on repeated content, %</label>
+        <input type="number" id="c_savingpct" value="67" min="0" max="100" step="1" />
+        <label class="fld" style="margin-top:10px" for="c_recur">Share of your runs that repeat content (0–1)</label>
+        <input type="number" id="c_recur" value="0.5" min="0" max="1" step="0.05" />
+        <p class="note" style="margin-top:6px">Opt-in and conservative: recycling only lowers the run cost on the repeating share of your work. On all-unique work it saves nothing — leave it off.</p>
+      </div>
     </div>
     <div>
       <div id="verdictBadge" class="pill brass" style="font-size:.9rem">—</div>
@@ -391,6 +402,7 @@
         <div class="stat"><div class="n" id="o_own1">—</div><div class="l">owning, year one (fee + running)</div></div>
         <div class="stat"><div class="n" id="o_save">—</div><div class="l">saved in year one</div></div>
         <div class="stat"><div class="n" id="o_be">—</div><div class="l">months to pay back the fee</div></div>
+        <div class="stat"><div class="n" id="o_runsaved">—</div><div class="l">run cost saved by recycling, /mo</div></div>
         <div class="stat"><div class="n" id="o_tok">—</div><div class="l">tokens a month</div></div>
       </div>
       <p id="calcMsg" class="note"></p>
@@ -487,7 +499,7 @@
 </main>
 
 <footer><div class="wrap">
-  <span class="glyph">◊</span> <b style="color:var(--cream)">FallForge Mint</b> · own the model, don't rent it · by AI-Native Solutions · everything runs in your browser · MIT · powered by the Konomi architecture, created by Thomas Frumkin · ◊·κ=1
+  <span class="glyph">◊</span> <b style="color:var(--cream)">FallForge Mint</b> · own the model, don't rent it · by AI-Native Solutions · everything runs in your browser · MIT · powered by the Konomi architecture, created by Thomas Frumkin
 </div></footer>
 
 <script type="module">
@@ -641,11 +653,27 @@ function ownVsRent(input) {
   if (!atLeast0(mintFee)) return { ok: false, why: 'the one-off mint fee must be zero or more' };
   if (!atLeast0(runPerMonth)) return { ok: false, why: 'the monthly cost to run your own node must be zero or more' };
 
+  // optional fold-cycle recycling factor — cuts the OWN-side run cost on RECURRING content only. Default OFF
+  // (absent → no effect, so the receipt never overstates). A measured proxy (kar-foldcycle capacity-pooling
+  // recycles repeated embeddings/prefixes), scoped to the recurring fraction the operator supplies — the
+  // fold-cycle control showed ZERO saving on all-unique work, so an operator who runs unique work leaves it off.
+  let effectiveRun = runPerMonth, recyclingApplied = false, runSavedPerMonth = 0;
+  if (input.recycling !== undefined) {
+    const rc = input.recycling;
+    if (!isObj(rc)) return { ok: false, why: 'recycling must be an object { savingPct, recurringFraction } or omitted' };
+    if (!(isNum(rc.savingPct) && rc.savingPct >= 0 && rc.savingPct <= 100)) return { ok: false, why: 'recycling.savingPct must be a number from 0 to 100' };
+    if (!(isNum(rc.recurringFraction) && rc.recurringFraction >= 0 && rc.recurringFraction <= 1)) return { ok: false, why: 'recycling.recurringFraction must be a number from 0 to 1 (the share of runs on repeated content)' };
+    const cut = (rc.savingPct / 100) * rc.recurringFraction;   // only the recurring share of the run cost is saved
+    runSavedPerMonth = runPerMonth * cut;
+    effectiveRun = runPerMonth - runSavedPerMonth;
+    recyclingApplied = cut > 0;
+  }
+
   const tokensPerMonth = callsPerMonth * tokensPerCall;
   const rentMonthly = (tokensPerMonth / 1000000) * rentPerMillion;
   const rentAnnual = rentMonthly * MONTHS_PER_YEAR;
-  const ownedYear1 = mintFee + runPerMonth * MONTHS_PER_YEAR;
-  const monthlySaving = rentMonthly - runPerMonth;
+  const ownedYear1 = mintFee + effectiveRun * MONTHS_PER_YEAR;  // recycling lowers the own-side run cost, when applied
+  const monthlySaving = rentMonthly - effectiveRun;
   const year1Saving = rentAnnual - ownedYear1;
 
   let verdict, breakEvenMonths;
@@ -656,7 +684,8 @@ function ownVsRent(input) {
     breakEvenMonths = mintFee / monthlySaving;
     verdict = breakEvenMonths <= MONTHS_PER_YEAR ? 'OWN_WINS' : 'OWN_LATER';
   }
-  return { ok: true, tokensPerMonth, rentMonthly, rentAnnual, ownedYear1, monthlySaving, year1Saving, breakEvenMonths, verdict };
+  return { ok: true, tokensPerMonth, rentMonthly, rentAnnual, ownedYear1, monthlySaving, year1Saving, breakEvenMonths, verdict,
+    recyclingApplied, effectiveRunPerMonth: effectiveRun, runSavedPerMonth };
 }
 
 // ── the working mint: turn a plain task + a few worked examples into a real, ownable Modelfile ────
@@ -1285,10 +1314,14 @@ const CALC_VERDICTS = {
   RENT_WINS: { cls:'bad', txt:'KEEP RENTING — owning would cost as much or more here' },
 };
 function recalc(){
-  const r = ownVsRent({
+  const recycleOn = $('c_recycle_on').checked;
+  $('recycleFields').hidden = !recycleOn;
+  const input = {
     callsPerMonth: num('c_calls'), tokensPerCall: num('c_tokens'),
     rentPerMillion: num('c_rent'), mintFee: num('c_fee'), runPerMonth: num('c_run'),
-  });
+  };
+  if (recycleOn) input.recycling = { savingPct: num('c_savingpct'), recurringFraction: num('c_recur') };
+  const r = ownVsRent(input);
   const badge = $('verdictBadge');
   if (!r.ok){ badge.className = 'pill bad'; badge.textContent = '⚠ ' + r.why; $('calcMsg').textContent=''; return; }
   const v = CALC_VERDICTS[r.verdict];
@@ -1298,12 +1331,15 @@ function recalc(){
   $('o_own1').textContent = gbp(r.ownedYear1);
   $('o_save').textContent = gbp(r.year1Saving);
   $('o_be').textContent = r.breakEvenMonths === null ? '—' : (r.breakEvenMonths < 0.1 ? 'instant' : r.breakEvenMonths.toFixed(1));
+  $('o_runsaved').textContent = r.recyclingApplied ? gbp(r.runSavedPerMonth) : '—';
   $('o_tok').textContent = (r.tokensPerMonth/1e6).toLocaleString('en-GB',{maximumFractionDigits:0}) + 'M';
-  $('calcMsg').textContent = r.verdict === 'RENT_WINS'
+  $('calcMsg').textContent = (r.verdict === 'RENT_WINS'
     ? 'Honest answer: at these numbers, renting is the better deal. Owning shines when your volume is high or the rented price per million is steep.'
-    : 'Owning saves ' + gbp(r.year1Saving) + ' in the first year — and every year after is cheaper still, because the fee is one-off.';
+    : 'Owning saves ' + gbp(r.year1Saving) + ' in the first year — and every year after is cheaper still, because the fee is one-off.')
+    + (r.recyclingApplied ? ' Recycling repeated content cuts ' + gbp(r.runSavedPerMonth) + '/mo off the run cost.' : '');
 }
-['c_calls','c_tokens','c_rent','c_fee','c_run'].forEach((id)=>$(id).addEventListener('input', recalc));
+['c_calls','c_tokens','c_rent','c_fee','c_run','c_savingpct','c_recur'].forEach((id)=>$(id).addEventListener('input', recalc));
+$('c_recycle_on').addEventListener('change', recalc);
 recalc();
 
 // ── WebLLM (progressive enhancement, nothing to install) — shared by the live preview AND the proof ─
