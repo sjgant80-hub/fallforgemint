@@ -4,7 +4,7 @@
 
 ## What it is
 
-A self-contained tool for owning a specialised small model instead of renting a giant one per token. You describe one job, paste a handful of example inputs and correct answers, and the page assembles a real, byte-pinned Ollama Modelfile (system prompt + your examples baked in as few-shot). You run two commands (`ollama create`, `ollama run`) and own a private model that does that job on your own hardware. Honest scope: this is prompt-/few-shot tuning at the Modelfile level — a real, owned, reproducible node, not weight fine-tuning (that is the paid done-for-you tier).
+A self-contained tool for owning a specialised small model instead of renting a giant one per token. You describe one job, paste a handful of example inputs and correct answers, and the page assembles a real, byte-pinned Ollama Modelfile (system prompt + your examples baked in as few-shot). You run two commands (`ollama create`, `ollama run`) and own a private model that does that job on your own hardware. Honest scope: this is prompt-/few-shot tuning at the Modelfile level — a real, owned, reproducible node, not weight fine-tuning (that is the done-for-you tier).
 
 ## The three things it does, all in the browser
 
@@ -16,11 +16,11 @@ A self-contained tool for owning a specialised small model instead of renting a 
 
 An honest calculator: enter your monthly volume, tokens per call, and rented price per million tokens, plus a mint fee and monthly run cost. It returns OWN_WINS, OWN_LATER, or RENT_WINS — it will tell you to keep renting when that is genuinely cheaper.
 
-## Pricing
+## Ways to work with us
 
 - Do-it-yourself — free. Build, preview and download your Modelfile here; own it outright.
-- Done-for-you — fixed fee, quoted before any work. We mint, tune and prove one owned node with a signed receipt; you only pay if it beats your baseline.
-- Run-it-for-you — monthly retainer. We host, monitor and re-mint your nodes as your data changes.
+- Done-for-you — we mint, tune and prove one owned node with a signed receipt, and hand you a model you own.
+- Run-it-for-you — we host, monitor and re-mint your nodes as your data changes.
 - Regulated work (legal, tax, medical, financial products) is off the menu — counsel first.
 
 ## Privacy and ownership

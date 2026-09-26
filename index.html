@@ -26,7 +26,6 @@
       "applicationCategory": "DeveloperApplication",
       "operatingSystem": "Any (runs in the browser)",
       "description": "A tool that turns one repetitive task plus a few worked examples into a real, private, owned small model. It builds a deterministic Ollama Modelfile you run on your own machine, and can preview the model live in your browser. Free to try; nothing to sign up for.",
-      "offers": { "@type": "Offer", "price": "0", "priceCurrency": "GBP" },
       "featureList": [
         "Build a private model from your own examples",
         "Own the model file — no per-token bill",
@@ -41,22 +40,17 @@
       "serviceType": "Custom small-model minting (own, don't rent)",
       "provider": { "@type": "Organization", "name": "AI-Native Solutions" },
       "areaServed": "Worldwide",
-      "description": "Bring one repetitive task you feed a large rented AI model. We mint you a small model specialised to it, prove it beats its baseline with a signed receipt, and hand you a model you own and run privately. If the receipt does not say it beats your baseline, you do not pay.",
-      "offers": [
-        { "@type": "Offer", "name": "Do-it-yourself", "price": "0", "priceCurrency": "GBP", "description": "Build and download your Modelfile here, free. Run it on your own machine. You own it." },
-        { "@type": "Offer", "name": "Done-for-you node", "priceCurrency": "GBP", "description": "We mint, prove and hand over one owned node for a fixed fee, quoted before any work. You only pay if the signed receipt says it beats your baseline." },
-        { "@type": "Offer", "name": "Run-it-for-you", "priceCurrency": "GBP", "description": "Monthly retainer: we host, monitor and re-mint your nodes as your data changes." }
-      ]
+      "description": "Bring one repetitive task you feed a large rented AI model. We mint you a small model specialised to it, prove it beats its baseline with a signed receipt, and hand you a model you own and run privately."
     },
     {
       "@type": "FAQPage",
       "mainEntity": [
         { "@type": "Question", "name": "Do I really own the model?", "acceptedAnswer": { "@type": "Answer", "text": "Yes. The mint produces a Modelfile — a plain text recipe — that you run on your own machine with a free tool called Ollama. The resulting model lives on your computer. There is no account, no per-token bill, and it keeps working with your internet off." } },
-        { "@type": "Question", "name": "Do I need to be technical?", "acceptedAnswer": { "@type": "Answer", "text": "No. You paste your task and a few examples and press one button. To run the model yourself you install a free app and paste two lines we give you, step by step. If you would rather not, our done-for-you tier sets it up for you." } },
+        { "@type": "Question", "name": "Do I need to be technical?", "acceptedAnswer": { "@type": "Answer", "text": "No. You paste your task and a few examples and press one button. To run the model yourself you install a free app and paste two lines we give you, step by step. If you would rather not, we can set it up for you." } },
         { "@type": "Question", "name": "Is my data safe?", "acceptedAnswer": { "@type": "Answer", "text": "Yes. Everything on this page runs inside your own browser. Your task and examples are never sent to us or anyone else. The model you build runs on your machine." } },
         { "@type": "Question", "name": "What is the catch with owning instead of renting?", "acceptedAnswer": { "@type": "Answer", "text": "A small owned model is cheaper and private, but it is specialised — brilliant at the one job you trained it on, not a general chatbot. For a narrow, repetitive, high-volume task that is exactly what you want. The calculator on this page shows, honestly, when renting is actually the better deal." } },
         { "@type": "Question", "name": "How do I know it is any good?", "acceptedAnswer": { "@type": "Answer", "text": "Every minted node is measured against its starting point by a deterministic gate, and the result is written into a signed receipt that can — and sometimes does — say it lost. You can re-check that proof yourself in your browser on this page. Nobody renting you a black box can offer that." } },
-        { "@type": "Question", "name": "What does it cost?", "acceptedAnswer": { "@type": "Answer", "text": "Building and downloading your Modelfile here is free — you own it. A done-for-you node, minted and proven for you, is a fixed fee quoted before any work, and you only pay if the receipt says it beats your baseline. Running it for you is a monthly retainer." } }
+        { "@type": "Question", "name": "What does it cost?", "acceptedAnswer": { "@type": "Answer", "text": "Building and downloading your Modelfile here is free — you own it, with no account and no per-token bill. If you would rather we set it up and proved it for you, that is a service we offer too." } }
       ]
     }
   ]
@@ -186,7 +180,7 @@
     <a href="#mint">Mint one</a>
     <a href="#verify">Proof</a>
     <a href="#calc">Own vs rent</a>
-    <a href="#pricing">Pricing</a>
+    <a href="#work">Work with us</a>
     <a href="#how">How</a>
     <a href="#faq">FAQ</a>
   </nav>
@@ -289,7 +283,7 @@
       <div class="cmd" id="cmd1">ollama create my-model -f Modelfile</div>
       <div class="cmd" id="cmd2">ollama run my-model</div>
     </details>
-    <p class="note">Want us to do all of this for you, and prove the model beats its starting point with a signed receipt before you pay a penny? That's the <a href="#pricing">done-for-you tier</a>.</p>
+    <p class="note">Want us to do all of this for you, and prove the model beats its starting point with a signed receipt? That's the <a href="#work">done-for-you option</a>.</p>
   </div>
 
   <!-- prove it on THEIR data -->
@@ -410,11 +404,11 @@
   </div>
 </div></section>
 
-<!-- PRICING -->
-<section id="pricing"><div class="wrap">
-  <div class="eyebrow">Pricing</div>
-  <h2 class="sec">Start free. Pay only when it's proven to win.</h2>
-  <p class="sub">You can build and own a model here for nothing. The paid tiers are for when you'd rather we did the work — and proved it — for you.</p>
+<!-- WORK WITH US -->
+<section id="work"><div class="wrap">
+  <div class="eyebrow">Work with us</div>
+  <h2 class="sec">Start free. Or have us do it for you.</h2>
+  <p class="sub">You can build and own a model here for nothing. If you'd rather we did the work — and proved it — we can do that too.</p>
   <div class="grid g3" style="margin-top:22px">
     <div class="card price">
       <span class="pill">Do it yourself</span>
@@ -430,8 +424,8 @@
     </div>
     <div class="card price feature">
       <span class="pill brass">Done for you</span>
-      <div class="amt">Fixed fee</div>
-      <p class="muted" style="font-size:.9rem">Quoted up front, by the task. You only pay if the receipt says it beats your baseline.</p>
+      <div class="amt">You own it</div>
+      <p class="muted" style="font-size:.9rem">We do the work and prove it beats your baseline with a signed receipt.</p>
       <ul>
         <li>We mint, tune and prove one owned node</li>
         <li>Weight-level tuning where it helps</li>
@@ -439,11 +433,11 @@
         <li>Set up private on your machine</li>
         <li>You own it outright, no per-token bill</li>
       </ul>
-      <a class="btn forge" href="#contact">Ask for a quote</a>
+      <a class="btn forge" href="#contact">Talk to us</a>
     </div>
     <div class="card price">
       <span class="pill">Run it for you</span>
-      <div class="amt">Monthly</div>
+      <div class="amt">Stays sharp</div>
       <p class="muted" style="font-size:.9rem">We keep it sharp as your work changes.</p>
       <ul>
         <li>We host, watch and re-mint your nodes</li>
@@ -468,7 +462,7 @@
     <li><b>Your browser builds a recipe.</b> Right here, with nothing sent anywhere, it writes a <b>Modelfile</b> — a short, plain recipe that bakes your job and your examples into a small model.</li>
     <li><b>You run two lines to make it yours.</b> You install a free app called Ollama, and paste the two lines we give you. Now a private model that does your job lives on your own computer.</li>
     <li><b>It's yours, and it's private.</b> No monthly bill, no per-use charge, no data leaving your machine. It keeps working with the internet switched off.</li>
-    <li><b>If you'd rather not touch any of that</b>, we'll do it for you and prove the result beats your starting point with a signed receipt — and you only pay if it does.</li>
+    <li><b>If you'd rather not touch any of that</b>, we'll do it for you and prove the result beats your starting point with a signed receipt.</li>
   </ol>
 </div></section>
 
@@ -478,11 +472,11 @@
   <h2 class="sec">The things people ask.</h2>
   <div style="margin-top:20px">
     <details class="faq" open><summary>Do I really own the model?</summary><p>Yes. The mint produces a Modelfile — a plain text recipe — that you run on your own machine with a free tool called Ollama. The resulting model lives on your computer. There's no account, no per-token bill, and it keeps working with your internet off.</p></details>
-    <details class="faq"><summary>Do I need to be technical?</summary><p>No. You paste your task and a few examples and press one button. To run the model yourself you install a free app and paste two lines we give you, step by step. If you'd rather not, our done-for-you tier sets it up for you.</p></details>
+    <details class="faq"><summary>Do I need to be technical?</summary><p>No. You paste your task and a few examples and press one button. To run the model yourself you install a free app and paste two lines we give you, step by step. If you'd rather not, we can set it up for you.</p></details>
     <details class="faq"><summary>Is my data safe?</summary><p>Yes. Everything on this page runs inside your own browser. Your task and examples are never sent to us or anyone else. The model you build runs on your machine.</p></details>
     <details class="faq"><summary>What's the catch with owning instead of renting?</summary><p>A small owned model is cheaper and private, but it's specialised — brilliant at the one job you trained it on, not a general chatbot. For a narrow, repetitive, high-volume task that's exactly what you want. The calculator above shows, honestly, when renting is actually the better deal.</p></details>
     <details class="faq"><summary>How do I know it's any good?</summary><p>Every minted node is measured against its starting point by a deterministic gate, and the result is written into a signed receipt that can — and sometimes does — say it lost. You can re-check that proof yourself in your browser, in the Proof section above. Nobody renting you a black box can offer that.</p></details>
-    <details class="faq"><summary>What does it cost?</summary><p>Building and downloading your Modelfile here is free — you own it. A done-for-you node, minted and proven for you, is a fixed fee quoted before any work, and you only pay if the receipt says it beats your baseline. Running it for you is a monthly retainer.</p></details>
+    <details class="faq"><summary>What does it cost?</summary><p>Building and downloading your Modelfile here is free — you own it, with no account and no per-token bill. If you'd rather we set it up and proved it for you, that's a service we offer too.</p></details>
   </div>
 </div></section>
 
