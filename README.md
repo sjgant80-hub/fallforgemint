@@ -45,7 +45,17 @@ The verdict is written to the job summary. A self-hashed attestation, bound to t
 
 **Proven both ways, on real runs** (from one scorecard minted in CI; `rerun/proof/make-tampered.mjs` shows exactly how the failing two were made):
 <!-- RAIL-RUNS -->
-_The proof runs are linked here once they have run._
+The proof scorecard, [`genuine.json`](https://github.com/sjgant80-hub/fallforgemint/blob/main/rerun/proof/genuine.json), was minted on a GitHub runner by [run 36431565425](https://github.com/sjgant80-hub/fallforgemint/actions/runs/36431565425): 4/5 vs base 0/5, **BEATS**, held-out hash-disjoint. Its receipt's `rerun` field is that run.
+
+| Bundle | What was done to it | Verdict | Real runs |
+|---|---|---|---|
+| [`genuine.json`](https://github.com/sjgant80-hub/fallforgemint/blob/main/rerun/proof/genuine.json) | nothing | ✓ **REPRODUCED**, the job passes | [Xeon Platinum 8370C](https://github.com/sjgant80-hub/fallforgemint/actions/runs/36432124174) · [Xeon Platinum 8573C](https://github.com/sjgant80-hub/fallforgemint/actions/runs/36432161176) · [EPYC 7763](https://github.com/sjgant80-hub/fallforgemint/actions/runs/36432186035) · [EPYC 9V74](https://github.com/sjgant80-hub/fallforgemint/actions/runs/36432198461) · from the template repo: [Xeon 6973P-C](https://github.com/sjgant80-hub/fallforgemint-rerun/actions/runs/36432258746) |
+| [`tampered.json`](https://github.com/sjgant80-hub/fallforgemint/blob/main/rerun/proof/tampered.json) | the minted hit count raised by one, nothing re-hashed | ✗ **TAMPERED**, the job fails and nothing is re-executed | [EPYC 7763](https://github.com/sjgant80-hub/fallforgemint/actions/runs/36432136763) |
+| [`forged.json`](https://github.com/sjgant80-hub/fallforgemint/blob/main/rerun/proof/forged.json) | the one wrong answer rewritten to the right one, every hash recomputed, re-signed with a fresh key | ✗ **DID NOT REPRODUCE**: it re-verifies clean, re-execution catches it, the job fails | [EPYC 9V74](https://github.com/sjgant80-hub/fallforgemint/actions/runs/36432148743) · [EPYC 7763](https://github.com/sjgant80-hub/fallforgemint/actions/runs/36432173144) |
+| [`fragile-first-mint.json`](https://github.com/sjgant80-hub/fallforgemint/blob/main/rerun/proof/fragile-first-mint.json) | nothing, but one borderline row flips between CPU types | ✗ **DID NOT REPRODUCE** where it flips | [EPYC 7763](https://github.com/sjgant80-hub/fallforgemint/actions/runs/36427036258) |
+| [`fragile-second-mint.json`](https://github.com/sjgant80-hub/fallforgemint/blob/main/rerun/proof/fragile-second-mint.json) | nothing, but one borderline row flips between CPU types | ✓ on three runners ([1](https://github.com/sjgant80-hub/fallforgemint/actions/runs/36427814385), [2](https://github.com/sjgant80-hub/fallforgemint/actions/runs/36427851816), [3](https://github.com/sjgant80-hub/fallforgemint/actions/runs/36427865060)), ✗ where it flips | [EPYC 9V74, via the template](https://github.com/sjgant80-hub/fallforgemint-rerun/actions/runs/36427951661) |
+
+The two fragile records are why the proof bundle holds out only rows that stay put: a local probe on the same Ollama and model digest flipped the borderline row under a change of thread count or batch size, and held every other row.
 <!-- /RAIL-RUNS -->
 
 What it shows and what it doesn't: every recorded number is recomputed, and the held-out set is run again on that runner. A small model on a CPU is not bit-exact across chip types: a borderline answer can flip between them, and the rail fails that record and shows you the row. It does not attest the machine that made the original. It says nothing about what the base model saw in its own training. The held-out claim stays narrow: the held-out answers were not in the spec the model was given (hash-disjoint).

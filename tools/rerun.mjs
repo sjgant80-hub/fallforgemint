@@ -23,7 +23,7 @@ const here = dirname(fileURLToPath(import.meta.url));
 const K = await import(pathToFileURL(join(here, '..', 'kernel.mjs')).href);
 const HOST = (process.env.OLLAMA_HOST || 'http://127.0.0.1:11434').replace(/\/$/, '');
 const OPTIONS = { temperature: 0, seed: 42, num_predict: 512 };        // greedy, seeded, the Modelfile's own limits
-// the CPU that ran it: greedy decoding is exact on one CPU class, but a borderline answer can flip between CPU classes
+// the CPU that ran it: greedy decoding repeats on one machine with the same settings, but a borderline answer can flip between CPU types (and, locally, under a different thread count or batch size)
 const MACHINE = (() => { const c = cpus(); return c.length ? c[0].model.trim().replace(/\s+/g, ' ') + ' · ' + c.length + ' threads' : 'unknown CPU'; })();
 const argv = process.argv.slice(2), mode = argv[0], src = argv[1];
 const flag = (f) => { const i = argv.indexOf(f); return i >= 0 ? argv[i + 1] : undefined; };
@@ -175,7 +175,7 @@ async function verifyMode() {
       }).join('\n') + '\n\n';
   }
   if (outcome === 'DID_NOT_REPRODUCE' && cmp.sameRuntime && cmp.fresh.verdict === recorded.verdict)
-    md += `The verdict still reads ${recorded.verdict}, but the hit count moved on the rows marked **differs**. Greedy decoding is exact on one kind of CPU, and a borderline answer can change between CPU types, so this is either a fragile record or an edited one. A score that only holds on the machine that made it has not been reproduced, so the rail fails it and shows you the rows.\n\n`;
+    md += `The verdict still reads ${recorded.verdict}, but the hit count moved on the rows marked **differs**. Greedy decoding repeats on one machine with the same settings, but a borderline answer can change between CPU types, so this is either a fragile record or an edited one. A score that only holds on the machine that made it has not been reproduced, so the rail fails it and shows you the rows.\n\n`;
   if (outcome === 'TAMPERED') md += `The fresh run was not attempted: a record that does not recompute is not re-executed. Failed: ${failed.map((f) => '`' + f + '`').join(', ')}.\n\n`;
   md += (RUN_URL ? `This run: ${RUN_URL}` : 'Run locally — no run link recorded.') + (result.rail ? ` · rail \`${result.rail.slice(0, 12)}\`` : '') + (RUN_URL ? '\n\n> ' + K.RERUN_SCOPE : '') + '\n';
   summary(md);
