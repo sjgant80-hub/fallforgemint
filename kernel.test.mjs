@@ -10,6 +10,9 @@ import {
   inferFormat, hardenSpec, pickBest,
   scorecardReceipt, verifyScorecardReceipt, scorecardSignable, holdoutDisjoint,
   sizeRecommendation, LADDER, TASK_TIER, TASK_TYPES, DEPLOY_CAP, QUALITY_BUMP, SHAPE_ADJUST, CATALOG_VERSION,
+  RERUN_URL, EVALUATED_ON, RUNTIME_TO_OLLAMA, evaluatorModel, rerunBundle, verifyBundle, compareRerun,
+  RERUN_OUTCOMES, RERUN_SCOPE, rerunAttestation, verifyRerunAttestation,
+  HELDOUT_CLAIM_RUNNER, SCOPE_BROWSER, SCOPE_RUNNER,
 } from './kernel.mjs';
 import { Buffer } from 'node:buffer';
 
@@ -702,10 +705,15 @@ test('scorecardReceipt hardening: keyClass always present; holdout + rerun bind 
   const notExcl = scorecardReceipt({ ...RIN, holdoutHash: 'd'.repeat(64), holdoutExcludedFromSpec: false }).receipt;
   assert.equal(notExcl.holdoutExcludedFromSpec, false);
   assert.equal(notExcl.heldOutClaim, undefined);
-  // a too-short holdout hash is ignored (not bound); a real rerun binds; a non-string rerun is ignored
+  // a too-short holdout hash is ignored (not bound)
   assert.equal(scorecardReceipt({ ...RIN, holdoutHash: 'd'.repeat(63) }).receipt.holdoutHash, undefined);
-  assert.equal(scorecardReceipt({ ...RIN, rerun: 'https://x/run' }).receipt.rerun, 'https://x/run'); // kills rerun length !== 0 → === 0
-  assert.equal(scorecardReceipt({ ...RIN, rerun: 123 }).receipt.rerun, undefined); // kills the rerun && → ||
+  // rerun binds ONLY a real GitHub Actions run URL; a placeholder or a non-string refuses the whole receipt
+  const RUN = 'https://github.com/sjgant80-hub/fallforgemint/actions/runs/36419446992';
+  assert.equal(scorecardReceipt({ ...RIN, rerun: RUN }).receipt.rerun, RUN);
+  assert.equal(scorecardReceipt({ ...RIN, rerun: 'https://x/run' }).ok, false);          // the old placeholder — now refused
+  assert.equal(scorecardReceipt({ ...RIN, rerun: 'TBD' }).ok, false);
+  assert.equal(scorecardReceipt({ ...RIN, rerun: 123 }).ok, false);
+  assert.equal(scorecardReceipt({ ...RIN, rerun: '' }).ok, false);
   // the hardened receipt still verifies
   assert.equal(verifyScorecardReceipt(withHold).valid, true);
 });
@@ -884,4 +892,289 @@ test('anti-drift guard: the shipped scorecard claim carries no over-reach', () =
     holdoutHash: 'd'.repeat(64), holdoutExcludedFromSpec: false,
   });
   assert.equal('heldOutClaim' in leaked.receipt, false);         // no exclusion proof → no claim
+});
+
+// ══════════════════════════ THE CI RE-RUN RAIL ══════════════════════════
+const EV = 'ollama:llama3.2:1b@baf6a787fdff';
+const R_TASK = 'Map a code letter to its word.';
+const R_TRAIN = [{ input: 'a', output: 'alpha' }, { input: 'b', output: 'bravo' }];
+const R_HOLD = [{ input: 'c', output: 'charlie' }, { input: 'd', output: 'delta' }];
+function genuine(evaluatedOn = EV) {
+  const spec = specFromTask(R_TASK, R_TRAIN, 'llama3.2:1b');
+  const rows = R_HOLD.map((h) => ({ input: h.input, correct: h.output, baseOut: 'no idea', mintedOut: h.output }));
+  const sc = scorecard(rows.map((r) => ({ correct: r.correct, baseOut: r.baseOut, mintedOut: r.mintedOut })));
+  const d = holdoutDisjoint(rows, spec.modelfile);
+  const receipt = scorecardReceipt({ base: spec.base, modelFingerprint: spec.fingerprint, taskHash: sha256(R_TASK).hash,
+    evidenceHash: sha256(canon(rows)).hash, sc: { n: sc.n, baseHits: sc.baseHits, mintedHits: sc.mintedHits, verdict: sc.verdict },
+    createdAt: 't', holdoutHash: d.holdoutHash, holdoutExcludedFromSpec: d.excludedFromSpec, evaluatedOn }).receipt;
+  return { spec, rows, receipt, bundle: rerunBundle({ receipt, task: R_TASK, base: spec.base, train: R_TRAIN, rows, evaluatedOn }).bundle };
+}
+const rehash = (b) => { const body = { ...b }; delete body.hash; return { ...body, hash: sha256(canon(body)).hash }; };
+const failing = (v) => v.checks.filter((c) => !c.ok).map((c) => c.name).sort();
+
+test('RERUN_URL + EVALUATED_ON: only a real Actions run URL, only runtime:model[@digest]', () => {
+  assert.ok(RERUN_URL.test('https://github.com/sjgant80-hub/fallforgemint/actions/runs/1'));
+  assert.ok(RERUN_URL.test('https://github.com/a/b.c_d-e/actions/runs/36419446992'));
+  for (const bad of ['http://github.com/a/b/actions/runs/1', 'https://gitlab.com/a/b/actions/runs/1', 'https://github.com/a/b/actions/runs/0',
+    'https://github.com/a/b/actions/runs/1/job/2', 'https://github.com/a/b/actions/runs/', 'https://github.com/-a/b/actions/runs/1', 'https://x/run', ''])
+    assert.equal(RERUN_URL.test(bad), false, bad);
+  for (const good of [EV, 'ollama:qwen2.5:0.5b', 'webllm:Qwen2.5-0.5B-Instruct-q4f16_1-MLC', 'ollama:llama3.2:1b@' + 'a'.repeat(64)]) assert.ok(EVALUATED_ON.test(good), good);
+  for (const bad of ['llama3.2:1b', 'cloud:gpt', 'ollama:', 'ollama:llama3.2:1b@abc', 'ollama:llama3.2:1b@' + 'G'.repeat(12), 'webllm: spaced']) assert.equal(EVALUATED_ON.test(bad), false, bad);
+});
+
+test('scorecardReceipt binds evaluatedOn only when valid — the runtime that produced the scores', () => {
+  const g = genuine();
+  assert.equal(g.receipt.evaluatedOn, EV);
+  assert.equal(verifyScorecardReceipt(g.receipt).valid, true);
+  const base = { base: 'b', modelFingerprint: 'a'.repeat(64), taskHash: 'b'.repeat(64), evidenceHash: 'c'.repeat(64), sc: { n: 1, baseHits: 0, mintedHits: 1, verdict: 'BEATS' }, createdAt: 't' };
+  assert.equal(scorecardReceipt(base).receipt.evaluatedOn, undefined);        // absent → not bound (backward-compatible)
+  assert.equal(scorecardReceipt({ ...base, evaluatedOn: 'somewhere' }).ok, false);
+  assert.equal(scorecardReceipt({ ...base, evaluatedOn: 7 }).ok, false);
+});
+
+test('scope + held-out claim follow where it was measured: browser wording unchanged, Ollama wording names the runner', () => {
+  const base = { base: 'b', modelFingerprint: 'a'.repeat(64), taskHash: 'b'.repeat(64), evidenceHash: 'c'.repeat(64), sc: { n: 1, baseHits: 0, mintedHits: 1, verdict: 'BEATS' }, createdAt: 't' };
+  const held = { holdoutHash: 'd'.repeat(64), holdoutExcludedFromSpec: true };
+  const browser = scorecardReceipt({ ...base, ...held }).receipt;                                          // an old-style browser receipt
+  assert.equal(browser.scope, SCOPE_BROWSER);
+  assert.ok(browser.heldOutClaim.endsWith('Anyone can re-run it in their browser.'));
+  const web = scorecardReceipt({ ...base, ...held, evaluatedOn: 'webllm:Qwen2.5-0.5B-Instruct-q4f16_1-MLC' }).receipt;
+  assert.deepEqual([web.scope, web.heldOutClaim], [browser.scope, browser.heldOutClaim]);               // webllm = browser wording
+  const ci = scorecardReceipt({ ...base, ...held, evaluatedOn: EV }).receipt;
+  assert.deepEqual([ci.scope, ci.heldOutClaim], [SCOPE_RUNNER, HELDOUT_CLAIM_RUNNER]);
+  assert.equal(verifyScorecardReceipt(ci).valid, true);
+  const ciNoClaim = scorecardReceipt({ ...base, evaluatedOn: EV }).receipt;                                // no disjointness proof → still no claim
+  assert.deepEqual([ciNoClaim.scope, 'heldOutClaim' in ciNoClaim], [SCOPE_RUNNER, false]);
+  const ciLeaky = scorecardReceipt({ ...base, holdoutHash: 'd'.repeat(64), holdoutExcludedFromSpec: false, evaluatedOn: EV }).receipt;
+  assert.equal('heldOutClaim' in ciLeaky, false);
+  assert.equal(SCOPE_BROWSER, "Self-issued: measured in the holder's own browser on their own held-out examples. Tamper-evident (re-hash to check) but NOT a certification by AI-Native Solutions. The done-for-you tier issues an issuer-signed certified receipt.");
+});
+
+test('evaluatorModel: which Ollama model re-executes a scorecard', () => {
+  assert.deepEqual(evaluatorModel(EV), { ok: true, model: 'llama3.2:1b', runtime: 'ollama' });
+  assert.deepEqual(evaluatorModel('ollama:qwen2.5:0.5b'), { ok: true, model: 'qwen2.5:0.5b', runtime: 'ollama' });
+  assert.deepEqual(evaluatorModel('webllm:Qwen2.5-0.5B-Instruct-q4f16_1-MLC'), { ok: true, model: RUNTIME_TO_OLLAMA['webllm:Qwen2.5-0.5B-Instruct-q4f16_1-MLC'], runtime: 'webllm' });
+  assert.equal(evaluatorModel('webllm:Unknown-Model').ok, false);           // re-verifiable, not re-executable — said so
+  assert.equal(evaluatorModel('nope').ok, false);
+  assert.equal(evaluatorModel(null).ok, false);
+});
+
+test('rerunBundle: a self-hashed bundle; every missing part refused', () => {
+  const g = genuine();
+  assert.equal(g.bundle.kind, 'fallforgemint-rerun-bundle');
+  assert.equal(g.bundle.hash.length, 64);
+  assert.equal(g.bundle.spec.base, 'llama3.2:1b');
+  const ok = { receipt: g.receipt, task: R_TASK, base: 'llama3.2:1b', train: R_TRAIN, rows: g.rows, evaluatedOn: EV };
+  assert.equal(rerunBundle(ok).ok, true);
+  assert.equal(rerunBundle('x').ok, false);
+  assert.equal(rerunBundle({ ...ok, receipt: { kind: 'other', hash: 'h' } }).ok, false);
+  assert.equal(rerunBundle({ ...ok, receipt: { kind: 'fallforgemint-scorecard' } }).ok, false);
+  assert.equal(rerunBundle({ ...ok, task: '  ' }).ok, false);
+  assert.equal(rerunBundle({ ...ok, task: 5 }).ok, false);
+  assert.equal(rerunBundle({ ...ok, base: '' }).ok, false);
+  assert.equal(rerunBundle({ ...ok, base: 5 }).ok, false);
+  assert.equal(rerunBundle({ ...ok, train: [] }).ok, false);
+  assert.equal(rerunBundle({ ...ok, train: 'x' }).ok, false);
+  assert.match(rerunBundle({ ...ok, train: [R_TRAIN[0], { input: 'x' }] }).why, /example 2/);
+  assert.equal(rerunBundle({ ...ok, train: [{ output: 'x' }] }).ok, false);
+  assert.equal(rerunBundle({ ...ok, rows: [] }).ok, false);
+  assert.match(rerunBundle({ ...ok, rows: [g.rows[0], { input: 'c', correct: 'x', baseOut: 'y' }] }).why, /row 2/);
+  assert.equal(rerunBundle({ ...ok, evaluatedOn: 'nowhere' }).ok, false);
+});
+
+test('verifyBundle: a genuine bundle recomputes exactly — every check named and passing', () => {
+  const v = verifyBundle(genuine().bundle);
+  assert.equal(v.ok, true);
+  assert.equal(v.valid, true);
+  assert.deepEqual(v.checks.map((c) => c.name), ['bundle-hash', 'receipt-intact', 'recipe-fingerprint', 'task-hash', 'evidence-hash', 'scores', 'held-out-disjoint', 'evaluated-on']);
+  assert.ok(v.checks.every((c) => c.ok === true));
+  assert.equal(v.why, 'every recorded number recomputes exactly');
+  // a receipt made before evaluatedOn / holdoutHash existed skips those two checks (backward-compatible)
+  const g = genuine(); const old = { ...g.receipt }; delete old.evaluatedOn; delete old.holdoutHash; delete old.holdoutExcludedFromSpec; delete old.heldOutClaim; delete old.hash;
+  const oldR = { ...old, hash: sha256(canon(old)).hash };
+  const vb = verifyBundle(rerunBundle({ receipt: oldR, task: R_TASK, base: 'llama3.2:1b', train: R_TRAIN, rows: g.rows, evaluatedOn: EV }).bundle);
+  assert.equal(vb.valid, true);
+  assert.deepEqual(vb.checks.map((c) => c.name), ['bundle-hash', 'receipt-intact', 'recipe-fingerprint', 'task-hash', 'evidence-hash', 'scores']);
+});
+
+test('verifyBundle: each tamper is caught by exactly the check that owns it', () => {
+  const g = genuine();
+  // edited without re-hashing → the bundle's own fingerprint breaks
+  assert.deepEqual(failing(verifyBundle({ ...g.bundle, evaluatedOn: 'ollama:qwen2.5:0.5b' })), ['bundle-hash', 'evaluated-on']);
+  // a recorded output rewritten (bundle re-hashed to hide it) → evidence and scores both break
+  const rows2 = g.rows.map((r, i) => (i === 0 ? { ...r, baseOut: 'charlie' } : r));
+  assert.deepEqual(failing(verifyBundle(rehash({ ...g.bundle, rows: rows2 }))), ['evidence-hash', 'scores']);
+  // the receipt's score inflated after signing → the receipt is no longer intact
+  assert.deepEqual(failing(verifyBundle(rehash({ ...g.bundle, receipt: { ...g.receipt, baseHits: 1 } }))), ['receipt-intact', 'scores']);
+  // a forged receipt that is internally consistent (re-hashed) but claims hits the recorded outputs don't earn
+  const forged = { ...g.receipt, baseHits: 2, mintedHits: 2, verdict: 'TIES', score: 1 }; delete forged.hash;
+  assert.deepEqual(failing(verifyBundle(rehash({ ...g.bundle, receipt: { ...forged, hash: sha256(canon(forged)).hash } }))), ['scores']);
+  // the recipe changed → it no longer hashes to the model that was measured
+  assert.ok(failing(verifyBundle(rehash({ ...g.bundle, spec: { ...g.bundle.spec, train: [R_TRAIN[0]] } }))).includes('recipe-fingerprint'));
+  // the base swapped → the fingerprint breaks
+  assert.ok(failing(verifyBundle(rehash({ ...g.bundle, spec: { ...g.bundle.spec, base: 'qwen2.5:7b' } }))).includes('recipe-fingerprint'));
+  // the task changed → the task hash breaks
+  assert.ok(failing(verifyBundle(rehash({ ...g.bundle, spec: { ...g.bundle.spec, task: 'Something else.' } }))).includes('task-hash'));
+  // a held-out answer smuggled into the recipe → the narrow-true disjointness no longer holds
+  const leakyTrain = [...R_TRAIN, { input: 'z', output: 'charlie' }];
+  const leaky = verifyBundle(rehash({ ...g.bundle, spec: { ...g.bundle.spec, train: leakyTrain } }));
+  assert.ok(failing(leaky).includes('held-out-disjoint'));
+  assert.equal(leaky.valid, false);
+  assert.match(leaky.why, /^mismatch: /);
+  // the runtime quietly relabelled on the bundle → the receipt still names the original
+  assert.deepEqual(failing(verifyBundle(rehash({ ...g.bundle, evaluatedOn: 'ollama:qwen2.5:0.5b' }))), ['evaluated-on']);
+});
+
+test('verifyBundle: the held-out claim cannot be forged on a leaky recipe', () => {
+  const leakyTrain = [...R_TRAIN, { input: 'z', output: 'charlie' }];
+  const spec = specFromTask(R_TASK, leakyTrain, 'llama3.2:1b');
+  const rows = R_HOLD.map((h) => ({ input: h.input, correct: h.output, baseOut: 'no', mintedOut: h.output }));
+  const d = holdoutDisjoint(rows, spec.modelfile);
+  assert.equal(d.excludedFromSpec, false);
+  const lie = scorecardReceipt({ base: spec.base, modelFingerprint: spec.fingerprint, taskHash: sha256(R_TASK).hash, evidenceHash: sha256(canon(rows)).hash,
+    sc: { n: 2, baseHits: 0, mintedHits: 2, verdict: 'BEATS' }, createdAt: 't', holdoutHash: d.holdoutHash, holdoutExcludedFromSpec: true, evaluatedOn: EV }).receipt;
+  assert.ok(lie.heldOutClaim);                                                      // the receipt carries the claim…
+  const v = verifyBundle(rerunBundle({ receipt: lie, task: R_TASK, base: 'llama3.2:1b', train: leakyTrain, rows, evaluatedOn: EV }).bundle);
+  assert.deepEqual(failing(v), ['held-out-disjoint']);                              // …and the rail refuses it
+});
+
+test('verifyBundle: refuses what is not a bundle, never throws', () => {
+  const g = genuine();
+  assert.equal(verifyBundle('x').ok, false);
+  assert.equal(verifyBundle({ kind: 'fallforgemint-rerun-bundle' }).ok, false);
+  assert.equal(verifyBundle({ ...g.bundle, kind: 'other' }).ok, false);
+  assert.equal(verifyBundle({ ...g.bundle, receipt: null }).ok, false);
+  assert.equal(verifyBundle({ ...g.bundle, spec: 'x' }).ok, false);
+  assert.equal(verifyBundle({ ...g.bundle, rows: 'x' }).ok, false);
+  assert.equal(verifyBundle({ ...g.bundle, evaluatedOn: 5 }).ok, false);
+  assert.equal(verifyBundle({ ...g.bundle, rows: [{ input: 'c' }] }).ok, false);
+  // a broken recipe is reported as a failed check, not a crash
+  const bad = verifyBundle(rehash({ ...g.bundle, spec: { ...g.bundle.spec, train: 'x' } }));
+  assert.equal(bad.valid, false);
+  assert.ok(failing(bad).includes('recipe-fingerprint') && failing(bad).includes('held-out-disjoint'));
+});
+
+test('compareRerun: REPRODUCED / AGREES / DID_NOT_REPRODUCE — the same runtime demands the same hits', () => {
+  const g = genuine();
+  const same = (rows) => compareRerun(g.bundle, { runtime: EV, rows });
+  const r1 = same(g.rows.map((r) => ({ baseOut: r.baseOut, mintedOut: r.mintedOut })));
+  assert.deepEqual([r1.outcome, r1.pass, r1.sameRuntime], ['REPRODUCED', true, true]);
+  assert.deepEqual(r1.recorded, { n: 2, baseHits: 0, mintedHits: 2, verdict: 'BEATS' });
+  assert.deepEqual(r1.fresh, r1.recorded);
+  // same runtime, one base answer now right → hits differ → did not reproduce (even though the verdict still BEATS)
+  const r2 = same([{ baseOut: 'charlie', mintedOut: 'charlie' }, { baseOut: 'x', mintedOut: 'delta' }]);
+  assert.deepEqual([r2.outcome, r2.pass, r2.fresh.verdict], ['DID_NOT_REPRODUCE', false, 'BEATS']);
+  // same runtime, a minted answer now wrong → hits differ
+  assert.equal(same([{ baseOut: 'x', mintedOut: 'wrong' }, { baseOut: 'x', mintedOut: 'delta' }]).outcome, 'DID_NOT_REPRODUCE');
+  // a DIFFERENT runtime: the exact hits may move, the verdict must hold
+  const other = (rows) => compareRerun(g.bundle, { runtime: 'ollama:qwen2.5:0.5b', rows });
+  const r3 = other([{ baseOut: 'x', mintedOut: 'charlie' }, { baseOut: 'x', mintedOut: 'wrong' }]);   // 1/2 vs 0/2 → still BEATS
+  assert.deepEqual([r3.outcome, r3.pass, r3.sameRuntime], ['AGREES', true, false]);
+  const r4 = other([{ baseOut: 'x', mintedOut: 'wrong' }, { baseOut: 'x', mintedOut: 'wrong' }]);        // TIES ≠ BEATS
+  assert.deepEqual([r4.outcome, r4.pass], ['DID_NOT_REPRODUCE', false]);
+  // refusals
+  assert.equal(compareRerun('x', { runtime: EV, rows: [] }).ok, false);
+  assert.equal(compareRerun({ rows: [] }, { runtime: EV, rows: [] }).ok, false);
+  assert.equal(compareRerun({ rows: [{ input: 'c' }] }, { runtime: EV, rows: [{ baseOut: 'a', mintedOut: 'b' }] }).ok, false);
+  assert.equal(compareRerun(g.bundle, 'x').ok, false);
+  assert.equal(compareRerun(g.bundle, { rows: [] }).ok, false);
+  assert.equal(compareRerun(g.bundle, { runtime: EV, rows: 'x' }).ok, false);
+  assert.match(compareRerun(g.bundle, { runtime: EV, rows: [{ baseOut: 'a', mintedOut: 'b' }] }).why, /every held-out input \(2\), not 1/);
+  assert.match(compareRerun(g.bundle, { runtime: EV, rows: [{ baseOut: 'a', mintedOut: 'b' }, { baseOut: 'a' }] }).why, /fresh row 2/);
+  assert.equal(compareRerun(g.bundle, { runtime: EV, rows: [null, { baseOut: 'a', mintedOut: 'b' }] }).ok, false);
+});
+
+test('rerunAttestation: bound to a real run, internally consistent, self-hashed', () => {
+  const g = genuine(), v = verifyBundle(g.bundle), cmp = compareRerun(g.bundle, { runtime: EV, rows: g.rows.map((r) => ({ baseOut: r.baseOut, mintedOut: r.mintedOut })) });
+  const RUN = 'https://github.com/sjgant80-hub/fallforgemint/actions/runs/123';
+  const good = { bundleHash: g.bundle.hash, receiptHash: g.receipt.hash, outcome: cmp.outcome, checks: v.checks, recorded: cmp.recorded, fresh: cmp.fresh, runtime: EV, runUrl: RUN, createdAt: 't' };
+  const a = rerunAttestation(good).attestation;
+  assert.deepEqual([a.kind, a.outcome, a.pass, a.runUrl, a.runtime], ['fallforgemint-rerun-attestation', 'REPRODUCED', true, RUN, EV]);
+  assert.equal(a.scope, RERUN_SCOPE);
+  assert.equal(verifyRerunAttestation(a).valid, true);
+  assert.equal(verifyRerunAttestation({ ...a, outcome: 'AGREES' }).valid, false);          // edited after issue → caught
+  assert.equal(verifyRerunAttestation({ ...a, kind: 'x' }).ok, false);
+  assert.equal(verifyRerunAttestation('x').ok, false);
+  assert.equal(rerunAttestation({ ...good, outcome: 'AGREES' }).attestation.pass, true);
+  assert.equal(rerunAttestation({ ...good, outcome: 'DID_NOT_REPRODUCE' }).attestation.pass, false);
+  // TAMPERED ⇔ a failed check; a tampered bundle is never re-executed
+  const failedChecks = [{ name: 'scores', ok: false }, { name: 'bundle-hash', ok: true }];
+  const t = rerunAttestation({ ...good, outcome: 'TAMPERED', checks: failedChecks, fresh: null, runtime: null }).attestation;
+  assert.deepEqual([t.outcome, t.pass, t.fresh, t.runtime], ['TAMPERED', false, null, null]);
+  assert.equal(rerunAttestation({ ...good, outcome: 'TAMPERED' }).ok, false);                        // TAMPERED with all checks passing
+  assert.equal(rerunAttestation({ ...good, checks: failedChecks }).ok, false);                        // a failed check but not TAMPERED
+  assert.equal(rerunAttestation({ ...good, outcome: 'TAMPERED', checks: failedChecks, fresh: cmp.fresh }).ok, false);
+  // the run URL must be real — never a placeholder
+  assert.equal(rerunAttestation({ ...good, runUrl: 'https://x/run' }).ok, false);
+  assert.equal(rerunAttestation({ ...good, runUrl: undefined }).ok, false);
+  // every other field isolated
+  assert.equal(rerunAttestation('x').ok, false);
+  assert.equal(rerunAttestation({ ...good, bundleHash: 'a'.repeat(63) }).ok, false);
+  assert.match(rerunAttestation({ ...good, receiptHash: 'Z'.repeat(64) }).why, /receiptHash/);
+  assert.equal(rerunAttestation({ ...good, outcome: 'MAYBE' }).ok, false);
+  assert.equal(rerunAttestation({ ...good, checks: [] }).ok, false);
+  assert.equal(rerunAttestation({ ...good, checks: [{ name: 'x', ok: 'yes' }] }).ok, false);
+  assert.equal(rerunAttestation({ ...good, recorded: null }).ok, false);
+  assert.equal(rerunAttestation({ ...good, fresh: null }).ok, false);
+  assert.equal(rerunAttestation({ ...good, runtime: 'nowhere' }).ok, false);
+  assert.equal(rerunAttestation({ ...good, runtime: null }).ok, false);
+  assert.equal(rerunAttestation({ ...good, createdAt: '' }).ok, false);
+  assert.deepEqual(RERUN_OUTCOMES, ['TAMPERED', 'REPRODUCED', 'AGREES', 'DID_NOT_REPRODUCE']);
+});
+
+test('anti-drift guard: the rail’s own claim stays narrow-true', () => {
+  const FORBIDDEN = /hermetic|sealed|memoris|memoriz|tamper-proof|unforgeable|uncheatable|cannot have been|impossible to (?:cheat|fake|game|leak)/i;
+  assert.equal(FORBIDDEN.test(RERUN_SCOPE), false);
+  assert.ok(RERUN_SCOPE.includes('does not attest the machine that made the original'));
+  assert.ok(RERUN_SCOPE.includes('says nothing about what the base model saw in its own training'));
+});
+
+// ── kill: the rail's guards, each clause isolated (from the witness run on the rail) ──
+const rehashR = (r) => { const body = { ...r }; delete body.hash; delete body.signature; return { ...body, hash: sha256(canon(body)).hash }; };
+test('kill: verifyBundle held-out check — an honest leaky recipe verifies; an under-claim or a swapped hash does not', () => {
+  const leakyTrain = [...R_TRAIN, { input: 'z', output: 'charlie' }];
+  const spec = specFromTask(R_TASK, leakyTrain, 'llama3.2:1b');
+  const rows = R_HOLD.map((h) => ({ input: h.input, correct: h.output, baseOut: 'no', mintedOut: h.output }));
+  const d = holdoutDisjoint(rows, spec.modelfile);
+  const honest = scorecardReceipt({ base: spec.base, modelFingerprint: spec.fingerprint, taskHash: sha256(R_TASK).hash, evidenceHash: sha256(canon(rows)).hash,
+    sc: { n: 2, baseHits: 0, mintedHits: 2, verdict: 'BEATS' }, createdAt: 't', holdoutHash: d.holdoutHash, holdoutExcludedFromSpec: d.excludedFromSpec, evaluatedOn: EV }).receipt;
+  assert.equal('heldOutClaim' in honest, false);
+  const v = verifyBundle(rerunBundle({ receipt: honest, task: R_TASK, base: 'llama3.2:1b', train: leakyTrain, rows, evaluatedOn: EV }).bundle);
+  assert.equal(v.valid, true);                                                       // leaky but honest about it → intact
+  const g = genuine();
+  // a disjoint recipe whose receipt says NOT disjoint (the claim dropped) → the record does not match the recipe
+  const under = rehashR({ ...g.receipt, holdoutExcludedFromSpec: false }); delete under.heldOutClaim;
+  const under2 = rehashR(under);
+  assert.deepEqual(failing(verifyBundle(rehash({ ...g.bundle, receipt: under2 }))), ['held-out-disjoint']);
+  // the held-out hash swapped on a re-hashed receipt → only the held-out check breaks
+  assert.deepEqual(failing(verifyBundle(rehash({ ...g.bundle, receipt: rehashR({ ...g.receipt, holdoutHash: 'e'.repeat(64) }) }))), ['held-out-disjoint']);
+});
+
+test('kill: evaluatorModel + compareRerun guards — each clause alone, never a throw', () => {
+  const g = genuine();
+  assert.equal(evaluatorModel([EV]).ok, false);                                     // a list that stringifies to a runtime is not one
+  assert.equal(evaluatorModel({ toString: () => EV }).ok, false);
+  for (const b of [null, { rows: 'x' }, { rows: [] }, { rows: [{}] }, { rows: [g.rows[0], { input: 'c' }] }])
+    assert.match(compareRerun(b, { runtime: EV, rows: [] }).why, /needs a bundle with its held-out rows/);
+  for (const f of [null, { runtime: 5, rows: [] }, { rows: g.rows }, { runtime: EV, rows: 'xy' }, { runtime: EV }])
+    assert.match(compareRerun(g.bundle, f).why, /fresh must be/);
+});
+
+test('kill: the attestation carries the fresh scores it was given; its verifier names what it found', () => {
+  const g = genuine(), v = verifyBundle(g.bundle);
+  const fresh = { n: 2, baseHits: 1, mintedHits: 2, verdict: 'BEATS' };
+  const a = rerunAttestation({ bundleHash: g.bundle.hash, receiptHash: g.receipt.hash, outcome: 'AGREES', checks: v.checks, recorded: { n: 2, baseHits: 0, mintedHits: 2, verdict: 'BEATS' },
+    fresh, runtime: 'ollama:qwen2.5:0.5b', runUrl: 'https://github.com/sjgant80-hub/fallforgemint/actions/runs/7', createdAt: 't' }).attestation;
+  assert.deepEqual(a.fresh, fresh);
+  assert.equal(a.runtime, 'ollama:qwen2.5:0.5b');
+  assert.deepEqual(a.checks, v.checks.map((c) => ({ name: c.name, ok: c.ok })));
+  assert.deepEqual(verifyRerunAttestation(a), { ok: true, valid: true, why: 'attestation intact' });
+  assert.match(verifyRerunAttestation({ ...a, pass: false }).why, /changed after it was issued/);
+});
+
+test('anti-drift guard: the runner wording stays narrow-true too', () => {
+  const FORBIDDEN = /hermetic|sealed|memoris|memoriz|tamper-proof|unforgeable|uncheatable|cannot have been|impossible to (?:cheat|fake|game|leak)/i;
+  for (const s of [HELDOUT_CLAIM_RUNNER, SCOPE_RUNNER, SCOPE_BROWSER]) assert.equal(FORBIDDEN.test(s), false, s);
+  assert.ok(HELDOUT_CLAIM_RUNNER.startsWith('The held-out answers were not in the spec given to the model (hash-disjoint)'));
+  assert.ok(SCOPE_RUNNER.includes('NOT a certification'));
 });

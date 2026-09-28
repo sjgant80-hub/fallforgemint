@@ -450,6 +450,15 @@ const KEY_CLASS = 'software-ed25519';
 // "hermetic" / "sealed" claim: that attested sandbox is not built, and the scorecard's power is that every
 // word on it is true. Guarded as a constant so the wording cannot drift.
 const HELDOUT_CLAIM = 'The held-out answers were not in the spec given to the model (hash-disjoint); for a few-shot node the spec is all the model was given. Anyone can re-run it in their browser.';
+// The same two sentences for a scorecard measured with Ollama (a CI mint), where "in their browser" would not be
+// the true re-run path — and the scope names the machine that ran it instead of a browser. Guarded like the above.
+export const HELDOUT_CLAIM_RUNNER = 'The held-out answers were not in the spec given to the model (hash-disjoint); for a few-shot node the spec is all the model was given. Anyone can re-run it on a clean GitHub runner with the re-run rail.';
+export const SCOPE_BROWSER = "Self-issued: measured in the holder's own browser on their own held-out examples. Tamper-evident (re-hash to check) but NOT a certification by AI-Native Solutions. The done-for-you tier issues an issuer-signed certified receipt.";
+export const SCOPE_RUNNER = 'Self-issued: measured with Ollama on the machine named in evaluatedOn, on held-out examples the holder supplied. Tamper-evident (re-hash to check) but NOT a certification by AI-Native Solutions. The done-for-you tier issues an issuer-signed certified receipt.';
+// A real GitHub Actions run URL — the only thing "rerun" may ever carry (no placeholder, no other host).
+export const RERUN_URL = /^https:\/\/github\.com\/[A-Za-z0-9](?:[A-Za-z0-9-]{0,38})\/[A-Za-z0-9._-]{1,100}\/actions\/runs\/[1-9][0-9]{0,19}$/;
+// runtime:model[@digest] — the runtime and model that produced a scorecard's numbers.
+export const EVALUATED_ON = /^(?:webllm|ollama):[A-Za-z0-9][A-Za-z0-9._:\/-]{0,100}(?:@[0-9a-f]{12,64})?$/;
 
 /** holdoutDisjoint(rows, modelfile) — the honest anti-cheat check: are the held-out ANSWERS absent from the
  *  minted spec? A few-shot node's Modelfile IS the spec, so an answer that is not in it was not handed to
@@ -496,7 +505,7 @@ export function scorecardReceipt(input) {
     verdict: sc.verdict,
     smallSample: sc.n < 5,
     createdAt,
-    scope: "Self-issued: measured in the holder's own browser on their own held-out examples. Tamper-evident (re-hash to check) but NOT a certification by AI-Native Solutions. The done-for-you tier issues an issuer-signed certified receipt.",
+    scope: SCOPE_BROWSER,
   };
   // ── additive honest hardening (all optional; an old receipt with none of these still verifies unchanged) ──
   // keyClass: honest label of the signature key. Always present on a new receipt.
@@ -508,8 +517,23 @@ export function scorecardReceipt(input) {
     // the claim ships ONLY when the answers are provably absent from the spec — never otherwise, never hermetic
     if (body.holdoutExcludedFromSpec) body.heldOutClaim = HELDOUT_CLAIM;
   }
-  // rerun: a URL to re-execute the eval. The field is honest; "re-run in CI" is only claimed once that rail exists.
-  if (isStr(input.rerun) && input.rerun.length !== 0) body.rerun = input.rerun;
+  // rerun: the URL of a REAL GitHub Actions run that executed this eval. A placeholder is never bound — any value
+  // that is not an Actions run URL refuses the whole receipt, so "re-run in CI" can only ever point at a run.
+  if (input.rerun !== undefined) {
+    if (!isStr(input.rerun) || !RERUN_URL.test(input.rerun)) return { ok: false, why: 'rerun must be the URL of a real GitHub Actions run (https://github.com/<owner>/<repo>/actions/runs/<id>) — never a placeholder' };
+    body.rerun = input.rerun;
+  }
+  // evaluatedOn: WHICH runtime and model produced these scores. The browser proof runs a small in-browser model
+  // whatever base the recipe names — bound here so a re-run knows exactly what it is re-running.
+  if (input.evaluatedOn !== undefined) {
+    if (!isStr(input.evaluatedOn) || !EVALUATED_ON.test(input.evaluatedOn)) return { ok: false, why: 'evaluatedOn must be runtime:model, e.g. webllm:Qwen2.5-0.5B-Instruct-q4f16_1-MLC or ollama:llama3.2:1b@<digest>' };
+    body.evaluatedOn = input.evaluatedOn;
+    // measured with Ollama, not in a browser: the scope and the re-run sentence say so (a browser receipt is unchanged)
+    if (input.evaluatedOn.startsWith('ollama:')) {
+      body.scope = SCOPE_RUNNER;
+      if (body.heldOutClaim !== undefined) body.heldOutClaim = HELDOUT_CLAIM_RUNNER;
+    }
+  }
   const h = sha256(canon(body));
   if (!h.ok) return { ok: false, why: h.why };
   return { ok: true, receipt: { ...body, hash: h.hash } };
@@ -757,4 +781,138 @@ export function sizeRecommendation(profile) {
     honesty,
     summary: 'Start with ' + model.name + ' (' + rung.band + ', ' + approach + ') — ' + (capped ? 'the largest your ' + deploy + ' can run; ' : 'the smallest that should meet your bar; ') + 'then prove it.',
   };
+}
+
+// ══════════════════════════════════════════════════════════════════════════════════════════════════
+// THE CI RE-RUN RAIL — a shared scorecard becomes a job anyone can re-run on a neutral machine.
+// Two separate judgements, never blurred:
+//  1 · RE-VERIFY (deterministic): every recorded number is recomputed from the bundle — the rebuilt recipe's
+//      fingerprint, the task and evidence hashes, the re-graded scores, the hash-disjoint held-out check.
+//      Any mismatch is TAMPERED. No model is involved, so this part is exact.
+//  2 · RE-EXECUTE (a fresh run): the held-out set goes through base and minted again on the runner. Same
+//      runtime and same model digest → the hit counts must match exactly (REPRODUCED). A different runtime —
+//      a browser-made receipt re-run on a server — → the verdict must hold (AGREES). Otherwise the result
+//      DID_NOT_REPRODUCE. Both failures fail the job, each in its own words: TAMPERED means the record was
+//      altered; DID_NOT_REPRODUCE means the result did not hold on this runner. Neither is worded as the other.
+// ══════════════════════════════════════════════════════════════════════════════════════════════════
+
+// The browser proof's in-browser model → the Ollama model with the same weights (different runtime and quantisation).
+export const RUNTIME_TO_OLLAMA = { 'webllm:Qwen2.5-0.5B-Instruct-q4f16_1-MLC': 'qwen2.5:0.5b' };
+
+/** evaluatorModel(evaluatedOn) — which Ollama model re-executes a scorecard measured on `evaluatedOn`. */
+export function evaluatorModel(evaluatedOn) {
+  if (!isStr(evaluatedOn) || !EVALUATED_ON.test(evaluatedOn)) return { ok: false, why: 'evaluatedOn must be runtime:model[@digest]' };
+  if (evaluatedOn.startsWith('ollama:')) return { ok: true, model: evaluatedOn.slice(7).split('@')[0], runtime: 'ollama' };
+  const model = RUNTIME_TO_OLLAMA[evaluatedOn];
+  if (!isStr(model)) return { ok: false, why: 'no known Ollama equivalent for ' + evaluatedOn + ' — the rail can re-verify it but not re-execute it' };
+  return { ok: true, model, runtime: 'webllm' };
+}
+
+const isRow = (x) => isObj(x) && isStr(x.input) && isStr(x.correct) && isStr(x.baseOut) && isStr(x.mintedOut);
+
+/** rerunBundle(input) — everything a stranger needs to re-run a scorecard: the signed receipt, the recipe (task,
+ *  base, the examples the model was given) and the held-out rows with the outputs that were graded. Sharing it
+ *  shares your examples — the holder's choice. Self-hashed. */
+export function rerunBundle(input) {
+  if (!isObj(input)) return { ok: false, why: 'rerunBundle takes an object' };
+  const { receipt, task, base, train, rows, evaluatedOn } = input;
+  if (!isObj(receipt) || receipt.kind !== 'fallforgemint-scorecard' || !isStr(receipt.hash)) return { ok: false, why: 'the bundle needs the scorecard receipt' };
+  if (!isStr(task) || task.trim().length === 0) return { ok: false, why: 'the bundle needs the task' };
+  if (!isStr(base) || base.trim().length === 0) return { ok: false, why: 'the bundle needs the base model name' };
+  if (!Array.isArray(train) || train.length === 0) return { ok: false, why: 'the bundle needs the examples the model was given' };
+  for (const [i, e] of train.entries()) if (!isObj(e) || !isStr(e.input) || !isStr(e.output)) return { ok: false, why: 'example ' + (i + 1) + ' needs an input and an output' };
+  if (!Array.isArray(rows) || rows.length === 0) return { ok: false, why: 'the bundle needs the held-out rows' };
+  for (const [i, r] of rows.entries()) if (!isRow(r)) return { ok: false, why: 'held-out row ' + (i + 1) + ' needs input, correct, baseOut and mintedOut' };
+  if (!isStr(evaluatedOn) || !EVALUATED_ON.test(evaluatedOn)) return { ok: false, why: 'the bundle needs evaluatedOn (runtime:model)' };
+  const body = {
+    v: 1, kind: 'fallforgemint-rerun-bundle', receipt,
+    spec: { task, base, train: train.map((e) => ({ input: e.input, output: e.output })) },
+    rows: rows.map((r) => ({ input: r.input, correct: r.correct, baseOut: r.baseOut, mintedOut: r.mintedOut })),
+    evaluatedOn,
+  };
+  const h = sha256(canon(body));
+  if (!h.ok) return { ok: false, why: h.why };
+  return { ok: true, bundle: { ...body, hash: h.hash } };
+}
+
+/** verifyBundle(b) — judgement 1: recompute every recorded number from the bundle. valid only if ALL hold. */
+export function verifyBundle(b) {
+  if (!isObj(b) || b.kind !== 'fallforgemint-rerun-bundle' || !isStr(b.hash)) return { ok: false, why: 'not a fallforgemint re-run bundle' };
+  if (!isObj(b.receipt) || !isObj(b.spec) || !Array.isArray(b.rows) || !isStr(b.evaluatedOn)) return { ok: false, why: 'the bundle is missing its receipt, recipe, rows or evaluatedOn' };
+  if (!b.rows.every(isRow)) return { ok: false, why: 'every held-out row needs input, correct, baseOut and mintedOut' };
+  const checks = [];
+  const add = (name, pass, detail) => { checks.push({ name, ok: pass === true, detail }); };
+  const r = b.receipt;
+  const body = { ...b }; delete body.hash;
+  add('bundle-hash', sha256(canon(body)).hash === b.hash, 'the bundle, against its own fingerprint');
+  const vr = verifyScorecardReceipt(r);
+  add('receipt-intact', vr.ok === true && vr.valid === true, 'the scorecard, against its own fingerprint, and its score against its hit counts');
+  const spec = specFromTask(b.spec.task, b.spec.train, b.spec.base);
+  add('recipe-fingerprint', spec.ok === true && spec.fingerprint === r.modelFingerprint && spec.base === r.base, 'the Modelfile rebuilt from the recipe, against the model fingerprint on the receipt');
+  add('task-hash', isStr(b.spec.task) && sha256(b.spec.task).hash === r.taskHash, 'the task, against the receipt\'s task hash');
+  add('evidence-hash', sha256(canon(b.rows)).hash === r.evidenceHash, 'the held-out rows, against the receipt\'s evidence hash');
+  const sc = scorecard(b.rows.map((x) => ({ correct: x.correct, baseOut: x.baseOut, mintedOut: x.mintedOut })));
+  add('scores', sc.ok === true && sc.n === r.heldOut && sc.baseHits === r.baseHits && sc.mintedHits === r.mintedHits && sc.verdict === r.verdict, 'the recorded outputs re-graded, against the receipt\'s scores and verdict');
+  if (r.holdoutHash !== undefined) {
+    const d = spec.ok === true ? holdoutDisjoint(b.rows, spec.modelfile) : { ok: false };
+    add('held-out-disjoint', d.ok === true && d.holdoutHash === r.holdoutHash && d.excludedFromSpec === r.holdoutExcludedFromSpec && (r.heldOutClaim === undefined || d.excludedFromSpec === true), 'the held-out answers, re-checked against the rebuilt recipe');
+  }
+  if (r.evaluatedOn !== undefined) add('evaluated-on', r.evaluatedOn === b.evaluatedOn, 'the runtime the bundle names, against the one on the receipt');
+  const failed = checks.filter((c) => !c.ok);
+  return { ok: true, valid: failed.length === 0, checks, why: failed.length === 0 ? 'every recorded number recomputes exactly' : 'mismatch: ' + failed.map((c) => c.name).join(', ') };
+}
+
+const tally = (s) => ({ n: s.n, baseHits: s.baseHits, mintedHits: s.mintedHits, verdict: s.verdict });
+
+/** compareRerun(bundle, fresh) — judgement 2: grade a fresh run of the held-out set against what was recorded.
+ *  fresh = { runtime: 'ollama:<tag>@<digest>', rows: [{ baseOut, mintedOut }] } in the bundle's row order. */
+export function compareRerun(bundle, fresh) {
+  if (!isObj(bundle) || !Array.isArray(bundle.rows) || bundle.rows.length === 0 || !bundle.rows.every(isRow)) return { ok: false, why: 'compareRerun needs a bundle with its held-out rows' };
+  if (!isObj(fresh) || !isStr(fresh.runtime) || !Array.isArray(fresh.rows)) return { ok: false, why: 'fresh must be { runtime, rows: [{ baseOut, mintedOut }] }' };
+  if (fresh.rows.length !== bundle.rows.length) return { ok: false, why: 'the fresh run must answer every held-out input (' + bundle.rows.length + '), not ' + fresh.rows.length };
+  for (const [i, f] of fresh.rows.entries()) if (!isObj(f) || !isStr(f.baseOut) || !isStr(f.mintedOut)) return { ok: false, why: 'fresh row ' + (i + 1) + ' needs baseOut and mintedOut' };
+  const recorded = scorecard(bundle.rows.map((x) => ({ correct: x.correct, baseOut: x.baseOut, mintedOut: x.mintedOut })));
+  const again = scorecard(bundle.rows.map((x, i) => ({ correct: x.correct, baseOut: fresh.rows[i].baseOut, mintedOut: fresh.rows[i].mintedOut })));
+  if (!recorded.ok) return recorded;
+  if (!again.ok) return again;
+  const sameRuntime = fresh.runtime === bundle.evaluatedOn;
+  const sameHits = again.baseHits === recorded.baseHits && again.mintedHits === recorded.mintedHits;
+  const outcome = sameRuntime ? (sameHits ? 'REPRODUCED' : 'DID_NOT_REPRODUCE') : (again.verdict === recorded.verdict ? 'AGREES' : 'DID_NOT_REPRODUCE');
+  return { ok: true, outcome, pass: outcome !== 'DID_NOT_REPRODUCE', sameRuntime, recorded: tally(recorded), fresh: tally(again) };
+}
+
+export const RERUN_OUTCOMES = ['TAMPERED', 'REPRODUCED', 'AGREES', 'DID_NOT_REPRODUCE'];
+export const RERUN_SCOPE = 'Re-run on a neutral GitHub runner: every recorded number was recomputed from the bundle and the held-out set was run again through base and minted. It shows whether the record is unaltered and whether the result holds on this runner. It does not attest the machine that made the original, and it says nothing about what the base model saw in its own training.';
+
+/** rerunAttestation(input) — the rail's verdict as a self-hashed record, bound to the run that produced it. */
+export function rerunAttestation(input) {
+  if (!isObj(input)) return { ok: false, why: 'rerunAttestation takes an object' };
+  const { bundleHash, receiptHash, outcome, checks, recorded, fresh, runtime, runUrl, createdAt } = input;
+  for (const [k, v] of [['bundleHash', bundleHash], ['receiptHash', receiptHash]]) if (!isStr(v) || v.length !== 64 || !HEX.test(v)) return { ok: false, why: k + ' must be a 64-character hex hash' };
+  if (!RERUN_OUTCOMES.includes(outcome)) return { ok: false, why: 'outcome must be one of ' + RERUN_OUTCOMES.join(', ') };
+  if (!Array.isArray(checks) || checks.length === 0 || !checks.every((c) => isObj(c) && isStr(c.name) && typeof c.ok === 'boolean')) return { ok: false, why: 'checks must be the re-verification results' };
+  const anyFailed = checks.some((c) => c.ok === false);
+  if (anyFailed !== (outcome === 'TAMPERED')) return { ok: false, why: 'TAMPERED if and only if a re-verification check failed' };
+  if (!isObj(recorded)) return { ok: false, why: 'the recorded scores are required' };
+  if (outcome === 'TAMPERED') { if (fresh !== null) return { ok: false, why: 'a tampered bundle is not re-executed — fresh must be null' }; }
+  else if (!isObj(fresh) || !isStr(runtime) || !EVALUATED_ON.test(runtime)) return { ok: false, why: 'a re-executed outcome needs the fresh scores and the runtime they came from' };
+  if (!isStr(runUrl) || !RERUN_URL.test(runUrl)) return { ok: false, why: 'runUrl must be the URL of the real GitHub Actions run that produced this — never a placeholder' };
+  if (!isStr(createdAt) || createdAt.length === 0) return { ok: false, why: 'createdAt is required' };
+  const body = {
+    v: 1, kind: 'fallforgemint-rerun-attestation', bundleHash, receiptHash, outcome,
+    pass: outcome === 'REPRODUCED' || outcome === 'AGREES',
+    checks: checks.map((c) => ({ name: c.name, ok: c.ok })), recorded, fresh: outcome === 'TAMPERED' ? null : fresh,
+    runtime: outcome === 'TAMPERED' ? null : runtime, runUrl, createdAt, scope: RERUN_SCOPE,
+  };
+  const h = sha256(canon(body));
+  if (!h.ok) return { ok: false, why: h.why };
+  return { ok: true, attestation: { ...body, hash: h.hash } };
+}
+
+/** verifyRerunAttestation(a) — the attestation matches its own fingerprint. */
+export function verifyRerunAttestation(a) {
+  if (!isObj(a) || a.kind !== 'fallforgemint-rerun-attestation' || !isStr(a.hash)) return { ok: false, why: 'not a fallforgemint re-run attestation' };
+  const body = { ...a }; delete body.hash;
+  const h = sha256(canon(body));
+  return { ok: true, valid: h.hash === a.hash, why: h.hash === a.hash ? 'attestation intact' : 'the attestation does not match its own fingerprint — it was changed after it was issued' };
 }

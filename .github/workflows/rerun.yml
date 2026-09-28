@@ -1,0 +1,90 @@
+name: rerun
+# The CI re-run rail. Give it a FallForge Mint re-run bundle (the signed scorecard, the recipe and the held-out rows)
+# and a clean GitHub runner does two things, in the open:
+#   1. RE-VERIFY: recompute every recorded number from the bundle — the bundle and receipt fingerprints, the rebuilt
+#      Modelfile's hash, the task and evidence hashes, the scores, the held-out disjointness, the signature.
+#      Any mismatch is TAMPERED and the job FAILS. A tampered record is never re-executed.
+#   2. RE-EXECUTE: rebuild the minted model with Ollama on this runner, run every held-out input through base and
+#      minted again, and grade it. Same runtime and model digest → the hits must match exactly (REPRODUCED);
+#      a different runtime (a browser-made scorecard) → the verdict must hold (AGREES). Otherwise DID_NOT_REPRODUCE,
+#      and the job FAILS.
+# The verdict is the job summary plus a self-hashed attestation bound to this run's URL (artifact: rerun-result).
+# Anyone can run it: fork this repo, or call it from your own repo (see github.com/sjgant80-hub/fallforgemint-rerun).
+# Every judgement is in kernel.mjs, which is mutation-gated; tools/rerun.mjs is only the edge that talks to Ollama.
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: 'verify a bundle, or mint a fresh CI-origin scorecard from a spec'
+        type: choice
+        options: [verify, mint]
+        default: verify
+      bundle:
+        description: 'verify: path in this repo or https URL of a re-run bundle · mint: path of a spec { task, examples, holdout, base }'
+        required: true
+        default: rerun/proof/genuine.json
+  workflow_call:
+    inputs:
+      bundle:
+        description: 'path in the calling repo, or an https URL, of the re-run bundle to verify'
+        type: string
+        required: true
+      mode:
+        type: string
+        default: verify
+      rail-ref:
+        description: 'which fallforgemint ref runs the rail (default main)'
+        type: string
+        default: main
+
+permissions:
+  contents: read
+
+jobs:
+  rerun:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      OLLAMA_VERSION: 0.34.4          # pinned: the runtime is part of what a re-run reproduces
+    steps:
+      - name: check out the repo that holds the bundle
+        uses: actions/checkout@v4
+
+      - name: check out the rail (fallforgemint's gated kernel + runner)
+        uses: actions/checkout@v4
+        with:
+          repository: sjgant80-hub/fallforgemint
+          ref: ${{ inputs.rail-ref || 'main' }}
+          path: .rail
+
+      - uses: actions/setup-node@v4
+        with: { node-version: '22' }
+
+      - name: install Ollama ${{ env.OLLAMA_VERSION }} (CPU)
+        run: |
+          curl -fsSL https://ollama.com/install.sh | OLLAMA_VERSION="$OLLAMA_VERSION" sh
+          if ! curl -sf http://127.0.0.1:11434/api/version >/dev/null; then (ollama serve >/tmp/ollama.log 2>&1 &); fi
+          for i in $(seq 1 60); do curl -sf http://127.0.0.1:11434/api/version && break; sleep 1; done
+          ollama --version
+
+      - name: run the rail
+        env:
+          MODE: ${{ inputs.mode || 'verify' }}
+          BUNDLE: ${{ inputs.bundle }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          if [ "$MODE" = "mint" ]; then
+            node .rail/tools/rerun.mjs mint "$BUNDLE" --out rerun-bundle.json --summary "$GITHUB_STEP_SUMMARY"
+          else
+            node .rail/tools/rerun.mjs verify "$BUNDLE" --out rerun-result.json --summary "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: publish the verdict
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: rerun-result
+          path: |
+            rerun-result.json
+            rerun-bundle.json
+          if-no-files-found: ignore

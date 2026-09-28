@@ -1,0 +1,16 @@
+{
+  "task": "Turn a product description into its catalogue SKU: the prefix FF, then every word in capitals, all joined by hyphens.",
+  "base": "llama3.2:1b",
+  "holdout": 5,
+  "examples": [
+    { "input": "blue widget large", "output": "FF-BLUE-WIDGET-LARGE" },
+    { "input": "oak desk", "output": "FF-OAK-DESK" },
+    { "input": "steel water bottle", "output": "FF-STEEL-WATER-BOTTLE" },
+    { "input": "wool scarf grey", "output": "FF-WOOL-SCARF-GREY" },
+    { "input": "red gadget small", "output": "FF-RED-GADGET-SMALL" },
+    { "input": "linen shirt", "output": "FF-LINEN-SHIRT" },
+    { "input": "copper kettle", "output": "FF-COPPER-KETTLE" },
+    { "input": "pine shelf tall", "output": "FF-PINE-SHELF-TALL" },
+    { "input": "cotton towel white", "output": "FF-COTTON-TOWEL-WHITE" }
+  ]
+}

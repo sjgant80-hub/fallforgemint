@@ -4,7 +4,8 @@
 //   1. every EXECUTABLE inline script parses            (data scripts — ld+json/json/importmap — skipped)
 //   2. no unresolved __TEMPLATE__ placeholder is served
 //   3. every same-repo href/src in the MARKUP resolves  (scripts/styles stripped first)
-//   4. NO link points at another repo — github.com or *.github.io (this product stands alone)
+//   4. NO link points at another repo — github.com or *.github.io (this product stands alone; its own CI
+//      re-run rail — this repo and its fallforgemint-rerun template — is the one argued exception)
 //   5. no obvious secret is committed
 import { readdirSync, readFileSync, existsSync } from 'node:fs';
 import { Script } from 'node:vm';
@@ -35,11 +36,15 @@ for (const f of html) {
   // 3 + 4. scan the MARKUP only (scripts/styles stripped so JS import URLs and CSS url()s aren't misread).
   const markup = s.replace(/<script[\s\S]*?<\/script>/g, '').replace(/<style[\s\S]*?<\/style>/g, '');
   const OWN = /^https?:\/\/sjgant80-hub\.github\.io\/fallforgemint\/?$/i;  // the page's own canonical address
+  // The CI re-run rail is part of this product, not another one: it runs from this repo's own source
+  // (fallforgemint) and outsiders start from its template (fallforgemint-rerun). Linking those two — and only
+  // those two — is how a stranger re-runs a scorecard without trusting us; every other repo stays forbidden.
+  const RAIL = /^https:\/\/github\.com\/sjgant80-hub\/fallforgemint(?:-rerun)?(?:\/(?:actions\/runs\/[1-9][0-9]*|blob\/main\/[A-Za-z0-9._\/-]+))?$/;
   for (const m of markup.matchAll(/(?:href|src)="([^"]*)"/g)) {
     const url = m[1];
     // 4. no cross-repo links — this product is self-contained. Its own canonical URL (used by
     //    <link rel=canonical> / og:url so search and AI engines index it) is not "another repo".
-    if (/github\.com|github\.io/i.test(url) && !OWN.test(url)) { console.error(f + ' links to another repo (this product must stand alone): ' + url); fail = 1; continue; }
+    if (/github\.com|github\.io/i.test(url) && !OWN.test(url) && !RAIL.test(url)) { console.error(f + ' links to another repo (this product must stand alone): ' + url); fail = 1; continue; }
     // 3. same-repo dead links.
     if (/^(https?:|data:|mailto:|#|\/\/|\$\{)/.test(url)) continue;
     const t = url.replace(/^\.\//, '').split(/[?#]/)[0];

@@ -12,6 +12,10 @@ A self-contained tool for owning a specialised small model instead of renting a 
 2. Preview — optionally run a small model live in your browser (WebGPU/WebLLM) to see your node answer before installing anything.
 3. Prove — re-verify a real signed mint receipt in your browser: it re-hashes the record and shows INTACT, and tampering one byte is caught. The shipped example (review-1b) BEATS its base by +31 points certified, and honestly LOSES to a model 7× its size.
 
+## Re-run in CI
+
+A scorecard made on the page can be downloaded as a re-run bundle: the signed receipt, the recipe and the held-out rows. The re-run rail (`.github/workflows/rerun.yml`, or the template repo fallforgemint-rerun) takes that bundle to a clean GitHub runner. There it recomputes every recorded number; any mismatch is TAMPERED and the job fails. It then rebuilds the model with Ollama and runs the held-out set again: the same runtime must give the same hits (REPRODUCED), and a different runtime must give the same verdict (AGREES). Otherwise the result is DID_NOT_REPRODUCE, and the job fails. The verdict is a self-hashed attestation bound to the real run URL. It does not attest the machine that made the original, and it says nothing about what the base model saw in its own training.
+
 ## Own vs rent
 
 An honest calculator: enter your monthly volume, tokens per call, and rented price per million tokens, plus a mint fee and monthly run cost. It returns OWN_WINS, OWN_LATER, or RENT_WINS — it will tell you to keep renting when that is genuinely cheaper.
