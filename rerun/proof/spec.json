@@ -10,7 +10,7 @@
     { "input": "red gadget small", "output": "FF-RED-GADGET-SMALL" },
     { "input": "linen shirt", "output": "FF-LINEN-SHIRT" },
     { "input": "copper kettle", "output": "FF-COPPER-KETTLE" },
-    { "input": "pine shelf tall", "output": "FF-PINE-SHELF-TALL" },
-    { "input": "cotton towel white", "output": "FF-COTTON-TOWEL-WHITE" }
+    { "input": "cotton towel white", "output": "FF-COTTON-TOWEL-WHITE" },
+    { "input": "denim jacket", "output": "FF-DENIM-JACKET" }
   ]
 }

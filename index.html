@@ -422,7 +422,7 @@
     <p class="muted" style="font-size:.92rem;margin-top:8px">A scorecard proves nobody edited the numbers. The re-run rail goes one step further: a clean GitHub runner rebuilds the model from its recipe, runs every held-out example through the base model and the minted one <b>again</b>, and checks the result against the signed record. Anyone can run it. No account with us, and no need to trust us.</p>
     <ol class="steps" style="max-width:74ch">
       <li><b>Get the bundle.</b> After <a href="#mint">Prove it</a>, download the signed scorecard, then <b>Download re-run bundle</b>. It holds the receipt, the recipe and the held-out rows.</li>
-      <li><b>Make your own copy of the runner.</b> Open <a href="https://github.com/sjgant80-hub/fallforgemint-rerun" target="_blank" rel="noopener">fallforgemint-rerun</a>, press <b>Use this template</b>, and add your bundle to it (e.g. <code>bundle.json</code>). Or fork <a href="https://github.com/sjgant80-hub/fallforgemint" target="_blank" rel="noopener">fallforgemint</a> itself.</li>
+      <li><b>Make your own copy of the runner.</b> Open <a href="https://github.com/sjgant80-hub/fallforgemint-rerun" target="_blank" rel="noopener">fallforgemint-rerun</a>, press <b>Use this template</b>, and add your bundle to it (e.g. <code>bundle.json</code>). Your copy calls the rail's own workflow here, so the code that judges your bundle is the gated code. Or fork <a href="https://github.com/sjgant80-hub/fallforgemint" target="_blank" rel="noopener">fallforgemint</a> itself, and enable workflows in the fork's Actions tab first.</li>
       <li><b>Run it.</b> Actions → <b>rerun</b> → Run workflow, with your bundle's path. It installs Ollama on the runner, rebuilds the model, re-runs the held-out set and grades it.</li>
       <li><b>Send the run link.</b> The run's summary shows the verdict, and its artifact holds a self-hashed attestation bound to that run's address. The link is the proof.</li>
     </ol>
@@ -433,7 +433,7 @@
       <div class="rail-o"><span class="pill bad" style="font-size:.7rem">DID NOT REPRODUCE</span> The record is intact but the result did not hold. The job fails.</div>
     </div>
     <p class="muted" style="font-size:.9rem;margin-top:14px"><b>Proven both ways, on real runs:</b> <!-- ⟦RAIL-RUNS⟧ -->the proof runs are linked here once they have run.<!-- ⟦/RAIL-RUNS⟧ --></p>
-    <p class="note">What it shows, and what it doesn't: every recorded number is recomputed from the bundle, and the held-out set is run again on that runner. It does not attest the machine that made the original, and it says nothing about what the base model saw in its own training. A scorecard made in your browser is re-run on Ollama's build of the same model (qwen2.5:0.5b) — a different runtime and quantisation — so its test is AGREES, not an exact match.</p>
+    <p class="note">What it shows, and what it doesn't: every recorded number is recomputed from the bundle, and the held-out set is run again on that runner. A small model on a CPU is not bit-exact across chip types, so a borderline answer can flip between runners; the rail fails that record and shows you the row. It does not attest the machine that made the original, and it says nothing about what the base model saw in its own training. A scorecard made in your browser is re-run on Ollama's build of the same model (qwen2.5:0.5b) — a different runtime and quantisation — so its test is AGREES, not an exact match.</p>
   </div>
 </div></section>
 
@@ -2021,8 +2021,9 @@ function scVerdict(good, headline, receipt, sig, bundleChecks){
     h += '<div class="kvline">Result: <b style="color:' + vcol + '">' + esc(receipt.verdict) + '</b> — the model scored <b>' + receipt.mintedHits + '/' + receipt.heldOut + '</b>, its base scored <b>' + receipt.baseHits + '/' + receipt.heldOut + '</b>.</div>';
     h += '<div class="kvline">Model fingerprint: <b>' + esc(String(receipt.modelFingerprint || '').slice(0, 16)) + '…</b> · issued <b>' + esc(String(receipt.createdAt || '')) + '</b></div>';
     if (typeof receipt.evaluatedOn === 'string') h += '<div class="kvline">Measured on: <b>' + esc(receipt.evaluatedOn) + '</b></div>';
-    // only a real GitHub Actions run URL is ever shown as a link — anything else in the field is shown as plain text
-    if (typeof receipt.rerun === 'string') h += '<div class="kvline">Minted in CI: ' + (RERUN_URL.test(receipt.rerun) ? '<a href="' + esc(receipt.rerun) + '" target="_blank" rel="noopener">the run that measured it</a>' : '<b>' + esc(receipt.rerun) + '</b> (not a GitHub Actions run link)') + '</div>';
+    // only a GitHub Actions run URL is ever shown as a link — anything else in the field is shown as plain text.
+    // The text alone cannot prove the run is real or that it made this record, so the line says "names" and asks you to open it.
+    if (typeof receipt.rerun === 'string') h += '<div class="kvline">Says it was minted in CI: ' + (RERUN_URL.test(receipt.rerun) ? '<a href="' + esc(receipt.rerun) + '" target="_blank" rel="noopener">the run it names</a> — open it to check the run is real and shows this result' : '<b>' + esc(receipt.rerun) + '</b> (not a GitHub Actions run link)') + '</div>';
     if (bundleChecks){
       h += '<div class="kvline" style="margin-top:8px">Recomputed from the bundle: ' + bundleChecks.map((c) => (c.ok ? '✓ ' : '✗ ') + esc(c.name)).join(' · ') + '</div>';
       if (good) h += '<div class="kvline">That is the first half of the rail. The second — running the held-out set again on a neutral machine — is <a href="#rerun">Re-run it in CI</a>.</div>';

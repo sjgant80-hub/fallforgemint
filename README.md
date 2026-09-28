@@ -36,14 +36,19 @@ A scorecard proves nobody edited the numbers. The **re-run rail** (`.github/work
 
 The verdict is written to the job summary. A self-hashed attestation, bound to that run's URL, is uploaded as the `rerun-result` artifact. Every judgement lives in `kernel.mjs`, which is mutation-gated. `tools/rerun.mjs` is only the edge that talks to Ollama.
 
-**Run it yourself:** make a repo from the template [fallforgemint-rerun](https://github.com/sjgant80-hub/fallforgemint-rerun) (*Use this template*), add your bundle, then Actions → **rerun** → Run workflow. You can also fork this repo and run `rerun` with your bundle's path. `mode: mint` makes a fresh scorecard on the runner from a spec (`rerun/proof/spec.json`). Its receipt's `rerun` field is that run's URL. The kernel refuses any `rerun` value that is not a real GitHub Actions run URL, so it can never hold a placeholder.
+**Run it yourself.** You can't start a workflow on someone else's repo, so the rail comes to yours:
+
+- **Template (recommended):** open [fallforgemint-rerun](https://github.com/sjgant80-hub/fallforgemint-rerun), press *Use this template*, add your bundle (e.g. `bundle.json`), then Actions → **rerun** → Run workflow. Your repo calls this repo's `rerun.yml` as a reusable workflow, so the rail's code comes from here, not from your copy.
+- **Fork:** fork this repo, open its **Actions** tab and enable workflows (GitHub switches them off in a new fork), then run `rerun` with your bundle's path. A fork runs its own copy of the workflow, so whoever reads your run should check it is unchanged.
+
+`mode: mint` makes a fresh scorecard on the runner from a spec (`rerun/proof/spec.json`). Its receipt's `rerun` field is that run's URL. The kernel refuses any `rerun` value that is not shaped like a GitHub Actions run URL, so the field can never hold a placeholder. It cannot tell from the text alone that the run is real: open the link and check it.
 
 **Proven both ways, on real runs** (from one scorecard minted in CI; `rerun/proof/make-tampered.mjs` shows exactly how the failing two were made):
 <!-- RAIL-RUNS -->
 _The proof runs are linked here once they have run._
 <!-- /RAIL-RUNS -->
 
-What it shows and what it doesn't: every recorded number is recomputed, and the held-out set is run again on that runner. It does not attest the machine that made the original. It says nothing about what the base model saw in its own training. The held-out claim stays narrow: the held-out answers were not in the spec the model was given (hash-disjoint).
+What it shows and what it doesn't: every recorded number is recomputed, and the held-out set is run again on that runner. A small model on a CPU is not bit-exact across chip types: a borderline answer can flip between them, and the rail fails that record and shows you the row. It does not attest the machine that made the original. It says nothing about what the base model saw in its own training. The held-out claim stays narrow: the held-out answers were not in the spec the model was given (hash-disjoint).
 
 ## The gate (what CI checks on every push)
 
