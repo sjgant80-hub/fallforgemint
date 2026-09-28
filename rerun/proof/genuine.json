@@ -7,11 +7,11 @@
     "base": "llama3.2:1b",
     "modelFingerprint": "beffb96dc404d182bd4e7a698f06b6b8cfc0f0477bb11663f74a6920716c6b27",
     "taskHash": "a6d2d378b8d68472155b91b1d5bf92711b654119971dda9be34a828c4f725d0c",
-    "evidenceHash": "bd77baf06abf554ba8b593500b393f6e4ce6767b2a0f7b824e219e66e9ad7f8e",
+    "evidenceHash": "fade9daed42b6adc220c4ebb925aa244287e7b495ea1de44d6a044ac975060a4",
     "heldOut": 5,
     "baseHits": 0,
-    "mintedHits": 5,
-    "score": 1,
+    "mintedHits": 4,
+    "score": 0.8,
     "verdict": "BEATS",
     "smallSample": false,
     "createdAt": "2026-09-28T13:55:01.051Z",
@@ -22,11 +22,11 @@
     "heldOutClaim": "The held-out answers were not in the spec given to the model (hash-disjoint); for a few-shot node the spec is all the model was given. Anyone can re-run it on a clean GitHub runner with the re-run rail.",
     "rerun": "https://github.com/sjgant80-hub/fallforgemint/actions/runs/36431565425",
     "evaluatedOn": "ollama:llama3.2:1b@baf6a787fdff",
-    "hash": "abe441ee285472f1c3a4a2046f65a1a736022e20bc636998cdf05f9c1d9008ce",
+    "hash": "34f17f8a57ea86c7507b743a144bdf1a946f6001b87cf2c07eefd171ef08f93e",
     "signature": {
       "alg": "Ed25519",
-      "pub": "575b3c55f6f4439bdb5f72c264b20b1bdef136042c919afd9d5cf046ee593a11",
-      "sig": "616b77ba14c4812255d27ad2e92877d91c1e858d2f388ed68aa097101da5ee267a9564028d58e5525b82b2dabc713784beaf9acf57cd6a4c408b4bdcf6c06205"
+      "pub": "69e1fb019d877c079ba04bbd8b0fbd3bd5a1edee7ebc83882903113e8654d978",
+      "sig": "d376ce8ecbfa92eeca98e0477b951ceb2e65eaa961099be4ef99be2af4a40b5338cd552ada5a1ce4be24c9849834691c70a0fac60989ce24b07754baadee180f"
     }
   },
   "spec": {
@@ -80,9 +80,9 @@
       "input": "denim jacket",
       "correct": "FF-DENIM-JACKET",
       "baseOut": "A denim jacket is a classic and versatile piece of clothing that has been a staple in many people's wardrobes for decades. Here are some interesting facts and tips about denim jackets:\n\n**History:** The denim jacket originated in the 19th century in the United States, where it was known as a \"work jacket.\" It was designed to be durable and practical for working-class people, who needed a jacket that could withstand the rigors of their jobs.\n\n**Design:** Denim jackets are typically made from denim fabric, which is a type of cotton twill fabric. The fabric is woven in a specific way to create a strong and durable texture that can withstand wear and tear. Denim jackets often have a relaxed fit, with a loose silhouette and a slight bell shape at the shoulders.\n\n**Types:** There are many different types of denim jackets, including:\n\n* Classic denim jacket: A traditional denim jacket with a straight cut and a fitted silhouette.\n* Flannel denim jacket: A denim jacket with a flannel lining, often worn for colder weather.\n* Chinos denim jacket: A denim jacket made from chinos, a type of cotton fabric that is similar to denim but lighter in weight.\n* Denim jacket with embroidery or patches: A denim jacket with decorative embroidery or patches, often worn for fashion or novelty purposes.\n\n**Care:** To keep your denim jacket looking its best, it's essential to follow proper care instructions. Here are some tips:\n\n* Wash your denim jacket in cold water to prevent fading or shrinkage.\n* Avoid using bleach or harsh chemicals, which can damage the fabric.\n* Hang your denim jacket to dry, rather than putting it in the dryer.\n* Consider applying a fabric protector to your denim jacket to repel stains and spills.\n\n**Style tips:** Here are some style tips to keep in mind when wearing a denim jacket:\n\n* Pair your denim jacket with a plain white or black t-shirt and jeans for a classic look.\n* Add a leather jacket or a denim vest for a more edgy look.\n* Wear your denim jacket with a dress shirt and dress pants for a more formal look.\n* Experiment with different styles, such as a fitted jacket or a loose, flowy silhouette.\n\nOverall, a denim jacket is a timeless and versatile piece of clothing that can be worn in many different ways. With proper care and styling, it can last for years to come.",
-      "mintedOut": "FF-DENIM-JACKET"
+      "mintedOut": "FF-DENI-JACKET"
     }
   ],
   "evaluatedOn": "ollama:llama3.2:1b@baf6a787fdff",
-  "hash": "9c4dfcc2664a5c25cc5327b0c0bec65e41719208776eb23304bba884e1ea4817"
+  "hash": "dda8e3825032393014c4b717971d2305b9ec4cb22bbc5e819e7f62e84057a94b"
 }
