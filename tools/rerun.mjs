@@ -174,6 +174,8 @@ async function verifyMode() {
         return `| ${cell(r.input)} | ${cell(r.correct)} | ${hit(r.correct, r.baseOut)} · ${hit(r.correct, r.mintedOut)} ${cell(r.mintedOut)} | ${hit(r.correct, f.baseOut)} · ${hit(r.correct, f.mintedOut)} ${cell(f.mintedOut)} | ${same ? '' : '**differs**'} |`;
       }).join('\n') + '\n\n';
   }
+  if (outcome === 'DID_NOT_REPRODUCE' && cmp.sameRuntime && cmp.fresh.verdict === recorded.verdict)
+    md += `The verdict still reads ${recorded.verdict}, but the hit count moved on the rows marked **differs**. Greedy decoding is exact on one kind of CPU, and a borderline answer can change between CPU types, so this is either a fragile record or an edited one. A score that only holds on the machine that made it has not been reproduced, so the rail fails it and shows you the rows.\n\n`;
   if (outcome === 'TAMPERED') md += `The fresh run was not attempted: a record that does not recompute is not re-executed. Failed: ${failed.map((f) => '`' + f + '`').join(', ')}.\n\n`;
   md += (RUN_URL ? `This run: ${RUN_URL}` : 'Run locally — no run link recorded.') + (result.rail ? ` · rail \`${result.rail.slice(0, 12)}\`` : '') + (RUN_URL ? '\n\n> ' + K.RERUN_SCOPE : '') + '\n';
   summary(md);
