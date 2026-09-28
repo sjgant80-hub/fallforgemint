@@ -18,7 +18,7 @@ A scorecard made on the page can be downloaded as a re-run bundle: the signed re
 
 ## Own vs rent
 
-An honest calculator: enter your monthly volume, tokens per call, and rented price per million tokens, plus a mint fee and monthly run cost. It returns OWN_WINS, OWN_LATER, or RENT_WINS — it will tell you to keep renting when that is genuinely cheaper.
+An honest calculator: enter your monthly volume, tokens per call, and rented price per million tokens, plus your own one-off setup cost (hardware, time; 0 if you have the machine) and monthly run cost. It returns OWN_WINS, OWN_LATER, or RENT_WINS — it will tell you to keep renting when that is genuinely cheaper.
 
 ## Ways to work with us
 

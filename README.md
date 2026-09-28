@@ -85,7 +85,7 @@ What it shows and what it doesn't: every recorded number is recomputed, and the 
 - `node --test kernel.test.mjs` — the contract and determinism suite.
 - `node tools/witness.mjs mutate kernel.mjs` — the mutation gate must be **CLEAN** (survivors baselined only with a written reason in `witness.baseline.json`).
 - `node make-page.mjs && git diff --exit-code index.html` — the live page IS the gated kernel.
-- `node tools/page-gate.mjs` — scripts parse, no placeholders, no dead links, **no cross-repo links**, no committed secrets.
+- `node tools/page-gate.mjs` — scripts parse, no placeholders, no dead links, **no cross-repo links**, no committed secrets, and **no own-product price**: no money amount or /mo on the page, no Offer schema, and every money field starts at 0 or blank unless it is argued (the rented model's price you compare against, and your own running cost).
 - The shipped signed manifest re-verifies — hash, Ed25519 signature, receipt and Modelfile hashes.
 
 ## Honest scope

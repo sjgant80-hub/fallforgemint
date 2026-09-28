@@ -131,6 +131,7 @@ export function mintVerdict(receipt) {
 }
 
 // ── own vs rent: the honest economics of owning a node vs renting a frontier model per token ─────
+// setupCost is the VISITOR'S OWN one-off cost to own it (their hardware, their time) — never a fee of ours.
 // Pure and total: garbage in → { ok:false, why }, never a throw. It can, and does, return RENT_WINS
 // — a calculator that could only ever say "own" would be marketing, not a measurement. All money is
 // in whole pounds-per-million-tokens and pounds-per-month; the page formats, the kernel just counts.
@@ -138,13 +139,13 @@ export const MONTHS_PER_YEAR = 12;
 
 export function ownVsRent(input) {
   if (!isObj(input)) return { ok: false, why: 'ownVsRent takes an object of numbers' };
-  const { callsPerMonth, tokensPerCall, rentPerMillion, mintFee, runPerMonth } = input;
+  const { callsPerMonth, tokensPerCall, rentPerMillion, setupCost, runPerMonth } = input;
   const above0 = (v) => isNum(v) && v > 0;
   const atLeast0 = (v) => isNum(v) && v >= 0;
   if (!above0(callsPerMonth)) return { ok: false, why: 'calls per month must be a number above zero' };
   if (!above0(tokensPerCall)) return { ok: false, why: 'tokens per call must be a number above zero' };
   if (!above0(rentPerMillion)) return { ok: false, why: 'the rented price per million tokens must be a number above zero' };
-  if (!atLeast0(mintFee)) return { ok: false, why: 'the one-off mint fee must be zero or more' };
+  if (!atLeast0(setupCost)) return { ok: false, why: 'your one-off setup cost must be zero or more' };
   if (!atLeast0(runPerMonth)) return { ok: false, why: 'the monthly cost to run your own node must be zero or more' };
 
   // optional fold-cycle recycling factor — cuts the OWN-side run cost on RECURRING content only. Default OFF
@@ -166,7 +167,7 @@ export function ownVsRent(input) {
   const tokensPerMonth = callsPerMonth * tokensPerCall;
   const rentMonthly = (tokensPerMonth / 1000000) * rentPerMillion;
   const rentAnnual = rentMonthly * MONTHS_PER_YEAR;
-  const ownedYear1 = mintFee + effectiveRun * MONTHS_PER_YEAR;  // recycling lowers the own-side run cost, when applied
+  const ownedYear1 = setupCost + effectiveRun * MONTHS_PER_YEAR;  // recycling lowers the own-side run cost, when applied
   const monthlySaving = rentMonthly - effectiveRun;
   const year1Saving = rentAnnual - ownedYear1;
 
@@ -175,7 +176,7 @@ export function ownVsRent(input) {
     breakEvenMonths = null;
     verdict = 'RENT_WINS';                                   // owning your node costs as much to run as renting — say so
   } else {
-    breakEvenMonths = mintFee / monthlySaving;
+    breakEvenMonths = setupCost / monthlySaving;
     verdict = breakEvenMonths <= MONTHS_PER_YEAR ? 'OWN_WINS' : 'OWN_LATER';
   }
   return { ok: true, tokensPerMonth, rentMonthly, rentAnnual, ownedYear1, monthlySaving, year1Saving, breakEvenMonths, verdict,

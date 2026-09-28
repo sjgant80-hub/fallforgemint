@@ -452,8 +452,8 @@
       <input type="number" id="c_tokens" value="800" min="1" />
       <label class="fld" style="margin-top:14px" for="c_rent">What you pay the rented model, £ per million tokens</label>
       <input type="number" id="c_rent" value="4" min="0" step="0.5" />
-      <label class="fld" style="margin-top:14px" for="c_fee">One-off fee to mint your own node, £</label>
-      <input type="number" id="c_fee" value="2500" min="0" step="100" />
+      <label class="fld" style="margin-top:14px" for="c_setup">Your own one-off setup cost, £ — the hardware and time to run it yourself (0 if you already have the machine)</label>
+      <input type="number" id="c_setup" value="0" min="0" step="50" />
       <label class="fld" style="margin-top:14px" for="c_run">Cost to run your own node, £ per month</label>
       <input type="number" id="c_run" value="60" min="0" step="10" />
       <label class="fld" style="margin-top:14px;display:flex;align-items:center;gap:8px;cursor:pointer">
@@ -473,10 +473,10 @@
       <div class="calc-out">
         <div class="stat"><div class="n" id="o_rentmo">—</div><div class="l">renting, per month</div></div>
         <div class="stat"><div class="n" id="o_rentyr">—</div><div class="l">renting, per year</div></div>
-        <div class="stat"><div class="n" id="o_own1">—</div><div class="l">owning, year one (fee + running)</div></div>
+        <div class="stat"><div class="n" id="o_own1">—</div><div class="l">owning, year one (your setup + running)</div></div>
         <div class="stat"><div class="n" id="o_save">—</div><div class="l">saved in year one</div></div>
-        <div class="stat"><div class="n" id="o_be">—</div><div class="l">months to pay back the fee</div></div>
-        <div class="stat"><div class="n" id="o_runsaved">—</div><div class="l">run cost saved by recycling, /mo</div></div>
+        <div class="stat"><div class="n" id="o_be">—</div><div class="l">months to pay back your setup cost</div></div>
+        <div class="stat"><div class="n" id="o_runsaved">—</div><div class="l">run cost saved by recycling, per month</div></div>
         <div class="stat"><div class="n" id="o_tok">—</div><div class="l">tokens a month</div></div>
       </div>
       <p id="calcMsg" class="note"></p>
@@ -754,6 +754,7 @@ function mintVerdict(receipt) {
 }
 
 // ── own vs rent: the honest economics of owning a node vs renting a frontier model per token ─────
+// setupCost is the VISITOR'S OWN one-off cost to own it (their hardware, their time) — never a fee of ours.
 // Pure and total: garbage in → { ok:false, why }, never a throw. It can, and does, return RENT_WINS
 // — a calculator that could only ever say "own" would be marketing, not a measurement. All money is
 // in whole pounds-per-million-tokens and pounds-per-month; the page formats, the kernel just counts.
@@ -761,13 +762,13 @@ const MONTHS_PER_YEAR = 12;
 
 function ownVsRent(input) {
   if (!isObj(input)) return { ok: false, why: 'ownVsRent takes an object of numbers' };
-  const { callsPerMonth, tokensPerCall, rentPerMillion, mintFee, runPerMonth } = input;
+  const { callsPerMonth, tokensPerCall, rentPerMillion, setupCost, runPerMonth } = input;
   const above0 = (v) => isNum(v) && v > 0;
   const atLeast0 = (v) => isNum(v) && v >= 0;
   if (!above0(callsPerMonth)) return { ok: false, why: 'calls per month must be a number above zero' };
   if (!above0(tokensPerCall)) return { ok: false, why: 'tokens per call must be a number above zero' };
   if (!above0(rentPerMillion)) return { ok: false, why: 'the rented price per million tokens must be a number above zero' };
-  if (!atLeast0(mintFee)) return { ok: false, why: 'the one-off mint fee must be zero or more' };
+  if (!atLeast0(setupCost)) return { ok: false, why: 'your one-off setup cost must be zero or more' };
   if (!atLeast0(runPerMonth)) return { ok: false, why: 'the monthly cost to run your own node must be zero or more' };
 
   // optional fold-cycle recycling factor — cuts the OWN-side run cost on RECURRING content only. Default OFF
@@ -789,7 +790,7 @@ function ownVsRent(input) {
   const tokensPerMonth = callsPerMonth * tokensPerCall;
   const rentMonthly = (tokensPerMonth / 1000000) * rentPerMillion;
   const rentAnnual = rentMonthly * MONTHS_PER_YEAR;
-  const ownedYear1 = mintFee + effectiveRun * MONTHS_PER_YEAR;  // recycling lowers the own-side run cost, when applied
+  const ownedYear1 = setupCost + effectiveRun * MONTHS_PER_YEAR;  // recycling lowers the own-side run cost, when applied
   const monthlySaving = rentMonthly - effectiveRun;
   const year1Saving = rentAnnual - ownedYear1;
 
@@ -798,7 +799,7 @@ function ownVsRent(input) {
     breakEvenMonths = null;
     verdict = 'RENT_WINS';                                   // owning your node costs as much to run as renting — say so
   } else {
-    breakEvenMonths = mintFee / monthlySaving;
+    breakEvenMonths = setupCost / monthlySaving;
     verdict = breakEvenMonths <= MONTHS_PER_YEAR ? 'OWN_WINS' : 'OWN_LATER';
   }
   return { ok: true, tokensPerMonth, rentMonthly, rentAnnual, ownedYear1, monthlySaving, year1Saving, breakEvenMonths, verdict,
@@ -1859,7 +1860,7 @@ function recalc(){
   $('recycleFields').hidden = !recycleOn;
   const input = {
     callsPerMonth: num('c_calls'), tokensPerCall: num('c_tokens'),
-    rentPerMillion: num('c_rent'), mintFee: num('c_fee'), runPerMonth: num('c_run'),
+    rentPerMillion: num('c_rent'), setupCost: num('c_setup'), runPerMonth: num('c_run'),
   };
   if (recycleOn) input.recycling = { savingPct: num('c_savingpct'), recurringFraction: num('c_recur') };
   const r = ownVsRent(input);
@@ -1876,10 +1877,10 @@ function recalc(){
   $('o_tok').textContent = (r.tokensPerMonth/1e6).toLocaleString('en-GB',{maximumFractionDigits:0}) + 'M';
   $('calcMsg').textContent = (r.verdict === 'RENT_WINS'
     ? 'Honest answer: at these numbers, renting is the better deal. Owning shines when your volume is high or the rented price per million is steep.'
-    : 'Owning saves ' + gbp(r.year1Saving) + ' in the first year — and every year after is cheaper still, because the fee is one-off.')
-    + (r.recyclingApplied ? ' Recycling repeated content cuts ' + gbp(r.runSavedPerMonth) + '/mo off the run cost.' : '');
+    : 'Owning saves ' + gbp(r.year1Saving) + ' in the first year — and every year after is cheaper still, because your setup cost is one-off.')
+    + (r.recyclingApplied ? ' Recycling repeated content cuts ' + gbp(r.runSavedPerMonth) + ' a month off the run cost.' : '');
 }
-['c_calls','c_tokens','c_rent','c_fee','c_run','c_savingpct','c_recur'].forEach((id)=>$(id).addEventListener('input', recalc));
+['c_calls','c_tokens','c_rent','c_setup','c_run','c_savingpct','c_recur'].forEach((id)=>$(id).addEventListener('input', recalc));
 $('c_recycle_on').addEventListener('change', recalc);
 recalc();
 

@@ -7,6 +7,8 @@
 //   4. NO link points at another repo — github.com or *.github.io (this product stands alone; its own CI
 //      re-run rail — this repo and its fallforgemint-rerun template — is the one argued exception)
 //   5. no obvious secret is committed
+//   6. NO own-product price: no money amount or /mo in the visible page, no Offer schema, and every money input
+//      starts at 0 or blank unless argued (a third party's price or the visitor's own cost)
 import { readdirSync, readFileSync, existsSync } from 'node:fs';
 import { Script } from 'node:vm';
 
@@ -52,6 +54,37 @@ for (const f of html) {
   }
 }
 
+// 6. NO OWN-PRODUCT PRICE (Simon's standing rule: never a price on the product, not even as a default or placeholder).
+//    a · no money amount, /mo, /month or per-seat in the visible page
+//    b · no Offer / priceCurrency schema in any script
+//    c · every money input (its label names £, € or $) starts at 0 or blank, unless it is argued below — and an argued
+//        exemption that no longer matches an input fails as STALE, so the list can never quietly excuse nothing
+//    d · no script writes a figure into a money input that is not argued
+const MONEY_DEFAULTS = {
+  c_rent: 'what the visitor pays a rented model today, per million tokens: a third party\'s price for a comparison, not ours',
+  c_run: 'the visitor\'s own monthly cost to run hardware they own: theirs, not a price of ours',
+};
+for (const [id, why] of Object.entries(MONEY_DEFAULTS)) if (why.length < 40) { console.error('page-gate: the money-default exemption for ' + id + ' needs an argued reason'); process.exit(1); }
+const usedExempt = new Set();
+for (const f of html) {
+  const s = readFileSync(f, 'utf8');
+  const scripts = [...s.matchAll(/<script[^>]*>([\s\S]*?)<\/script>/g)].map((m) => m[1]).join('\n');
+  const visible = s.replace(/<script[\s\S]*?<\/script>/g, ' ').replace(/<style[\s\S]*?<\/style>/g, ' ').replace(/<[^>]+>/g, ' ').replace(/&amp;/g, '&').replace(/\s+/g, ' ');
+  for (const m of visible.matchAll(/[£€$]\s?\d[\d,.]*|\/mo\b|\/month\b|\bper (?:seat|user)\b/gi)) { console.error(f + ' shows a price: "' + visible.slice(Math.max(0, m.index - 40), m.index + 30).trim() + '"'); fail = 1; }
+  if (/"@type"\s*:\s*"Offer"|priceCurrency/.test(scripts)) { console.error(f + ' carries an Offer / priceCurrency schema'); fail = 1; }
+  const money = new Set([...s.matchAll(/<label[^>]*\bfor="([^"]+)"[^>]*>([\s\S]*?)<\/label>/g)].filter((m) => /[£€$]/.test(m[2])).map((m) => m[1]));
+  for (const id of money) {
+    const input = s.match(new RegExp('<input[^>]*\\bid="' + id + '"[^>]*>'));
+    const value = input && (input[0].match(/\bvalue="([^"]*)"/) || [])[1];
+    const placeholder = input && (input[0].match(/\bplaceholder="([^"]*)"/) || [])[1];
+    if (MONEY_DEFAULTS[id]) { usedExempt.add(id); continue; }
+    if (value !== undefined && value.trim() !== '' && Number(value) !== 0) { console.error(f + ' money input #' + id + ' starts at ' + value + ' — a money field starts at 0 or blank unless it is argued in page-gate'); fail = 1; }
+    if (placeholder !== undefined && /\d/.test(placeholder)) { console.error(f + ' money input #' + id + ' suggests a figure in its placeholder: "' + placeholder + '"'); fail = 1; }
+    if (new RegExp('\\$\\(\\s*[\'"]' + id + '[\'"]\\s*\\)\\.value\\s*=').test(scripts) || new RegExp('getElementById\\(\\s*[\'"]' + id + '[\'"]\\s*\\)\\.value\\s*=').test(scripts)) { console.error(f + ' a script writes a figure into money input #' + id); fail = 1; }
+  }
+}
+for (const id of Object.keys(MONEY_DEFAULTS)) if (!usedExempt.has(id)) { console.error('page-gate: STALE money-default exemption — no money input #' + id + ' any more, remove it'); fail = 1; }
+
 // 5. committed secret (top-level served files).
 for (const f of readdirSync('.')) {
   if (!/\.(html|js|mjs|json|md|txt)$/.test(f)) continue;
@@ -61,4 +94,4 @@ for (const f of readdirSync('.')) {
 }
 
 if (fail) { console.error('\nPAGE GATE FAILED'); process.exit(1); }
-console.log('page gate clean — ' + html.length + ' page(s): scripts parse, no placeholders, no dead links, no cross-repo links, no committed keys');
+console.log('page gate clean — ' + html.length + ' page(s): scripts parse, no placeholders, no dead links, no cross-repo links, no committed keys, no own-product price');

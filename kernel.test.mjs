@@ -201,15 +201,15 @@ test('signable + attachSignature: the payload excludes the signature and nothing
 // ── ownVsRent: the honest calculator — every arithmetic and every branch pinned ──────────────────
 test('ownVsRent: the arithmetic is exact (pins every operator and the 1e6/12 literals)', () => {
   // 1,000,000 calls * 1000 tokens = 1e9 tokens/mo; at £5/million = £5000/mo rent.
-  const r = ownVsRent({ callsPerMonth: 1000000, tokensPerCall: 1000, rentPerMillion: 5, mintFee: 2000, runPerMonth: 100 });
+  const r = ownVsRent({ callsPerMonth: 1000000, tokensPerCall: 1000, rentPerMillion: 5, setupCost: 2000, runPerMonth: 100 });
   assert.equal(r.ok, true);
   assert.equal(r.tokensPerMonth, 1000000000);       // calls * tokens
   assert.equal(r.rentMonthly, 5000);                // tokensPerMonth / 1e6 * rentPerMillion
   assert.equal(r.rentAnnual, 60000);                // rentMonthly * 12
-  assert.equal(r.ownedYear1, 3200);                 // mintFee + runPerMonth * 12
+  assert.equal(r.ownedYear1, 3200);                 // setupCost + runPerMonth * 12
   assert.equal(r.monthlySaving, 4900);              // rentMonthly - runPerMonth
   assert.equal(r.year1Saving, 56800);               // rentAnnual - ownedYear1
-  assert.ok(Math.abs(r.breakEvenMonths - (2000 / 4900)) < 1e-9);  // mintFee / monthlySaving
+  assert.ok(Math.abs(r.breakEvenMonths - (2000 / 4900)) < 1e-9);  // setupCost / monthlySaving
   assert.equal(r.verdict, 'OWN_WINS');              // pays back inside a year
   assert.equal(MONTHS_PER_YEAR, 12);
 });
@@ -217,7 +217,7 @@ test('ownVsRent: the arithmetic is exact (pins every operator and the 1e6/12 lit
 test('ownVsRent: the three verdicts sit on exact boundaries (kills <=0, <=12 mutants)', () => {
   // rentMonthly built to hit each boundary. calls*tokens/1e6*rentPerMillion:
   // 1e6 calls * 200 tokens /1e6 * £1 = £200/mo rent.
-  const at = (runPerMonth, mintFee) => ownVsRent({ callsPerMonth: 1000000, tokensPerCall: 200, rentPerMillion: 1, mintFee, runPerMonth });
+  const at = (runPerMonth, setupCost) => ownVsRent({ callsPerMonth: 1000000, tokensPerCall: 200, rentPerMillion: 1, setupCost, runPerMonth });
   // monthlySaving exactly 0 → RENT_WINS, no break-even. (kills <=0 → <0)
   const zero = at(200, 500);
   assert.equal(zero.monthlySaving, 0);
@@ -227,19 +227,19 @@ test('ownVsRent: the three verdicts sit on exact boundaries (kills <=0, <=12 mut
   const neg = at(250, 500);
   assert.equal(neg.verdict, 'RENT_WINS');
   assert.equal(neg.breakEvenMonths, null);
-  // saving £100/mo, mintFee £1200 → break-even EXACTLY 12 → OWN_WINS. (kills <=12 → <12)
+  // saving £100/mo, setupCost £1200 → break-even EXACTLY 12 → OWN_WINS. (kills <=12 → <12)
   const edge = at(100, 1200);
   assert.equal(edge.monthlySaving, 100);
   assert.equal(edge.breakEvenMonths, 12);
   assert.equal(edge.verdict, 'OWN_WINS');
-  // saving £100/mo, mintFee £1300 → break-even 13 → OWN_LATER. (kills <=12 → >=12/==12)
+  // saving £100/mo, setupCost £1300 → break-even 13 → OWN_LATER. (kills <=12 → >=12/==12)
   const later = at(100, 1300);
   assert.equal(later.breakEvenMonths, 13);
   assert.equal(later.verdict, 'OWN_LATER');
 });
 
 test('ownVsRent recycling: opt-in, default OFF — an absent factor leaves the receipt untouched', () => {
-  const base = ownVsRent({ callsPerMonth: 1000000, tokensPerCall: 1000, rentPerMillion: 5, mintFee: 2000, runPerMonth: 100 });
+  const base = ownVsRent({ callsPerMonth: 1000000, tokensPerCall: 1000, rentPerMillion: 5, setupCost: 2000, runPerMonth: 100 });
   assert.equal(base.recyclingApplied, false, 'no recycling key → not applied');
   assert.equal(base.effectiveRunPerMonth, 100, 'run cost unchanged');
   assert.equal(base.runSavedPerMonth, 0);
@@ -247,27 +247,27 @@ test('ownVsRent recycling: opt-in, default OFF — an absent factor leaves the r
 
 test('ownVsRent recycling: cuts the OWN-side run cost only on the recurring share', () => {
   // 60% saving on a 50%-recurring workload → the run cost drops 30%
-  const r = ownVsRent({ callsPerMonth: 1000000, tokensPerCall: 1000, rentPerMillion: 5, mintFee: 2000, runPerMonth: 100, recycling: { savingPct: 60, recurringFraction: 0.5 } });
+  const r = ownVsRent({ callsPerMonth: 1000000, tokensPerCall: 1000, rentPerMillion: 5, setupCost: 2000, runPerMonth: 100, recycling: { savingPct: 60, recurringFraction: 0.5 } });
   assert.equal(r.recyclingApplied, true);
   assert.equal(r.runSavedPerMonth, 30);
   assert.equal(r.effectiveRunPerMonth, 70);
   assert.equal(r.ownedYear1, 2000 + 70 * 12, 'the year-1 own cost uses the reduced run');
   // the boundary: savingPct EXACTLY 100 on all-recurring is valid → run cost to zero (kills <=100 → <100)
-  const full = ownVsRent({ callsPerMonth: 1000000, tokensPerCall: 1000, rentPerMillion: 5, mintFee: 2000, runPerMonth: 100, recycling: { savingPct: 100, recurringFraction: 1 } });
+  const full = ownVsRent({ callsPerMonth: 1000000, tokensPerCall: 1000, rentPerMillion: 5, setupCost: 2000, runPerMonth: 100, recycling: { savingPct: 100, recurringFraction: 1 } });
   assert.equal(full.ok, true);
   assert.equal(full.effectiveRunPerMonth, 0);
 });
 
 test('ownVsRent recycling: all-unique work or 0% saving = NO discount, honestly', () => {
-  const unique = ownVsRent({ callsPerMonth: 1000000, tokensPerCall: 1000, rentPerMillion: 5, mintFee: 2000, runPerMonth: 100, recycling: { savingPct: 90, recurringFraction: 0 } });
+  const unique = ownVsRent({ callsPerMonth: 1000000, tokensPerCall: 1000, rentPerMillion: 5, setupCost: 2000, runPerMonth: 100, recycling: { savingPct: 90, recurringFraction: 0 } });
   assert.equal(unique.recyclingApplied, false, 'nothing recurs → nothing saved');
   assert.equal(unique.effectiveRunPerMonth, 100);
-  const noSave = ownVsRent({ callsPerMonth: 1000000, tokensPerCall: 1000, rentPerMillion: 5, mintFee: 2000, runPerMonth: 100, recycling: { savingPct: 0, recurringFraction: 1 } });
+  const noSave = ownVsRent({ callsPerMonth: 1000000, tokensPerCall: 1000, rentPerMillion: 5, setupCost: 2000, runPerMonth: 100, recycling: { savingPct: 0, recurringFraction: 1 } });
   assert.equal(noSave.effectiveRunPerMonth, 100);
 });
 
 test('ownVsRent recycling: can flip RENT_WINS into OWN, but only via a real run-cost cut', () => {
-  const inp = { callsPerMonth: 1000000, tokensPerCall: 200, rentPerMillion: 1, mintFee: 600, runPerMonth: 200 }; // rent 200/mo == run 200 → RENT_WINS
+  const inp = { callsPerMonth: 1000000, tokensPerCall: 200, rentPerMillion: 1, setupCost: 600, runPerMonth: 200 }; // rent 200/mo == run 200 → RENT_WINS
   assert.equal(ownVsRent(inp).verdict, 'RENT_WINS');
   const withRecycle = ownVsRent({ ...inp, recycling: { savingPct: 50, recurringFraction: 1 } }); // run drops to 100 → own wins
   assert.equal(withRecycle.effectiveRunPerMonth, 100);
@@ -275,7 +275,7 @@ test('ownVsRent recycling: can flip RENT_WINS into OWN, but only via a real run-
 });
 
 test('ownVsRent recycling: a malformed factor is refused, never silently ignored', () => {
-  const base = { callsPerMonth: 1000000, tokensPerCall: 1000, rentPerMillion: 5, mintFee: 2000, runPerMonth: 100 };
+  const base = { callsPerMonth: 1000000, tokensPerCall: 1000, rentPerMillion: 5, setupCost: 2000, runPerMonth: 100 };
   assert.equal(ownVsRent({ ...base, recycling: 5 }).ok, false, 'not an object');
   assert.equal(ownVsRent({ ...base, recycling: { savingPct: 120, recurringFraction: 0.5 } }).ok, false, 'savingPct > 100');
   assert.equal(ownVsRent({ ...base, recycling: { savingPct: -1, recurringFraction: 0.5 } }).ok, false, 'savingPct < 0');
@@ -283,20 +283,20 @@ test('ownVsRent recycling: a malformed factor is refused, never silently ignored
   assert.equal(ownVsRent({ ...base, recycling: { savingPct: 50 } }).ok, false, 'fraction missing');
 });
 
-test('ownVsRent: free mint (fee 0) pays back instantly; total on every garbage input', () => {
-  const free = ownVsRent({ callsPerMonth: 1000000, tokensPerCall: 200, rentPerMillion: 1, mintFee: 0, runPerMonth: 100 });
-  assert.equal(free.mintFee === undefined, true);   // not echoed
-  assert.equal(free.breakEvenMonths, 0);            // fee 0 / positive saving = 0 (kills atLeast0 >= → >)
+test('ownVsRent: no setup cost (0) pays back instantly; total on every garbage input', () => {
+  const free = ownVsRent({ callsPerMonth: 1000000, tokensPerCall: 200, rentPerMillion: 1, setupCost: 0, runPerMonth: 100 });
+  assert.equal(free.setupCost === undefined, true);   // not echoed
+  assert.equal(free.breakEvenMonths, 0);            // setup 0 / positive saving = 0 (kills atLeast0 >= → >)
   assert.equal(free.verdict, 'OWN_WINS');
   // every required field rejects non-positive / non-finite (kills above0 > → >=, and isNum guards)
-  const base = { callsPerMonth: 10, tokensPerCall: 10, rentPerMillion: 10, mintFee: 10, runPerMonth: 10 };
+  const base = { callsPerMonth: 10, tokensPerCall: 10, rentPerMillion: 10, setupCost: 10, runPerMonth: 10 };
   assert.equal(ownVsRent({ ...base, callsPerMonth: 0 }).ok, false);
   assert.equal(ownVsRent({ ...base, tokensPerCall: 0 }).ok, false);
   assert.equal(ownVsRent({ ...base, rentPerMillion: 0 }).ok, false);
   assert.equal(ownVsRent({ ...base, callsPerMonth: -1 }).ok, false);
-  assert.equal(ownVsRent({ ...base, mintFee: -1 }).ok, false);       // negative fee refused
+  assert.equal(ownVsRent({ ...base, setupCost: -1 }).ok, false);       // a negative setup cost refused
   assert.equal(ownVsRent({ ...base, runPerMonth: -1 }).ok, false);
-  assert.equal(ownVsRent({ ...base, mintFee: 0 }).ok, true);         // zero fee allowed
+  assert.equal(ownVsRent({ ...base, setupCost: 0 }).ok, true);         // zero setup cost allowed
   assert.equal(ownVsRent({ ...base, runPerMonth: 0 }).ok, true);     // zero run allowed
   assert.equal(ownVsRent({ ...base, callsPerMonth: Infinity }).ok, false);
   assert.equal(ownVsRent({ ...base, tokensPerCall: NaN }).ok, false);
