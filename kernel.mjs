@@ -898,12 +898,21 @@ export function rerunAttestation(input) {
   else if (!isObj(fresh) || !isStr(runtime) || !EVALUATED_ON.test(runtime)) return { ok: false, why: 'a re-executed outcome needs the fresh scores and the runtime they came from' };
   if (!isStr(runUrl) || !RERUN_URL.test(runUrl)) return { ok: false, why: 'runUrl must be the URL of the real GitHub Actions run that produced this — never a placeholder' };
   if (!isStr(createdAt) || createdAt.length === 0) return { ok: false, why: 'createdAt is required' };
+  // link (optional, additive): what the rail found about the run the receipt's `rerun` field names. It must agree with
+  // the rerun-link check it came from, so an attestation cannot say BOUND over a failed link or NOT_BOUND over a pass.
+  const { link } = input;
+  if (link !== undefined) {
+    if (!isObj(link) || !RERUN_LINK_LEVELS.includes(link.level) || !isStr(link.url) || !RERUN_URL.test(link.url)) return { ok: false, why: 'link must be { level: BOUND|RUN_ONLY|NOT_BOUND, url: the Actions run it names }' };
+    const lc = checks.find((c) => c.name === 'rerun-link');
+    if (lc === undefined || lc.ok !== (link.level !== 'NOT_BOUND')) return { ok: false, why: 'the link level must agree with the rerun-link check' };
+  }
   const body = {
     v: 1, kind: 'fallforgemint-rerun-attestation', bundleHash, receiptHash, outcome,
     pass: outcome === 'REPRODUCED' || outcome === 'AGREES',
     checks: checks.map((c) => ({ name: c.name, ok: c.ok })), recorded, fresh: outcome === 'TAMPERED' ? null : fresh,
     runtime: outcome === 'TAMPERED' ? null : runtime, runUrl, createdAt, scope: RERUN_SCOPE,
   };
+  if (link !== undefined) body.link = { level: link.level, url: link.url };
   const h = sha256(canon(body));
   if (!h.ok) return { ok: false, why: h.why };
   return { ok: true, attestation: { ...body, hash: h.hash } };
@@ -915,4 +924,69 @@ export function verifyRerunAttestation(a) {
   const body = { ...a }; delete body.hash;
   const h = sha256(canon(body));
   return { ok: true, valid: h.hash === a.hash, why: h.hash === a.hash ? 'attestation intact' : 'the attestation does not match its own fingerprint — it was changed after it was issued' };
+}
+
+// ══════════════════════════════════════════════════════════════════════════════════════════════════
+// THE RERUN LINK — does the Actions run a receipt names really stand behind THAT receipt?
+// A receipt's `rerun` field says "a CI run measured this". The text alone proves nothing: anyone can paste a genuine
+// run's link into a forgery. So the rail looks the run up on GitHub (the edge gathers the facts; this judges them):
+//   BOUND     — the run is the rail's own workflow, it succeeded, it was running when the receipt was stamped, and the
+//               minted bundle it uploaded holds THIS EXACT receipt, signature included.
+//   RUN_ONLY  — everything but the last: GitHub keeps a run's artifact for about 90 days, and this one has expired, so
+//               which receipt the run made can no longer be checked. What is still confirmed is said, and nothing more.
+//   NOT_BOUND — no such run, not the rail, not a success, the wrong time, or it minted a different receipt.
+// "The rail's own workflow" = the rail's repo running rerun.yml at a commit on its main line; or another repo whose run
+// is ONLY a call to that workflow (one job, so nothing else could replace its artifact) at a main-line commit of the
+// rail that checks its code out at its own commit (so the caller cannot choose which code ran). A fork or a copy runs
+// whatever workflow it holds, so its runs are never BOUND.
+// ══════════════════════════════════════════════════════════════════════════════════════════════════
+export const RAIL_HOME = 'sjgant80-hub/fallforgemint';
+export const RAIL_WORKFLOW = '.github/workflows/rerun.yml';
+export const ARTIFACT_KEEP_DAYS = 90;
+export const RERUN_LINK_LEVELS = ['BOUND', 'RUN_ONLY', 'NOT_BOUND'];
+const SHA40 = /^[0-9a-f]{40}$/;
+const DAY_MS = 86400000;
+const when = (s) => (isStr(s) ? Date.parse(s) : NaN);            // Date.parse('') is NaN, so an empty time fails like any bad one
+
+/** rerunLinkCheck(receipt, ev) — judge the facts the edge gathered about the run a receipt's `rerun` link names.
+ *  ev = { url, found, htmlUrl, repo, path, headSha, referenced: [{ path, sha }], jobs, status, conclusion, startedAt,
+ *         updatedAt, onMain: { <sha>: bool }, pinsOwnCode, checkedAt, artifact: { state: present|expired|absent,
+ *         expiresAt, receipt } }. An artifact that exists but could not be read is not a verdict — the edge stops. */
+export function rerunLinkCheck(receipt, ev) {
+  if (!isObj(receipt) || receipt.kind !== 'fallforgemint-scorecard') return { ok: false, why: 'rerunLinkCheck needs the scorecard receipt' };
+  if (receipt.rerun === undefined) return { ok: false, why: 'the receipt names no rerun run, so there is no link to check' };
+  if (!isObj(ev)) return { ok: false, why: 'rerunLinkCheck needs the facts gathered about the run' };
+  if (ev.url !== receipt.rerun) return { ok: false, why: 'these facts are about a different link than the receipt names' };
+  const no = (why) => ({ ok: true, level: 'NOT_BOUND', pass: false, confirmed: [], why });
+  if (!isStr(receipt.rerun) || !RERUN_URL.test(receipt.rerun)) return no('the rerun field is not a GitHub Actions run link');
+  if (ev.found !== true) return no('GitHub has no such run');
+  const art = ev.artifact;
+  if (!isObj(art) || !['present', 'expired', 'absent'].includes(art.state)) return { ok: false, why: 'the artifact state must be present, expired or absent — an unreadable artifact is an infrastructure error, not a verdict' };
+  if (ev.htmlUrl !== receipt.rerun) return no('GitHub answered for a different run');
+  if (ev.status !== 'completed' || ev.conclusion !== 'success') return no('the run did not complete successfully');
+  const home = ev.repo === RAIL_HOME && ev.path === RAIL_WORKFLOW;
+  const called = Array.isArray(ev.referenced) ? ev.referenced.find((w) => isObj(w) && isStr(w.path) && w.path.startsWith(RAIL_HOME + '/' + RAIL_WORKFLOW + '@')) : undefined;
+  let railSha;
+  if (home) railSha = ev.headSha;
+  else if (called === undefined) return no('the run is not the rail\'s workflow (it ran ' + String(ev.path) + ' in ' + String(ev.repo) + ') — a fork or a copy runs whatever workflow it holds, so only the rail\'s own counts');
+  else if (ev.jobs !== 1) return no('the run has jobs besides the rail, and any of them could have replaced its artifact');
+  else if (ev.pinsOwnCode !== true) return no('the run called a version of the rail that let the caller choose which code ran');
+  else railSha = called.sha;
+  if (!isStr(railSha) || !SHA40.test(railSha)) return no('the rail commit the run used is unknown');
+  if (!isObj(ev.onMain) || ev.onMain[railSha] !== true) return no('the run used rail code (' + railSha.slice(0, 12) + ') that is not on the rail\'s main line');
+  const t = when(receipt.createdAt), from = when(ev.startedAt), to = when(ev.updatedAt);
+  // GitHub reports run times to the second; the receipt is stamped to the millisecond inside the run
+  if (!(t >= Math.floor(from / 1000) * 1000 && t <= to)) return no('the receipt was stamped outside the run (' + String(receipt.createdAt) + ' is not within ' + String(ev.startedAt) + ' – ' + String(ev.updatedAt) + ')');
+  const confirmed = ['the run is real and completed successfully', 'it ran the rail\'s own workflow at commit ' + railSha.slice(0, 12) + (home ? '' : ', called from ' + String(ev.repo)), 'the receipt was stamped while the run was going'];
+  if (art.state === 'present') {
+    if (!isObj(art.receipt)) return no('the run\'s artifact holds no minted receipt, so it did not mint this one');
+    if (canon(art.receipt) !== canon(receipt)) return no('the run minted a different receipt — this one borrows its link');
+    return { ok: true, level: 'BOUND', pass: true, confirmed: [...confirmed, 'the bundle the run uploaded holds this exact receipt, signature included'], why: 'the run it names made this exact receipt' };
+  }
+  const aged = when(ev.checkedAt) - to > ARTIFACT_KEEP_DAYS * DAY_MS;
+  if (art.state === 'expired' || aged) {
+    return { ok: true, level: 'RUN_ONLY', pass: true, confirmed,
+      why: 'the run\'s artifact has expired' + (isStr(art.expiresAt) ? ' (' + art.expiresAt + ')' : '') + ', so which receipt it made can no longer be checked — only that the rail ran and was running when this was stamped' };
+  }
+  return no('the run is recent enough to still hold its minted bundle and holds none, so it did not mint this receipt');
 }

@@ -20,13 +20,12 @@
     "holdoutHash": "9101712a5f6a9c971cfcaf5f866b12b074f51e7c8d6cf4d0e81fe6e029183128",
     "holdoutExcludedFromSpec": true,
     "heldOutClaim": "The held-out answers were not in the spec given to the model (hash-disjoint); for a few-shot node the spec is all the model was given. Anyone can re-run it on a clean GitHub runner with the re-run rail.",
-    "rerun": "https://github.com/sjgant80-hub/fallforgemint/actions/runs/36431565425",
     "evaluatedOn": "ollama:llama3.2:1b@baf6a787fdff",
-    "hash": "abe441ee285472f1c3a4a2046f65a1a736022e20bc636998cdf05f9c1d9008ce",
+    "hash": "232cfc016eff2cb225603446983b840fbe77259bbc28fa04d77ff163ada4fd63",
     "signature": {
       "alg": "Ed25519",
       "pub": "ca422d5c0d9831a74a8d9e5dbcc9d3e34f8d5f56ad219f1cf293d855017babc2",
-      "sig": "5a304cfa2aa0f5045d0cd2f4753f5e1b47e6778746d9714f772adff36e6fec5513a4c3ea111ee7979c25843316669333ef76e668672ae72fab70e5e76570fa0f"
+      "sig": "875d1872afd0212bb7fbe63336cf7620b6ac932a81b0407edd8525b15aaef7731059b20cfa0e10d23a4825077143163045e308d4da371bd210f12f1dd9ff4800"
     }
   },
   "spec": {
@@ -84,5 +83,5 @@
     }
   ],
   "evaluatedOn": "ollama:llama3.2:1b@baf6a787fdff",
-  "hash": "315bdd03a3b95a9cfcb1f9c4d19ca3578a8633bc8a801abdd237bd9597f96315"
+  "hash": "502fe05a0a76841e63a0f0e07208fbe8b8dc91f146f3f4640a72f0d6b45843bd"
 }

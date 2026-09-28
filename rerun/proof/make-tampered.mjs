@@ -1,4 +1,4 @@
-// rerun/proof/make-tampered.mjs — derive the two failing proofs from the genuine CI-minted bundle, in the open,
+// rerun/proof/make-tampered.mjs — derive the three failing proofs from the genuine CI-minted bundle, in the open,
 // so anyone can see exactly what was changed:
 //   tampered.json — the naive edit: the receipt's minted hit count raised by one and its score to match (or, if the score
 //                   is already perfect, the base model relabelled to a smaller one). Nothing is re-hashed. The rail's
@@ -7,9 +7,12 @@
 //                   fresh key. If the genuine run has a minted miss, that answer is rewritten to the right one; if it has
 //                   none (the CI mint scored 5/5), the last held-out row is replaced by an invented one whose "correct"
 //                   answer no model could derive from its input, recorded as answered right. Either way it re-verifies
-//                   clean, because a software key proves the numbers are unedited, not who ran them. Only re-executing
-//                   it catches it → DID_NOT_REPRODUCE.
-// Run: node rerun/proof/make-tampered.mjs   (reads genuine.json next to this file, writes the two files beside it)
+//                   clean, because a software key proves the numbers are unedited, not who ran them. It keeps the genuine
+//                   receipt's `rerun` link, so the rail looks that run up, finds it minted a different receipt, and fails
+//                   it on the link itself → TAMPERED (rerun-link), nothing re-executed.
+//   forged-no-link.json — the same forgery with the borrowed link removed, re-hashed and re-signed: it claims no CI run,
+//                   so there is no link to check. Only re-executing it catches it → DID_NOT_REPRODUCE.
+// Run: node rerun/proof/make-tampered.mjs   (reads genuine.json next to this file, writes the three files beside it)
 import { readFileSync, writeFileSync } from 'node:fs';
 import { generateKeyPairSync, sign } from 'node:crypto';
 const K = await import(new URL('../../kernel.mjs', import.meta.url).href);
@@ -50,15 +53,23 @@ if (body.holdoutHash !== undefined) {           // a careful forger re-derives t
   body.holdoutHash = d.holdoutHash;
   body.holdoutExcludedFromSpec = d.excludedFromSpec;
 }
-const receipt = { ...body, hash: K.sha256(K.canon(body)).hash };
 const { publicKey, privateKey } = generateKeyPairSync('ed25519');
-receipt.signature = { alg: 'Ed25519', pub: publicKey.export({ format: 'der', type: 'spki' }).subarray(-32).toString('hex'),
-  sig: sign(null, Buffer.from(K.scorecardSignable(receipt).payload, 'utf8'), privateKey).toString('hex') };
-const fb = { ...f, receipt };
-delete fb.hash;
-out('forged.json', { ...fb, hash: K.sha256(K.canon(fb)).hash });
+const pub = publicKey.export({ format: 'der', type: 'spki' }).subarray(-32).toString('hex');
+const seal = (b) => {                              // hash the receipt body, sign it, wrap it in a re-hashed bundle
+  const receipt = { ...b, hash: K.sha256(K.canon(b)).hash };
+  receipt.signature = { alg: 'Ed25519', pub, sig: sign(null, Buffer.from(K.scorecardSignable(receipt).payload, 'utf8'), privateKey).toString('hex') };
+  const bundle = { ...f, receipt };
+  delete bundle.hash;
+  return { ...bundle, hash: K.sha256(K.canon(bundle)).hash };
+};
+const fb = seal(body);                            // keeps the genuine run's rerun link
+out('forged.json', fb);
+const unlinked = { ...body };
+delete unlinked.rerun;
+out('forged-no-link.json', seal(unlinked));
 
 const v = (b) => K.verifyBundle(b).checks.filter((c) => !c.ok).map((c) => c.name);
 console.log('tampered.json — fails re-verification on:', v(t).join(', ') || '(nothing)');
-console.log('forged.json   — fails re-verification on:', v({ ...fb, hash: K.sha256(K.canon(fb)).hash }).join(', ') || '(nothing — only re-execution can catch it)');
+console.log('forged.json   — fails re-verification on:', v(fb).join(', ') || '(no hash — the rail\'s rerun-link lookup catches it: its run minted a different receipt)');
+console.log('forged-no-link.json — claims no CI run; fails re-verification on:', v(seal(unlinked)).join(', ') || '(nothing — only re-execution can catch it)');
 console.log('forged: ' + how + ' — it claims ' + sc.mintedHits + '/' + sc.n + ' vs base ' + sc.baseHits + '/' + sc.n + '; the genuine run recorded ' + genuine.receipt.mintedHits + '/' + genuine.receipt.heldOut + ' vs base ' + genuine.receipt.baseHits + '/' + genuine.receipt.heldOut);

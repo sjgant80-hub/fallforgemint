@@ -419,7 +419,7 @@
   <!-- the CI re-run rail -->
   <div class="card" id="rerun" style="margin-top:16px">
     <h3 style="font-size:1.25rem;color:var(--cream)">◊ Re-run it in CI — a neutral machine, in the open</h3>
-    <p class="muted" style="font-size:.92rem;margin-top:8px">A scorecard proves nobody edited the numbers. The re-run rail goes one step further: a clean GitHub runner rebuilds the model from its recipe, runs every held-out example through the base model and the minted one <b>again</b>, and checks the result against the signed record. Anyone can run it. No account with us, and no need to trust us.</p>
+    <p class="muted" style="font-size:.92rem;margin-top:8px">A scorecard proves nobody edited the numbers. The re-run rail goes one step further: a clean GitHub runner rebuilds the model from its recipe, runs every held-out example through the base model and the minted one <b>again</b>, and checks the result against the signed record. If the scorecard says a CI run minted it, the rail looks that run up on GitHub and checks it made this exact scorecard, so a forgery that borrows a genuine run's link fails. Anyone can run it. No account with us, and no need to trust us.</p>
     <ol class="steps" style="max-width:74ch">
       <li><b>Get the bundle.</b> After <a href="#mint">Prove it</a>, download the signed scorecard, then <b>Download re-run bundle</b>. It holds the receipt, the recipe and the held-out rows.</li>
       <li><b>Make your own copy of the runner.</b> Open <a href="https://github.com/sjgant80-hub/fallforgemint-rerun" target="_blank" rel="noopener">fallforgemint-rerun</a>, press <b>Use this template</b>, and add your bundle to it (e.g. <code>bundle.json</code>). Your copy calls the rail's own workflow here, so the code that judges your bundle is the gated code. Or fork <a href="https://github.com/sjgant80-hub/fallforgemint" target="_blank" rel="noopener">fallforgemint</a> itself, and enable workflows in the fork's Actions tab first.</li>
@@ -429,11 +429,11 @@
     <div class="grid g2" style="margin-top:6px;gap:10px">
       <div class="rail-o"><span class="pill good" style="font-size:.7rem">REPRODUCED</span> Same runtime and model digest. The hits match exactly.</div>
       <div class="rail-o"><span class="pill good" style="font-size:.7rem">AGREES</span> A different runtime (your browser's model vs Ollama on the runner). The verdict holds.</div>
-      <div class="rail-o"><span class="pill bad" style="font-size:.7rem">TAMPERED</span> A recorded number does not recompute. The job fails and nothing is re-run.</div>
+      <div class="rail-o"><span class="pill bad" style="font-size:.7rem">TAMPERED</span> A recorded number does not recompute, or the CI run the scorecard names did not make it. The job fails and nothing is re-run.</div>
       <div class="rail-o"><span class="pill bad" style="font-size:.7rem">DID NOT REPRODUCE</span> The record is intact but the result did not hold. The job fails.</div>
     </div>
     <p class="muted" style="font-size:.9rem;margin-top:14px"><b>Proven both ways, on real runs:</b> <!-- ⟦RAIL-RUNS⟧ -->the proof scorecard was minted on a GitHub runner (<a href="https://github.com/sjgant80-hub/fallforgemint/actions/runs/36431565425" target="_blank" rel="noopener">the mint run</a>). Untouched, it is <b>REPRODUCED</b> on four kinds of runner CPU — <a href="https://github.com/sjgant80-hub/fallforgemint/actions/runs/36432124174" target="_blank" rel="noopener">Xeon 8370C</a> · <a href="https://github.com/sjgant80-hub/fallforgemint/actions/runs/36432161176" target="_blank" rel="noopener">Xeon 8573C</a> · <a href="https://github.com/sjgant80-hub/fallforgemint/actions/runs/36432186035" target="_blank" rel="noopener">EPYC 7763</a> · <a href="https://github.com/sjgant80-hub/fallforgemint/actions/runs/36432198461" target="_blank" rel="noopener">EPYC 9V74</a> — and from the template, <a href="https://github.com/sjgant80-hub/fallforgemint-rerun/actions/runs/36432258746" target="_blank" rel="noopener">a Xeon 6973P-C run</a>. With its hit count edited, it is <b>TAMPERED</b> and the job fails: <a href="https://github.com/sjgant80-hub/fallforgemint/actions/runs/36432136763" target="_blank" rel="noopener">the failed run</a>. Forged with care — the wrong answer rewritten, every hash recomputed, re-signed — it re-verifies clean, then <b>DID NOT REPRODUCE</b> and the job fails: <a href="https://github.com/sjgant80-hub/fallforgemint/actions/runs/36432148743" target="_blank" rel="noopener">EPYC 9V74</a> · <a href="https://github.com/sjgant80-hub/fallforgemint/actions/runs/36432173144" target="_blank" rel="noopener">EPYC 7763</a>.<!-- ⟦/RAIL-RUNS⟧ --></p>
-    <p class="note">What it shows, and what it doesn't: every recorded number is recomputed from the bundle, and the held-out set is run again on that runner. A small model on a CPU is not bit-exact across chip types, so a borderline answer can flip between runners; the rail fails that record and shows you the row. It does not attest the machine that made the original, and it says nothing about what the base model saw in its own training. A scorecard made in your browser is re-run on Ollama's build of the same model (qwen2.5:0.5b) — a different runtime and quantisation — so its test is AGREES, not an exact match.</p>
+    <p class="note">What it shows, and what it doesn't: every recorded number is recomputed from the bundle, and the held-out set is run again on that runner. A small model on a CPU is not bit-exact across chip types, so a borderline answer can flip between runners; the rail fails that record and shows you the row. GitHub keeps a run's upload for about 90 days; after that the rail can confirm only that the named run was the rail and was running when the scorecard was stamped, not that it made this exact one, and it says so. It does not attest the machine that made the original, and it says nothing about what the base model saw in its own training. A scorecard made in your browser is re-run on Ollama's build of the same model (qwen2.5:0.5b) — a different runtime and quantisation — so its test is AGREES, not an exact match.</p>
   </div>
 </div></section>
 
@@ -1520,12 +1520,21 @@ function rerunAttestation(input) {
   else if (!isObj(fresh) || !isStr(runtime) || !EVALUATED_ON.test(runtime)) return { ok: false, why: 'a re-executed outcome needs the fresh scores and the runtime they came from' };
   if (!isStr(runUrl) || !RERUN_URL.test(runUrl)) return { ok: false, why: 'runUrl must be the URL of the real GitHub Actions run that produced this — never a placeholder' };
   if (!isStr(createdAt) || createdAt.length === 0) return { ok: false, why: 'createdAt is required' };
+  // link (optional, additive): what the rail found about the run the receipt's `rerun` field names. It must agree with
+  // the rerun-link check it came from, so an attestation cannot say BOUND over a failed link or NOT_BOUND over a pass.
+  const { link } = input;
+  if (link !== undefined) {
+    if (!isObj(link) || !RERUN_LINK_LEVELS.includes(link.level) || !isStr(link.url) || !RERUN_URL.test(link.url)) return { ok: false, why: 'link must be { level: BOUND|RUN_ONLY|NOT_BOUND, url: the Actions run it names }' };
+    const lc = checks.find((c) => c.name === 'rerun-link');
+    if (lc === undefined || lc.ok !== (link.level !== 'NOT_BOUND')) return { ok: false, why: 'the link level must agree with the rerun-link check' };
+  }
   const body = {
     v: 1, kind: 'fallforgemint-rerun-attestation', bundleHash, receiptHash, outcome,
     pass: outcome === 'REPRODUCED' || outcome === 'AGREES',
     checks: checks.map((c) => ({ name: c.name, ok: c.ok })), recorded, fresh: outcome === 'TAMPERED' ? null : fresh,
     runtime: outcome === 'TAMPERED' ? null : runtime, runUrl, createdAt, scope: RERUN_SCOPE,
   };
+  if (link !== undefined) body.link = { level: link.level, url: link.url };
   const h = sha256(canon(body));
   if (!h.ok) return { ok: false, why: h.why };
   return { ok: true, attestation: { ...body, hash: h.hash } };
@@ -1537,6 +1546,71 @@ function verifyRerunAttestation(a) {
   const body = { ...a }; delete body.hash;
   const h = sha256(canon(body));
   return { ok: true, valid: h.hash === a.hash, why: h.hash === a.hash ? 'attestation intact' : 'the attestation does not match its own fingerprint — it was changed after it was issued' };
+}
+
+// ══════════════════════════════════════════════════════════════════════════════════════════════════
+// THE RERUN LINK — does the Actions run a receipt names really stand behind THAT receipt?
+// A receipt's `rerun` field says "a CI run measured this". The text alone proves nothing: anyone can paste a genuine
+// run's link into a forgery. So the rail looks the run up on GitHub (the edge gathers the facts; this judges them):
+//   BOUND     — the run is the rail's own workflow, it succeeded, it was running when the receipt was stamped, and the
+//               minted bundle it uploaded holds THIS EXACT receipt, signature included.
+//   RUN_ONLY  — everything but the last: GitHub keeps a run's artifact for about 90 days, and this one has expired, so
+//               which receipt the run made can no longer be checked. What is still confirmed is said, and nothing more.
+//   NOT_BOUND — no such run, not the rail, not a success, the wrong time, or it minted a different receipt.
+// "The rail's own workflow" = the rail's repo running rerun.yml at a commit on its main line; or another repo whose run
+// is ONLY a call to that workflow (one job, so nothing else could replace its artifact) at a main-line commit of the
+// rail that checks its code out at its own commit (so the caller cannot choose which code ran). A fork or a copy runs
+// whatever workflow it holds, so its runs are never BOUND.
+// ══════════════════════════════════════════════════════════════════════════════════════════════════
+const RAIL_HOME = 'sjgant80-hub/fallforgemint';
+const RAIL_WORKFLOW = '.github/workflows/rerun.yml';
+const ARTIFACT_KEEP_DAYS = 90;
+const RERUN_LINK_LEVELS = ['BOUND', 'RUN_ONLY', 'NOT_BOUND'];
+const SHA40 = /^[0-9a-f]{40}$/;
+const DAY_MS = 86400000;
+const when = (s) => (isStr(s) ? Date.parse(s) : NaN);            // Date.parse('') is NaN, so an empty time fails like any bad one
+
+/** rerunLinkCheck(receipt, ev) — judge the facts the edge gathered about the run a receipt's `rerun` link names.
+ *  ev = { url, found, htmlUrl, repo, path, headSha, referenced: [{ path, sha }], jobs, status, conclusion, startedAt,
+ *         updatedAt, onMain: { <sha>: bool }, pinsOwnCode, checkedAt, artifact: { state: present|expired|absent,
+ *         expiresAt, receipt } }. An artifact that exists but could not be read is not a verdict — the edge stops. */
+function rerunLinkCheck(receipt, ev) {
+  if (!isObj(receipt) || receipt.kind !== 'fallforgemint-scorecard') return { ok: false, why: 'rerunLinkCheck needs the scorecard receipt' };
+  if (receipt.rerun === undefined) return { ok: false, why: 'the receipt names no rerun run, so there is no link to check' };
+  if (!isObj(ev)) return { ok: false, why: 'rerunLinkCheck needs the facts gathered about the run' };
+  if (ev.url !== receipt.rerun) return { ok: false, why: 'these facts are about a different link than the receipt names' };
+  const no = (why) => ({ ok: true, level: 'NOT_BOUND', pass: false, confirmed: [], why });
+  if (!isStr(receipt.rerun) || !RERUN_URL.test(receipt.rerun)) return no('the rerun field is not a GitHub Actions run link');
+  if (ev.found !== true) return no('GitHub has no such run');
+  const art = ev.artifact;
+  if (!isObj(art) || !['present', 'expired', 'absent'].includes(art.state)) return { ok: false, why: 'the artifact state must be present, expired or absent — an unreadable artifact is an infrastructure error, not a verdict' };
+  if (ev.htmlUrl !== receipt.rerun) return no('GitHub answered for a different run');
+  if (ev.status !== 'completed' || ev.conclusion !== 'success') return no('the run did not complete successfully');
+  const home = ev.repo === RAIL_HOME && ev.path === RAIL_WORKFLOW;
+  const called = Array.isArray(ev.referenced) ? ev.referenced.find((w) => isObj(w) && isStr(w.path) && w.path.startsWith(RAIL_HOME + '/' + RAIL_WORKFLOW + '@')) : undefined;
+  let railSha;
+  if (home) railSha = ev.headSha;
+  else if (called === undefined) return no('the run is not the rail\'s workflow (it ran ' + String(ev.path) + ' in ' + String(ev.repo) + ') — a fork or a copy runs whatever workflow it holds, so only the rail\'s own counts');
+  else if (ev.jobs !== 1) return no('the run has jobs besides the rail, and any of them could have replaced its artifact');
+  else if (ev.pinsOwnCode !== true) return no('the run called a version of the rail that let the caller choose which code ran');
+  else railSha = called.sha;
+  if (!isStr(railSha) || !SHA40.test(railSha)) return no('the rail commit the run used is unknown');
+  if (!isObj(ev.onMain) || ev.onMain[railSha] !== true) return no('the run used rail code (' + railSha.slice(0, 12) + ') that is not on the rail\'s main line');
+  const t = when(receipt.createdAt), from = when(ev.startedAt), to = when(ev.updatedAt);
+  // GitHub reports run times to the second; the receipt is stamped to the millisecond inside the run
+  if (!(t >= Math.floor(from / 1000) * 1000 && t <= to)) return no('the receipt was stamped outside the run (' + String(receipt.createdAt) + ' is not within ' + String(ev.startedAt) + ' – ' + String(ev.updatedAt) + ')');
+  const confirmed = ['the run is real and completed successfully', 'it ran the rail\'s own workflow at commit ' + railSha.slice(0, 12) + (home ? '' : ', called from ' + String(ev.repo)), 'the receipt was stamped while the run was going'];
+  if (art.state === 'present') {
+    if (!isObj(art.receipt)) return no('the run\'s artifact holds no minted receipt, so it did not mint this one');
+    if (canon(art.receipt) !== canon(receipt)) return no('the run minted a different receipt — this one borrows its link');
+    return { ok: true, level: 'BOUND', pass: true, confirmed: [...confirmed, 'the bundle the run uploaded holds this exact receipt, signature included'], why: 'the run it names made this exact receipt' };
+  }
+  const aged = when(ev.checkedAt) - to > ARTIFACT_KEEP_DAYS * DAY_MS;
+  if (art.state === 'expired' || aged) {
+    return { ok: true, level: 'RUN_ONLY', pass: true, confirmed,
+      why: 'the run\'s artifact has expired' + (isStr(art.expiresAt) ? ' (' + art.expiresAt + ')' : '') + ', so which receipt it made can no longer be checked — only that the rail ran and was running when this was stamped' };
+  }
+  return no('the run is recent enough to still hold its minted bundle and holds none, so it did not mint this receipt');
 }
 // ⟦KERNEL-END⟧
 
@@ -2023,7 +2097,7 @@ function scVerdict(good, headline, receipt, sig, bundleChecks){
     if (typeof receipt.evaluatedOn === 'string') h += '<div class="kvline">Measured on: <b>' + esc(receipt.evaluatedOn) + '</b></div>';
     // only a GitHub Actions run URL is ever shown as a link — anything else in the field is shown as plain text.
     // The text alone cannot prove the run is real or that it made this record, so the line says "names" and asks you to open it.
-    if (typeof receipt.rerun === 'string') h += '<div class="kvline">Says it was minted in CI: ' + (RERUN_URL.test(receipt.rerun) ? '<a href="' + esc(receipt.rerun) + '" target="_blank" rel="noopener">the run it names</a> — open it to check the run is real and shows this result' : '<b>' + esc(receipt.rerun) + '</b> (not a GitHub Actions run link)') + '</div>';
+    if (typeof receipt.rerun === 'string') h += '<div class="kvline">Says it was minted in CI: ' + (RERUN_URL.test(receipt.rerun) ? '<a href="' + esc(receipt.rerun) + '" target="_blank" rel="noopener">the run it names</a>. This page cannot read that run\'s upload (GitHub needs a login), so it cannot tell you the run made this record: the <a href="#rerun">CI re-run rail</a> checks exactly that' : '<b>' + esc(receipt.rerun) + '</b> (not a GitHub Actions run link)') + '</div>';
     if (bundleChecks){
       h += '<div class="kvline" style="margin-top:8px">Recomputed from the bundle: ' + bundleChecks.map((c) => (c.ok ? '✓ ' : '✗ ') + esc(c.name)).join(' · ') + '</div>';
       if (good) h += '<div class="kvline">That is the first half of the rail. The second — running the held-out set again on a neutral machine — is <a href="#rerun">Re-run it in CI</a>.</div>';

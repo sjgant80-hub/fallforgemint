@@ -28,7 +28,7 @@ The page runs the **exact same code the mutation gate proves**. `kernel.mjs` is 
 
 A scorecard proves nobody edited the numbers. The **re-run rail** (`.github/workflows/rerun.yml`) lets a neutral machine check the result itself. Give it a **re-run bundle** — the signed scorecard, the recipe (task, base, the examples the model was given) and the held-out rows. The page's *Download re-run bundle* button makes one. A clean GitHub runner then makes two judgements:
 
-1. **Re-verify.** It recomputes every recorded number from the bundle: the bundle and receipt fingerprints, the rebuilt Modelfile's hash, the task and evidence hashes, the re-graded scores, the held-out disjointness against the rebuilt recipe, the runtime label, and the Ed25519 signature. Any mismatch is **TAMPERED**: the job fails and nothing is re-executed.
+1. **Re-verify.** It recomputes every recorded number from the bundle: the bundle and receipt fingerprints, the rebuilt Modelfile's hash, the task and evidence hashes, the re-graded scores, the held-out disjointness against the rebuilt recipe, the runtime label, and the Ed25519 signature. If the receipt names a CI run (its `rerun` link), the rail looks that run up on GitHub and checks it made **this exact receipt** (see *The rerun link* below). Any mismatch is **TAMPERED**: the job fails and nothing is re-executed.
 2. **Re-execute.** It installs Ollama (pinned), rebuilds the minted model, and runs every held-out input through the base and the minted model again at temperature 0. It then grades the results.
    - **Same runtime and model digest:** the hits must match exactly (**REPRODUCED**).
    - **Different runtime:** a browser scorecard is re-run on Ollama's `qwen2.5:0.5b`, so the verdict must hold (**AGREES**).
@@ -38,12 +38,24 @@ The verdict is written to the job summary. A self-hashed attestation, bound to t
 
 **Run it yourself.** You can't start a workflow on someone else's repo, so the rail comes to yours:
 
-- **Template (recommended):** open [fallforgemint-rerun](https://github.com/sjgant80-hub/fallforgemint-rerun), press *Use this template*, add your bundle (e.g. `bundle.json`), then Actions → **rerun** → Run workflow. Your repo calls this repo's `rerun.yml` as a reusable workflow, so the rail's code comes from here, not from your copy.
-- **Fork:** fork this repo, open its **Actions** tab and enable workflows (GitHub switches them off in a new fork), then run `rerun` with your bundle's path. A fork runs its own copy of the workflow, so whoever reads your run should check it is unchanged.
+- **Template (recommended):** open [fallforgemint-rerun](https://github.com/sjgant80-hub/fallforgemint-rerun), press *Use this template*, add your bundle (e.g. `bundle.json`), then Actions → **rerun** → Run workflow. Your repo calls this repo's `rerun.yml` as a reusable workflow, and the rail always checks its code out at the commit of the workflow you call, so the code that judges your bundle comes from here, not from your copy.
+- **Fork:** fork this repo, open its **Actions** tab and enable workflows (GitHub switches them off in a new fork), then run `rerun` with your bundle's path. A fork runs its own copy of the workflow, so whoever reads your run should check it is unchanged, and a scorecard minted in a fork never counts as minted by the rail (below).
 
-`mode: mint` makes a fresh scorecard on the runner from a spec (`rerun/proof/spec.json`). Its receipt's `rerun` field is that run's URL. The kernel refuses any `rerun` value that is not shaped like a GitHub Actions run URL, so the field can never hold a placeholder. It cannot tell from the text alone that the run is real: open the link and check it.
+`mode: mint` (here or in the template) makes a fresh scorecard on the runner from a spec (`rerun/proof/spec.json`). Its receipt's `rerun` field is that run's URL.
 
-**Proven both ways, on real runs** (from one scorecard minted in CI; `rerun/proof/make-tampered.mjs` shows exactly how the failing two were made):
+### The rerun link
+
+A `rerun` link is a claim: *this CI run measured me*. Anyone can paste a genuine run's link into a forged receipt, so the rail does not take the text on trust. It looks the run up on GitHub and returns one of three answers:
+
+- **BOUND**: the run is real and succeeded, it ran the rail's own workflow at a commit on this repo's main line, the receipt was stamped while it was running, and the bundle it uploaded (its `rerun-result` artifact) holds **this exact receipt, signature included**. A run in another repo counts only when it is a single job that calls this rail at a main-line commit that checks out its own code; then nothing else in the run could have swapped the artifact, and the caller could not choose the code.
+- **RUN ONLY**: all of that except the last. GitHub keeps a run's artifact for about 90 days. After that the rail says only what is still true: the run was the rail, it succeeded, and it was running when the receipt was stamped. It does not say the run made this exact receipt, because that can no longer be checked. The job passes and the summary says which it was.
+- **NOT BOUND**: no such run, not the rail, not a success, the wrong time, or it minted a different receipt. That is **TAMPERED**, and the job fails.
+
+The kernel still refuses any `rerun` value that is not shaped like a GitHub Actions run URL, so the field can never hold a placeholder.
+
+### Proof runs
+
+**Proven both ways, on real runs** (from one scorecard minted in CI; `rerun/proof/make-tampered.mjs` shows exactly how the failing ones were made):
 <!-- RAIL-RUNS -->
 The proof scorecard, [`genuine.json`](https://github.com/sjgant80-hub/fallforgemint/blob/main/rerun/proof/genuine.json), was minted on a GitHub runner by [run 36431565425](https://github.com/sjgant80-hub/fallforgemint/actions/runs/36431565425): 4/5 vs base 0/5, **BEATS**, held-out hash-disjoint. Its receipt's `rerun` field is that run.
 

@@ -2,15 +2,18 @@ name: rerun
 # The CI re-run rail. Give it a FallForge Mint re-run bundle (the signed scorecard, the recipe and the held-out rows)
 # and a clean GitHub runner does two things, in the open:
 #   1. RE-VERIFY: recompute every recorded number from the bundle — the bundle and receipt fingerprints, the rebuilt
-#      Modelfile's hash, the task and evidence hashes, the scores, the held-out disjointness, the signature.
+#      Modelfile's hash, the task and evidence hashes, the scores, the held-out disjointness, the signature. If the
+#      receipt names a CI run (its `rerun` link), look that run up on GitHub and check it made THIS exact receipt.
 #      Any mismatch is TAMPERED and the job FAILS. A tampered record is never re-executed.
 #   2. RE-EXECUTE: rebuild the minted model with Ollama on this runner, run every held-out input through base and
 #      minted again, and grade it. Same runtime and model digest → the hits must match exactly (REPRODUCED);
 #      a different runtime (a browser-made scorecard) → the verdict must hold (AGREES). Otherwise DID_NOT_REPRODUCE,
 #      and the job FAILS.
 # The verdict is the job summary plus a self-hashed attestation bound to this run's URL (artifact: rerun-result).
-# Anyone can run it: fork this repo, or call it from your own repo (see github.com/sjgant80-hub/fallforgemint-rerun).
-# Every judgement is in kernel.mjs, which is mutation-gated; tools/rerun.mjs is only the edge that talks to Ollama.
+# Anyone can run it: call it from your own repo (see github.com/sjgant80-hub/fallforgemint-rerun), or fork this repo.
+# Every judgement is in kernel.mjs, which is mutation-gated; tools/rerun.mjs is only the edge that talks to Ollama and GitHub.
+# The rail's code is always checked out at the commit of THIS workflow file, so whoever calls it cannot choose which
+# code judges their bundle — and a receipt minted here can be traced to that commit.
 on:
   workflow_dispatch:
     inputs:
@@ -26,19 +29,20 @@ on:
   workflow_call:
     inputs:
       bundle:
-        description: 'path in the calling repo, or an https URL, of the re-run bundle to verify'
+        description: 'path in the calling repo, or an https URL, of the re-run bundle (verify) or spec (mint)'
         type: string
         required: true
       mode:
         type: string
         default: verify
       rail-ref:
-        description: 'which fallforgemint ref runs the rail (default main)'
+        description: 'ignored (kept so older callers still run): the rail always runs the code of the workflow commit you call'
         type: string
         default: main
 
 permissions:
   contents: read
+  actions: read          # to read the artifact of the run a receipt's rerun link names
 
 jobs:
   rerun:
@@ -50,12 +54,20 @@ jobs:
       - name: check out the repo that holds the bundle
         uses: actions/checkout@v4
 
-      - name: check out the rail (fallforgemint's gated kernel + runner)
+      - name: check out the rail at this workflow's own commit (fallforgemint's gated kernel + runner)
         uses: actions/checkout@v4
         with:
-          repository: sjgant80-hub/fallforgemint
-          ref: ${{ inputs.rail-ref || 'main' }}
+          repository: ${{ job.workflow_repository }}
+          ref: ${{ job.workflow_sha }}
           path: .rail
+
+      - name: the rail's code is this workflow's commit
+        env:
+          WANT: ${{ job.workflow_sha }}
+        run: |
+          got="$(git -C .rail rev-parse HEAD)"
+          echo "rail commit: $got (workflow: ${{ job.workflow_repository }}@$WANT)"
+          if [ -z "$WANT" ] || [ "$got" != "$WANT" ]; then echo "::error::the rail's code is not the commit of the workflow that called it"; exit 1; fi
 
       - uses: actions/setup-node@v4
         with: { node-version: '22' }
@@ -72,6 +84,7 @@ jobs:
           MODE: ${{ inputs.mode || 'verify' }}
           BUNDLE: ${{ inputs.bundle }}
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          GITHUB_TOKEN: ${{ github.token }}
         run: |
           if [ "$MODE" = "mint" ]; then
             node .rail/tools/rerun.mjs mint "$BUNDLE" --out rerun-bundle.json --summary "$GITHUB_STEP_SUMMARY"

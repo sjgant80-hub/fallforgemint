@@ -12,6 +12,7 @@ import {
   sizeRecommendation, LADDER, TASK_TIER, TASK_TYPES, DEPLOY_CAP, QUALITY_BUMP, SHAPE_ADJUST, CATALOG_VERSION,
   RERUN_URL, EVALUATED_ON, RUNTIME_TO_OLLAMA, evaluatorModel, rerunBundle, verifyBundle, compareRerun,
   RERUN_OUTCOMES, RERUN_SCOPE, rerunAttestation, verifyRerunAttestation,
+  RAIL_HOME, RAIL_WORKFLOW, ARTIFACT_KEEP_DAYS, RERUN_LINK_LEVELS, rerunLinkCheck,
   HELDOUT_CLAIM_RUNNER, SCOPE_BROWSER, SCOPE_RUNNER,
 } from './kernel.mjs';
 import { Buffer } from 'node:buffer';
@@ -1177,4 +1178,164 @@ test('anti-drift guard: the runner wording stays narrow-true too', () => {
   for (const s of [HELDOUT_CLAIM_RUNNER, SCOPE_RUNNER, SCOPE_BROWSER]) assert.equal(FORBIDDEN.test(s), false, s);
   assert.ok(HELDOUT_CLAIM_RUNNER.startsWith('The held-out answers were not in the spec given to the model (hash-disjoint)'));
   assert.ok(SCOPE_RUNNER.includes('NOT a certification'));
+});
+
+// ══════════════════════════ THE RERUN LINK ══════════════════════════
+const LINK = 'https://github.com/sjgant80-hub/fallforgemint/actions/runs/36431565425';
+const RAIL_SHA = 'a65b803' + '1'.repeat(33), CALLED_SHA = 'b'.repeat(40);
+function linkedReceipt(over = {}) {
+  const g = genuine();
+  const body = { ...g.receipt, createdAt: '2026-09-28T13:55:01.051Z', rerun: LINK, ...over }; delete body.hash;
+  return { ...body, hash: sha256(canon(body)).hash, signature: { alg: 'Ed25519', pub: 'ab'.repeat(32), sig: 'cd'.repeat(64) } };
+}
+const facts = (made, over = {}) => ({ url: LINK, found: true, htmlUrl: LINK, repo: RAIL_HOME, path: RAIL_WORKFLOW, headSha: RAIL_SHA, referenced: [], jobs: 1,
+  status: 'completed', conclusion: 'success', startedAt: '2026-09-28T13:51:02Z', updatedAt: '2026-09-28T13:55:10Z', onMain: { [RAIL_SHA]: true },
+  pinsOwnCode: false, checkedAt: '2026-09-28T14:30:00Z', artifact: { state: 'present', expiresAt: '2026-12-27T13:51:03Z', receipt: made }, ...over });
+const caller = (made, over = {}) => facts(made, { repo: 'someone/their-rerun', headSha: 'c'.repeat(40), jobs: 1, pinsOwnCode: true,
+  referenced: [{ path: RAIL_HOME + '/' + RAIL_WORKFLOW + '@refs/heads/main', sha: CALLED_SHA }], onMain: { [CALLED_SHA]: true }, ...over });
+const level = (r, ev) => { const c = rerunLinkCheck(r, ev); return c.ok ? c.level : 'ERR'; };
+
+test('rerunLinkCheck: BOUND only when the run it names made this exact receipt', () => {
+  const r = linkedReceipt(), c = rerunLinkCheck(r, facts(r));
+  assert.deepEqual([c.ok, c.level, c.pass, c.why], [true, 'BOUND', true, 'the run it names made this exact receipt']);
+  assert.equal(c.confirmed.length, 4);
+  assert.ok(c.confirmed[1].includes(RAIL_SHA.slice(0, 12)) && !c.confirmed[1].includes('called from'));
+  assert.ok(c.confirmed[3].includes('this exact receipt, signature included'));
+  assert.deepEqual([RAIL_HOME, RAIL_WORKFLOW, ARTIFACT_KEEP_DAYS], ['sjgant80-hub/fallforgemint', '.github/workflows/rerun.yml', 90]);
+  assert.deepEqual(RERUN_LINK_LEVELS, ['BOUND', 'RUN_ONLY', 'NOT_BOUND']);
+});
+
+test('rerunLinkCheck: a forgery that borrows a genuine run\'s link fails on the link itself', () => {
+  const real = linkedReceipt(), forged = linkedReceipt({ baseHits: 1, verdict: 'TIES' });
+  const c = rerunLinkCheck(forged, facts(real));
+  assert.deepEqual([c.level, c.pass, c.confirmed], ['NOT_BOUND', false, []]);
+  assert.match(c.why, /minted a different receipt — this one borrows its link/);
+  // the same receipt re-signed by someone else is not the receipt the run made either
+  const resigned = { ...real, signature: { ...real.signature, pub: 'ef'.repeat(32) } };
+  assert.equal(level(resigned, facts(real)), 'NOT_BOUND');
+  // a run whose artifact holds no minted receipt (a verify run) made no receipt
+  assert.match(rerunLinkCheck(real, facts(real, { artifact: { state: 'present', receipt: null } })).why, /holds no minted receipt/);
+});
+
+test('rerunLinkCheck: after the artifact expires it says only what is still true (RUN_ONLY)', () => {
+  const r = linkedReceipt(), c = rerunLinkCheck(r, facts(r, { artifact: { state: 'expired', expiresAt: '2026-12-27T13:51:03Z' } }));
+  assert.deepEqual([c.level, c.pass, c.confirmed.length], ['RUN_ONLY', true, 3]);
+  assert.match(c.why, /expired \(2026-12-27T13:51:03Z\), so which receipt it made can no longer be checked/);
+  assert.equal(c.confirmed.some((s) => /exact|this receipt/.test(s)), false);          // never claims more than it saw
+  assert.ok(c.confirmed.includes('the receipt was stamped while the run was going'));
+  assert.equal(rerunLinkCheck(r, facts(r, { artifact: { state: 'expired' } })).why.includes('('), false);
+  // gone without a trace: only a run older than the keep window may have lost it honestly
+  const gone = (checkedAt) => level(r, facts(r, { checkedAt, artifact: { state: 'absent' } }));
+  const day = 86400000, end = Date.parse('2026-09-28T13:55:10Z');
+  assert.equal(gone(new Date(end + 90 * day).toISOString()), 'NOT_BOUND');
+  assert.equal(gone(new Date(end + 90 * day + 1).toISOString()), 'RUN_ONLY');
+  assert.equal(gone('2026-09-28T14:30:00Z'), 'NOT_BOUND');
+  assert.match(rerunLinkCheck(r, facts(r, { artifact: { state: 'absent' } })).why, /recent enough to still hold its minted bundle and holds none/);
+  assert.equal(gone('garbage'), 'NOT_BOUND');
+  // an expired artifact never rescues a run that fails an earlier check
+  assert.equal(level(r, facts(r, { conclusion: 'failure', artifact: { state: 'expired' } })), 'NOT_BOUND');
+});
+
+test('rerunLinkCheck: the run must exist, be this run, and have succeeded', () => {
+  const r = linkedReceipt();
+  assert.match(rerunLinkCheck(r, { url: LINK, found: false }).why, /GitHub has no such run/);
+  assert.equal(level(r, facts(r, { found: 'yes' })), 'NOT_BOUND');
+  assert.match(rerunLinkCheck(r, facts(r, { htmlUrl: LINK + '0' })).why, /different run/);
+  assert.match(rerunLinkCheck(r, facts(r, { status: 'in_progress' })).why, /did not complete successfully/);
+  assert.equal(level(r, facts(r, { conclusion: 'failure' })), 'NOT_BOUND');
+  // the receipt's field must be a run link at all
+  const odd = linkedReceipt({ rerun: 'see the CI' });
+  assert.match(rerunLinkCheck(odd, { url: 'see the CI', found: true }).why, /not a GitHub Actions run link/);
+});
+
+test('rerunLinkCheck: only the rail\'s own code counts — its repo, or a pinned single-job caller on its main line', () => {
+  const r = linkedReceipt();
+  assert.equal(rerunLinkCheck(r, facts(r, { repo: 'someone/fallforgemint' })).why, 'the run is not the rail\'s workflow (it ran .github/workflows/rerun.yml in someone/fallforgemint) — a fork or a copy runs whatever workflow it holds, so only the rail\'s own counts');
+  assert.equal(level(r, facts(r, { path: '.github/workflows/other.yml' })), 'NOT_BOUND');
+  assert.match(rerunLinkCheck(r, facts(r, { onMain: { [RAIL_SHA]: false } })).why, /not on the rail's main line/);
+  assert.equal(level(r, facts(r, { onMain: undefined })), 'NOT_BOUND');
+  assert.equal(level(r, facts(r, { onMain: { [RAIL_SHA]: 'true' } })), 'NOT_BOUND');
+  assert.match(rerunLinkCheck(r, facts(r, { headSha: 'abc' })).why, /rail commit the run used is unknown/);
+  assert.equal(level(r, facts(r, { headSha: undefined, onMain: { undefined: true } })), 'NOT_BOUND');
+  // a caller: BOUND only as a single job calling a main-line rail that checks out its own code
+  const c = rerunLinkCheck(r, caller(r));
+  assert.deepEqual([c.level, c.pass], ['BOUND', true]);
+  assert.ok(c.confirmed[1].includes('called from someone/their-rerun') && c.confirmed[1].includes(CALLED_SHA.slice(0, 12)));
+  assert.match(rerunLinkCheck(r, caller(r, { jobs: 2 })).why, /jobs besides the rail/);
+  assert.equal(level(r, caller(r, { jobs: '1' })), 'NOT_BOUND');
+  assert.match(rerunLinkCheck(r, caller(r, { pinsOwnCode: false })).why, /let the caller choose which code ran/);
+  assert.equal(level(r, caller(r, { pinsOwnCode: 'yes' })), 'NOT_BOUND');
+  assert.equal(level(r, caller(r, { onMain: { ['c'.repeat(40)]: true } })), 'NOT_BOUND');     // the caller's own commit is not the rail
+  assert.equal(level(r, caller(r, { referenced: [{ path: 'someone/x/.github/workflows/rerun.yml@main', sha: CALLED_SHA }] })), 'NOT_BOUND');
+  assert.equal(level(r, caller(r, { referenced: [{ path: RAIL_HOME + '/.github/workflows/gate.yml@main', sha: CALLED_SHA }] })), 'NOT_BOUND');
+  assert.equal(level(r, caller(r, { referenced: [null, 5, { path: 7 }, { path: RAIL_HOME + '/' + RAIL_WORKFLOW + '@v1', sha: CALLED_SHA }] })), 'BOUND');
+  assert.equal(level(r, caller(r, { referenced: 'x' })), 'NOT_BOUND');
+  assert.equal(level(r, caller(r, { referenced: [{ path: RAIL_HOME + '/' + RAIL_WORKFLOW + '@v1', sha: 'nope' }] })), 'NOT_BOUND');
+  // in the rail's own repo, the run's head is the rail commit even if it lists a called workflow
+  assert.equal(level(r, facts(r, { referenced: [{ path: RAIL_HOME + '/' + RAIL_WORKFLOW + '@x', sha: CALLED_SHA }] })), 'BOUND');
+});
+
+test('rerunLinkCheck: the receipt must be stamped while the run was going (GitHub times are to the second)', () => {
+  const at = (createdAt, over = {}) => { const r = linkedReceipt({ createdAt }); return level(r, facts(r, over)); };
+  assert.equal(at('2026-09-28T13:51:02.000Z'), 'BOUND');
+  assert.equal(at('2026-09-28T13:51:01.999Z'), 'NOT_BOUND');
+  assert.equal(at('2026-09-28T13:55:10.000Z'), 'BOUND');
+  assert.equal(at('2026-09-28T13:55:10.001Z'), 'NOT_BOUND');
+  assert.equal(at('2026-09-28T13:55:01.200Z', { startedAt: '2026-09-28T13:55:01.500Z' }), 'BOUND');   // the second is floored, not rounded up
+  assert.equal(at('2026-09-28T13:55:00.999Z', { startedAt: '2026-09-28T13:55:01.500Z' }), 'NOT_BOUND');
+  assert.equal(at('t'), 'NOT_BOUND');
+  assert.equal(at(''), 'NOT_BOUND');
+  assert.equal(at('2026-09-28T13:52:00Z', { startedAt: 'soon' }), 'NOT_BOUND');
+  assert.equal(at('2026-09-28T13:52:00Z', { updatedAt: undefined }), 'NOT_BOUND');
+  const r = linkedReceipt({ createdAt: '2026-09-28T12:00:00Z' });
+  assert.match(rerunLinkCheck(r, facts(r)).why, /stamped outside the run \(2026-09-28T12:00:00Z is not within 2026-09-28T13:51:02Z – 2026-09-28T13:55:10Z\)/);
+});
+
+test('rerunLinkCheck: refuses to judge without the facts — an unreadable artifact is not a verdict, never a throw', () => {
+  const r = linkedReceipt();
+  assert.match(rerunLinkCheck(null, facts(r)).why, /needs the scorecard receipt/);
+  assert.equal(rerunLinkCheck({ ...r, kind: 'x' }, facts(r)).ok, false);
+  const plain = genuine().receipt;
+  assert.match(rerunLinkCheck(plain, facts(r)).why, /names no rerun run/);
+  assert.match(rerunLinkCheck(r, 'facts').why, /needs the facts/);
+  assert.match(rerunLinkCheck(r, facts(r, { url: LINK + '1' })).why, /different link/);
+  for (const artifact of [undefined, null, 'present', { state: 'unreadable' }, { state: 'PRESENT' }])
+    assert.match(rerunLinkCheck(r, facts(r, { artifact })).why, /present, expired or absent/);
+  assert.equal(rerunLinkCheck(r, { url: LINK, found: false, artifact: { state: 'unreadable' } }).level, 'NOT_BOUND');
+  for (const junk of [undefined, 0, [], [1], 'x', { url: LINK }, { url: LINK, found: true }])
+    assert.doesNotThrow(() => rerunLinkCheck(r, junk));
+});
+
+test('rerunAttestation: the link it records must agree with the rerun-link check; without one it is unchanged', () => {
+  const g = genuine(), v = verifyBundle(g.bundle);
+  const RUN = 'https://github.com/sjgant80-hub/fallforgemint/actions/runs/9';
+  const base = { bundleHash: g.bundle.hash, receiptHash: g.receipt.hash, outcome: 'REPRODUCED', recorded: { n: 2, baseHits: 0, mintedHits: 2, verdict: 'BEATS' },
+    fresh: { n: 2, baseHits: 0, mintedHits: 2, verdict: 'BEATS' }, runtime: EV, runUrl: RUN, createdAt: 't' };
+  const okChecks = [...v.checks, { name: 'rerun-link', ok: true }];
+  const a = rerunAttestation({ ...base, checks: okChecks, link: { level: 'BOUND', url: LINK } }).attestation;
+  assert.deepEqual(a.link, { level: 'BOUND', url: LINK });
+  assert.equal(verifyRerunAttestation(a).valid, true);
+  assert.equal(verifyRerunAttestation({ ...a, link: { level: 'RUN_ONLY', url: LINK } }).valid, false);
+  assert.equal(rerunAttestation({ ...base, checks: okChecks, link: { level: 'RUN_ONLY', url: LINK } }).attestation.link.level, 'RUN_ONLY');
+  assert.match(rerunAttestation({ ...base, checks: okChecks, link: { level: 'NOT_BOUND', url: LINK } }).why, /must agree with the rerun-link check/);
+  assert.equal(rerunAttestation({ ...base, checks: v.checks, link: { level: 'BOUND', url: LINK } }).ok, false);     // no rerun-link check at all
+  const failedLink = [...v.checks, { name: 'rerun-link', ok: false }];
+  const t = rerunAttestation({ ...base, outcome: 'TAMPERED', checks: failedLink, fresh: null, runtime: null, link: { level: 'NOT_BOUND', url: LINK } });
+  assert.deepEqual([t.ok, t.attestation.link.level, t.attestation.pass], [true, 'NOT_BOUND', false]);
+  assert.equal(rerunAttestation({ ...base, outcome: 'TAMPERED', checks: failedLink, fresh: null, runtime: null, link: { level: 'BOUND', url: LINK } }).ok, false);
+  for (const link of [null, 'BOUND', { level: 'MAYBE', url: LINK }, { level: 'BOUND', url: 'https://x/run' }, { level: 'BOUND' }])
+    assert.match(rerunAttestation({ ...base, checks: okChecks, link }).why, /link must be/);
+  // additive: no link given → no link key, and the same hash as before this field existed
+  const plainA = rerunAttestation({ ...base, checks: v.checks }).attestation;
+  assert.equal('link' in plainA, false);
+  const { hash, ...rest } = plainA;
+  assert.equal(sha256(canon(rest)).hash, hash);
+});
+
+test('anti-drift guard: the link check never claims more than it saw', () => {
+  const r = linkedReceipt();
+  const ro = rerunLinkCheck(r, facts(r, { artifact: { state: 'expired' } }));
+  const FORBIDDEN = /hermetic|sealed|tamper-proof|unforgeable|guarantee|certif/i;
+  for (const s of [ro.why, ...ro.confirmed]) assert.equal(FORBIDDEN.test(s), false, s);
+  assert.equal(/made this exact receipt/.test(ro.why), false);
 });

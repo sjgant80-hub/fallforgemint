@@ -10,7 +10,9 @@
 // mint:   make a CI-origin scorecard from a spec { task, examples, holdout, base }: mint on the runner, run the
 //         held-out set, sign with a fresh software key, and write the re-run bundle.
 // Exit: 0 the rail passes · 1 the rail FAILS (TAMPERED / DID_NOT_REPRODUCE) · 2 usage or infrastructure error.
-// Env:  OLLAMA_HOST (default http://127.0.0.1:11434) · RUN_URL (set by the workflow to this run's real Actions URL;
+// Env:  GITHUB_TOKEN or GH_TOKEN — needed to read a run's artifact when a receipt's `rerun` link is checked (GitHub serves
+//       no artifact without a token; the workflow passes its own) ·
+//       OLLAMA_HOST (default http://127.0.0.1:11434) · RUN_URL (set by the workflow to this run's real Actions URL;
 //       absent locally, and then no receipt or attestation ever carries a run link — never a placeholder).
 import { readFileSync, writeFileSync, appendFileSync, mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir, cpus } from 'node:os';
@@ -18,6 +20,7 @@ import { join, dirname } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { execFileSync } from 'node:child_process';
 import { generateKeyPairSync, sign, verify, createPublicKey } from 'node:crypto';
+import { inflateRawSync } from 'node:zlib';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const K = await import(pathToFileURL(join(here, '..', 'kernel.mjs')).href);
@@ -72,6 +75,77 @@ function signatureState(receipt) {
   } catch { return 'invalid'; }
 }
 
+// ── the rerun link: gather the facts about the run a receipt names; the kernel's rerunLinkCheck judges them ──
+const GH = 'https://api.github.com';
+const TOKEN = process.env.GITHUB_TOKEN || process.env.GH_TOKEN || '';
+// the lines that make a version of the rail check out its own code, so a caller cannot choose which code runs
+const PINS_OWN_CODE = ['repository: ${{ job.workflow_repository }}', 'ref: ${{ job.workflow_sha }}'];
+const ghHead = (json) => ({ 'user-agent': 'fallforgemint-rerun', accept: json ? 'application/vnd.github+json' : '*/*', 'x-github-api-version': '2022-11-28', ...(TOKEN ? { authorization: 'Bearer ' + TOKEN } : {}) });
+async function ghJson(path, allow404 = false) {
+  const r = await fetch(GH + path, { headers: ghHead(true) });
+  if (allow404 && r.status === 404) return null;
+  if (!r.ok) throw new Error('GitHub API ' + path + ' → HTTP ' + r.status);
+  return r.json();
+}
+// one named file out of a zip (stored or deflated), found through the zip's central directory
+function unzipOne(buf, name) {
+  let e = buf.length - 22;
+  while (e >= 0 && buf.readUInt32LE(e) !== 0x06054b50) e--;
+  if (e < 0) throw new Error('the artifact is not a zip');
+  let p = buf.readUInt32LE(e + 16);
+  for (let i = 0, n = buf.readUInt16LE(e + 10); i < n; i++) {
+    if (buf.readUInt32LE(p) !== 0x02014b50) throw new Error('the artifact zip has a broken directory');
+    const method = buf.readUInt16LE(p + 10), size = buf.readUInt32LE(p + 20), nlen = buf.readUInt16LE(p + 28), off = buf.readUInt32LE(p + 42);
+    if (buf.toString('utf8', p + 46, p + 46 + nlen) === name) {
+      const start = off + 30 + buf.readUInt16LE(off + 26) + buf.readUInt16LE(off + 28), data = buf.subarray(start, start + size);
+      if (method === 0) return data;
+      if (method === 8) return inflateRawSync(data);
+      throw new Error('the artifact zip uses compression method ' + method);
+    }
+    p += 46 + nlen + buf.readUInt16LE(p + 30) + buf.readUInt16LE(p + 32);
+  }
+  return null;
+}
+async function runFacts(url) {
+  const checkedAt = new Date().toISOString();
+  const m = /^https:\/\/github\.com\/([^/]+)\/([^/]+)\/actions\/runs\/([0-9]+)$/.exec(url);
+  if (!m) return { url, found: false, checkedAt };
+  const base = '/repos/' + m[1] + '/' + m[2] + '/actions/runs/' + m[3];
+  const run = await ghJson(base, true);
+  if (run === null) return { url, found: false, checkedAt };
+  const jobs = await ghJson(base + '/jobs?filter=latest&per_page=100');
+  const referenced = (run.referenced_workflows || []).map((w) => ({ path: w.path, sha: w.sha }));
+  const called = referenced.find((w) => typeof w.path === 'string' && w.path.startsWith(K.RAIL_HOME + '/' + K.RAIL_WORKFLOW + '@'));
+  const repo = run.repository && run.repository.full_name;
+  // is each candidate rail commit on the rail's main line? (compare <sha>...main: "ahead"/"identical" = main contains it)
+  const onMain = {};
+  for (const sha of [repo === K.RAIL_HOME ? run.head_sha : null, called ? called.sha : null]) {
+    if (typeof sha !== 'string' || !/^[0-9a-f]{40}$/.test(sha)) continue;
+    const c = await ghJson('/repos/' + K.RAIL_HOME + '/compare/' + sha + '...main', true);
+    onMain[sha] = c !== null && (c.status === 'ahead' || c.status === 'identical');
+  }
+  let pinsOwnCode = false;
+  if (called && /^[0-9a-f]{40}$/.test(called.sha)) {
+    const r = await fetch('https://raw.githubusercontent.com/' + K.RAIL_HOME + '/' + called.sha + '/' + K.RAIL_WORKFLOW);
+    if (!r.ok && r.status !== 404) throw new Error('could not read the called rail workflow (HTTP ' + r.status + ')');
+    if (r.ok) { const y = await r.text(); pinsOwnCode = PINS_OWN_CODE.every((line) => y.includes(line)); }
+  }
+  const arts = (await ghJson(base + '/artifacts?name=rerun-result&per_page=100')).artifacts || [];
+  let artifact;
+  if (arts.length === 0) artifact = { state: 'absent' };
+  else if (arts[0].expired) artifact = { state: 'expired', expiresAt: arts[0].expires_at };
+  else {
+    const z = await fetch(arts[0].archive_download_url, { headers: ghHead(false) });
+    if (!z.ok) throw new Error("could not read the run's artifact (HTTP " + z.status + ')' + (TOKEN ? '' : ' — set GITHUB_TOKEN: GitHub serves no artifact without a token'));
+    const f = unzipOne(Buffer.from(await z.arrayBuffer()), 'rerun-bundle.json');
+    let receipt = null;
+    if (f !== null) { const b = JSON.parse(f.toString('utf8')); receipt = b && typeof b.receipt === 'object' ? b.receipt : null; }
+    artifact = { state: 'present', expiresAt: arts[0].expires_at, receipt };
+  }
+  return { url, found: true, htmlUrl: run.html_url, repo, path: run.path, headSha: run.head_sha, referenced, jobs: jobs.total_count,
+    status: run.status, conclusion: run.conclusion, startedAt: run.run_started_at, updatedAt: run.updated_at, onMain, pinsOwnCode, checkedAt, artifact };
+}
+
 async function loadJson(where) {
   try {
     if (/^https:\/\//.test(where)) { const r = await fetch(where); if (!r.ok) throw new Error('HTTP ' + r.status); return await r.json(); }
@@ -113,7 +187,7 @@ async function mint() {
     + `- Held-out answers ${d.excludedFromSpec ? '**hash-disjoint** from the recipe (the narrow-true claim ships)' : 'appear in the recipe, so the held-out claim is **not** made'}\n`
     + `- Signed with a fresh software Ed25519 key (it proves the numbers are unedited, not who ran it)\n`
     + `- Machine: ${MACHINE}\n`
-    + (RUN_URL ? `- This run is the receipt's \`rerun\` link: ${RUN_URL}\n` : '- Run locally: no run link is recorded (never a placeholder)\n')
+    + (RUN_URL ? `- This run is the receipt's \`rerun\` link: ${RUN_URL}. The rail checks that link against this run's \`rerun-result\` artifact, which GitHub keeps about ${K.ARTIFACT_KEEP_DAYS} days; after that it can confirm only that this run was the rail and was running when the receipt was stamped\n` : '- Run locally: no run link is recorded (never a placeholder)\n')
     + `- Receipt \`${receipt.hash}\` · bundle \`${b.bundle.hash}\`${OUT ? ' → `' + OUT + '`' : ''}\n`);
 }
 
@@ -124,6 +198,14 @@ async function verifyMode() {
   if (!v.ok) die('not a re-run bundle: ' + v.why);
   const sig = signatureState(bundle.receipt);
   const checks = [...v.checks, { name: 'signature', ok: sig !== 'invalid', detail: sig === 'unsigned' ? 'unsigned — tamper-evidence rests on the hashes' : 'Ed25519 signature ' + sig }];
+  // the receipt says a CI run measured it: look that run up and check it made THIS receipt (a borrowed link fails here)
+  let link = null;
+  if (bundle.receipt.rerun !== undefined) {
+    link = K.rerunLinkCheck(bundle.receipt, await runFacts(bundle.receipt.rerun));
+    if (!link.ok) die('cannot judge the rerun link: ' + link.why);
+    const said = { BOUND: 'the run it names made this exact receipt', RUN_ONLY: 'partly: ' + link.why, NOT_BOUND: 'the run it names did not make it: ' + link.why };
+    checks.push({ name: 'rerun-link', ok: link.pass, detail: said[link.level] });
+  }
   const tampered = checks.some((c) => !c.ok);
   const rec = K.scorecard(bundle.rows.map((x) => ({ correct: x.correct, baseOut: x.baseOut, mintedOut: x.mintedOut })));
   const recorded = { n: rec.n, baseHits: rec.baseHits, mintedHits: rec.mintedHits, verdict: rec.verdict };
@@ -146,16 +228,16 @@ async function verifyMode() {
     outcome = cmp.outcome;
   }
   const createdAt = new Date().toISOString();
-  const att = outcome && RUN_URL ? K.rerunAttestation({ bundleHash: bundle.hash, receiptHash: bundle.receipt.hash, outcome, checks, recorded, fresh: cmp ? cmp.fresh : null, runtime, runUrl: RUN_URL, createdAt }) : null;
+  const att = outcome && RUN_URL ? K.rerunAttestation({ bundleHash: bundle.hash, receiptHash: bundle.receipt.hash, outcome, checks, recorded, fresh: cmp ? cmp.fresh : null, runtime, runUrl: RUN_URL, createdAt, ...(link ? { link: { level: link.level, url: bundle.receipt.rerun } } : {}) }) : null;
   if (att && !att.ok) die('attestation refused: ' + att.why);
   const result = { outcome: outcome || 'VERIFIED_NOT_EXECUTED', pass: outcome === null ? !tampered : outcome === 'REPRODUCED' || outcome === 'AGREES',
-    attestation: att ? att.attestation : null, runUrl: RUN_URL, rail: railCommit(), bundleHash: bundle.hash, receiptHash: bundle.receipt.hash,
+    attestation: att ? att.attestation : null, rerunLink: link ? { url: bundle.receipt.rerun, level: link.level, confirmed: link.confirmed, why: link.why } : null, runUrl: RUN_URL, rail: railCommit(), bundleHash: bundle.hash, receiptHash: bundle.receipt.hash,
     evaluatedOn: bundle.evaluatedOn, rerunRuntime: runtime, machine: MACHINE, checks, recorded, fresh: cmp ? cmp.fresh : null,
     freshOutputs: freshRows ? bundle.rows.map((r, i) => ({ input: r.input, correct: r.correct, baseOut: freshRows[i].baseOut, mintedOut: freshRows[i].mintedOut })) : null, createdAt };
   if (OUT) writeFileSync(OUT, JSON.stringify(result, null, 2) + '\n');
 
   const HEAD = {
-    TAMPERED: '✗ TAMPERED — the record does not recompute',
+    TAMPERED: '✗ TAMPERED — the record does not check out',
     REPRODUCED: '✓ REPRODUCED — the record is intact and this runner got the same result',
     AGREES: '✓ AGREES — the record is intact, and on a different runtime the verdict holds',
     DID_NOT_REPRODUCE: '✗ DID NOT REPRODUCE — the record is intact, but the result did not hold on this runner',
@@ -163,6 +245,12 @@ async function verifyMode() {
   const failed = checks.filter((c) => !c.ok).map((c) => c.name);
   let md = `## FallForge Mint re-run rail — ${outcome ? HEAD[outcome] : (tampered ? HEAD.TAMPERED : '✓ re-verified (not re-executed)')}\n\n`;
   md += `| Re-verified exactly | What is recomputed |\n|---|---|\n` + checks.map((c) => `| ${c.ok ? '✓' : '✗'} \`${c.name}\` | ${c.detail} |`).join('\n') + '\n\n';
+  if (link) {
+    const word = { BOUND: '✓ **BOUND**', RUN_ONLY: '◐ **RUN ONLY**', NOT_BOUND: '✗ **NOT BOUND**' }[link.level];
+    md += '**The run this receipt names:** ' + bundle.receipt.rerun + ' — ' + word + ': ' + link.why + '.\n\n';
+    if (link.confirmed.length) md += 'Confirmed on GitHub: ' + link.confirmed.join('; ') + '.\n\n';
+    if (link.level === 'RUN_ONLY') md += "Not confirmed: that this run made this exact receipt. GitHub keeps a run's artifact for about " + K.ARTIFACT_KEEP_DAYS + ' days, and without it that can no longer be checked.\n\n';
+  }
   md += `**Recorded:** ${row(recorded)} · measured on \`${bundle.evaluatedOn}\`\n\n`;
   if (cmp) {
     md += `**Re-run here:** ${row(cmp.fresh)} · on \`${runtime}\` · ${MACHINE} · ${cmp.sameRuntime ? 'same runtime and model digest, so the hits must match exactly' : 'a different runtime, so the verdict must hold'}\n\n`;
@@ -176,10 +264,10 @@ async function verifyMode() {
   }
   if (outcome === 'DID_NOT_REPRODUCE' && cmp.sameRuntime && cmp.fresh.verdict === recorded.verdict)
     md += `The verdict still reads ${recorded.verdict}, but the hit count moved on the rows marked **differs**. Greedy decoding repeats on one machine with the same settings, but a borderline answer can change between CPU types, so this is either a fragile record or an edited one. A score that only holds on the machine that made it has not been reproduced, so the rail fails it and shows you the rows.\n\n`;
-  if (outcome === 'TAMPERED') md += `The fresh run was not attempted: a record that does not recompute is not re-executed. Failed: ${failed.map((f) => '`' + f + '`').join(', ')}.\n\n`;
+  if (outcome === 'TAMPERED') md += `The fresh run was not attempted: a record that does not check out is not re-executed. Failed: ${failed.map((f) => '`' + f + '`').join(', ')}.\n\n`;
   md += (RUN_URL ? `This run: ${RUN_URL}` : 'Run locally — no run link recorded.') + (result.rail ? ` · rail \`${result.rail.slice(0, 12)}\`` : '') + (RUN_URL ? '\n\n> ' + K.RERUN_SCOPE : '') + '\n';
   summary(md);
-  if (outcome === 'TAMPERED') annotate('error', 'Scorecard TAMPERED', 'The record does not recompute: ' + failed.join(', '));
+  if (outcome === 'TAMPERED') annotate('error', 'Scorecard TAMPERED', 'The record does not check out: ' + failed.join(', ') + (link && !link.pass ? ' — ' + link.why : ''));
   if (outcome === 'DID_NOT_REPRODUCE') annotate('error', 'Scorecard did not reproduce', 'Recorded ' + row(recorded) + ' — re-run here ' + row(cmp.fresh));
   process.exit(result.pass ? 0 : 1);
 }
