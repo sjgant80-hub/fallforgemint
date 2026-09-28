@@ -2,6 +2,11 @@
 
 **▶ LIVE: https://sjgant80-hub.github.io/fallforgemint/**
 
+<!-- film-2026-09 -->
+**▶ [Watch the 90-second film](https://www.ai-nativesolutions.com/explainer.html#film)** — size it, mint it, prove it, own it; then the whole estate · [The brochure (PDF)](https://www.ai-nativesolutions.com/fall-os-prospectus.pdf) · [Every number, sourced](https://www.ai-nativesolutions.com/explainer.html#facts)
+
+[![The sizer: the smallest open-weight model that clears your bar, ~1B to ~200B](https://www.ai-nativesolutions.com/media/images/sizer-ladder.jpg)](https://www.ai-nativesolutions.com/explainer.html#film)
+
 Bring one job you do a lot. Walk out **owning** the small model that does it — private, on your own machine, no per-token bill. Everything runs in your browser; your examples never leave it. Free to try.
 
 This is a **self-contained** product: one page, no links out to any other repository.
