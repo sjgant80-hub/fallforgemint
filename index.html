@@ -1848,7 +1848,7 @@ $('resetBtn').addEventListener('click', () => {
 });
 
 // ── own vs rent calculator ─────────────────────────────────────────────────────────────────────
-const gbp = (n) => '£' + Math.round(n).toLocaleString('en-GB');
+const gbp = (n) => (n < 0 ? '−£' : '£') + Math.abs(Math.round(n)).toLocaleString('en-GB');
 const num = (id) => parseFloat($(id).value);
 const CALC_VERDICTS = {
   OWN_WINS: { cls:'good', txt:'OWN IT — pays for itself inside a year' },
@@ -1865,7 +1865,9 @@ function recalc(){
   if (recycleOn) input.recycling = { savingPct: num('c_savingpct'), recurringFraction: num('c_recur') };
   const r = ownVsRent(input);
   const badge = $('verdictBadge');
-  if (!r.ok){ badge.className = 'pill bad'; badge.textContent = '⚠ ' + r.why; $('calcMsg').textContent=''; return; }
+  if (!r.ok){ badge.className = 'pill bad'; badge.textContent = '⚠ ' + r.why; $('calcMsg').textContent='';
+    ['o_rentmo','o_rentyr','o_own1','o_save','o_be','o_runsaved','o_tok'].forEach((id)=>{ $(id).textContent = '—'; });   // no stale figures beside an error
+    return; }
   const v = CALC_VERDICTS[r.verdict];
   badge.className = 'pill ' + v.cls; badge.textContent = v.txt;
   $('o_rentmo').textContent = gbp(r.rentMonthly);
