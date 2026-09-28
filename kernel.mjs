@@ -442,6 +442,30 @@ export function pickBest(rounds) {
 // issuer-signed receipt. An optional Ed25519 signature is attached at the edge (WebCrypto).
 
 const VERDICTS = ['BEATS', 'LOSES', 'TIES'];
+// the class of key the self-issued signature uses — software Ed25519, i.e. the holder COULD fabricate it.
+// Honest labeling; never implies a hardware/attested key we do not hold.
+const KEY_CLASS = 'software-ed25519';
+// The NARROW-TRUE held-out claim, and ONLY this. It states hash-disjointness (the answers were not in the
+// spec we gave the model) plus re-runnability — nothing more. NEVER upgrade this to a "wasn't memorised" /
+// "hermetic" / "sealed" claim: that attested sandbox is not built, and the scorecard's power is that every
+// word on it is true. Guarded as a constant so the wording cannot drift.
+const HELDOUT_CLAIM = 'The held-out answers were not in the spec given to the model (hash-disjoint); for a few-shot node the spec is all the model was given. Anyone can re-run it in their browser.';
+
+/** holdoutDisjoint(rows, modelfile) — the honest anti-cheat check: are the held-out ANSWERS absent from the
+ *  minted spec? A few-shot node's Modelfile IS the spec, so an answer that is not in it was not handed to
+ *  the model. This proves HASH-DISJOINTNESS ONLY — it is not, and must not be read as, a hermetic "could
+ *  not have been memorised" guarantee (that sandbox is unbuilt). Deterministic and re-runnable. */
+export function holdoutDisjoint(rows, modelfile) {
+  if (!Array.isArray(rows)) return { ok: false, why: 'the held-out rows must be a list' };
+  if (!isStr(modelfile) || modelfile.length === 0) return { ok: false, why: 'the minted spec (Modelfile) is required' };
+  const answers = rows.map((r) => (isObj(r) && isStr(r.correct)) ? r.correct : '');
+  if (answers.length === 0) return { ok: false, why: 'there are no held-out answers to check' };
+  const hh = sha256(canon(answers));
+  if (!hh.ok) return { ok: false, why: hh.why };
+  const spec = modelfile.toLowerCase();
+  const leaked = answers.filter((a) => a.length !== 0 && spec.includes(a.trim().toLowerCase()));
+  return { ok: true, holdoutHash: hh.hash, excludedFromSpec: leaked.length === 0, checked: answers.length, leaked: leaked.length };
+}
 
 export function scorecardReceipt(input) {
   if (!isObj(input)) return { ok: false, why: 'scorecardReceipt takes an object' };
@@ -474,6 +498,18 @@ export function scorecardReceipt(input) {
     createdAt,
     scope: "Self-issued: measured in the holder's own browser on their own held-out examples. Tamper-evident (re-hash to check) but NOT a certification by AI-Native Solutions. The done-for-you tier issues an issuer-signed certified receipt.",
   };
+  // ── additive honest hardening (all optional; an old receipt with none of these still verifies unchanged) ──
+  // keyClass: honest label of the signature key. Always present on a new receipt.
+  body.keyClass = isStr(input.keyClass) ? input.keyClass : KEY_CLASS;
+  // held-out hash-disjointness (the NARROW-TRUE anti-cheat), bound only when a real 64-hex holdout hash is given
+  if (isStr(input.holdoutHash) && input.holdoutHash.length === 64 && HEX.test(input.holdoutHash)) {
+    body.holdoutHash = input.holdoutHash;
+    body.holdoutExcludedFromSpec = input.holdoutExcludedFromSpec === true;
+    // the claim ships ONLY when the answers are provably absent from the spec — never otherwise, never hermetic
+    if (body.holdoutExcludedFromSpec) body.heldOutClaim = HELDOUT_CLAIM;
+  }
+  // rerun: a URL to re-execute the eval. The field is honest; "re-run in CI" is only claimed once that rail exists.
+  if (isStr(input.rerun) && input.rerun.length !== 0) body.rerun = input.rerun;
   const h = sha256(canon(body));
   if (!h.ok) return { ok: false, why: h.why };
   return { ok: true, receipt: { ...body, hash: h.hash } };

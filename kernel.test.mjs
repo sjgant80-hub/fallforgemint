@@ -8,7 +8,7 @@ import {
   ownVsRent, specFromTask, planProof, gradeAnswer, scorecard,
   b64encode, safeModelName, installerScript, INSTALLER_OS, suggestNames,
   inferFormat, hardenSpec, pickBest,
-  scorecardReceipt, verifyScorecardReceipt, scorecardSignable,
+  scorecardReceipt, verifyScorecardReceipt, scorecardSignable, holdoutDisjoint,
 } from './kernel.mjs';
 import { Buffer } from 'node:buffer';
 
@@ -659,6 +659,54 @@ test('scorecardReceipt: builds a self-hashed receipt; refuses bad input', () => 
   const five = { base: 'b', modelFingerprint: 'a'.repeat(64), taskHash: 'b'.repeat(64), evidenceHash: 'c'.repeat(64), createdAt: 't', sc: { n: 5, baseHits: 1, mintedHits: 5, verdict: 'BEATS' } };
   assert.equal(scorecardReceipt(five).receipt.smallSample, false);
   assert.equal(scorecardReceipt({ ...five, sc: { ...five.sc, n: 4, mintedHits: 4 } }).receipt.smallSample, true);
+});
+
+test('holdoutDisjoint: the held-out answers are hash-disjoint from the minted spec (narrow-true anti-cheat)', () => {
+  const mf = 'FROM llama3.2:1b\nSYSTEM you are a sorter\nMESSAGE user a\nMESSAGE assistant apple';
+  const clean = holdoutDisjoint([{ correct: 'zebra' }, { correct: 'quokka' }], mf); // answers NOT in the spec
+  assert.equal(clean.ok, true);
+  assert.equal(clean.excludedFromSpec, true);            // kills leaked.length === 0 → !==0
+  assert.equal(clean.checked, 2);
+  assert.equal(clean.holdoutHash.length, 64);
+  const leaked = holdoutDisjoint([{ correct: 'apple' }, { correct: 'zebra' }], mf); // "apple" IS in the spec
+  assert.equal(leaked.excludedFromSpec, false);          // an answer present in the spec fails disjointness
+  assert.equal(leaked.leaked, 1);                        // kills a.length !== 0 → === 0 (would miss the leak)
+});
+test('holdoutDisjoint: refuses a non-list, an empty spec, and an empty holdout', () => {
+  assert.equal(holdoutDisjoint('nope', 'FROM x').ok, false);
+  assert.equal(holdoutDisjoint([{ correct: 'a' }], '').ok, false);   // kills modelfile.length === 0 → !==
+  assert.equal(holdoutDisjoint([], 'FROM x').ok, false);             // kills answers.length === 0 → !==
+});
+test('holdoutDisjoint: tolerates a malformed row (object without .correct) as an empty answer', () => {
+  // kills the isObj && isStr → isObj || isStr row-map mutant (which would read .correct off a bad row and throw)
+  const r = holdoutDisjoint([{ correct: 'zebra' }, { foo: 1 }], 'FROM x\nSYSTEM s');
+  assert.equal(r.ok, true);
+  assert.equal(r.checked, 2);
+  assert.equal(r.excludedFromSpec, true);
+});
+test('scorecardReceipt hardening: keyClass always present; holdout + rerun bind only when valid', () => {
+  const r = scorecardReceipt(RIN).receipt;
+  assert.equal(r.keyClass, 'software-ed25519');          // default honest label (kills the isStr ? : default swap)
+  assert.equal(r.holdoutHash, undefined);                // not given → not bound (backward-compatible)
+  assert.equal(r.heldOutClaim, undefined);
+  assert.equal(r.rerun, undefined);
+  assert.equal(scorecardReceipt({ ...RIN, keyClass: 'hardware-tee' }).receipt.keyClass, 'hardware-tee');
+  // a real 64-hex holdout hash + excluded=true binds the fields AND the narrow-true claim
+  const withHold = scorecardReceipt({ ...RIN, holdoutHash: 'd'.repeat(64), holdoutExcludedFromSpec: true }).receipt;
+  assert.equal(withHold.holdoutHash, 'd'.repeat(64));    // kills length === 64 → !== and the && guard
+  assert.equal(withHold.holdoutExcludedFromSpec, true);  // kills === true → !==
+  assert.ok(withHold.heldOutClaim.includes('hash-disjoint'));
+  assert.ok(!withHold.heldOutClaim.toLowerCase().includes('memoris') && !withHold.heldOutClaim.toLowerCase().includes('hermetic')); // wording guard: never the hermetic claim
+  // excluded=false → the claim is NOT shipped
+  const notExcl = scorecardReceipt({ ...RIN, holdoutHash: 'd'.repeat(64), holdoutExcludedFromSpec: false }).receipt;
+  assert.equal(notExcl.holdoutExcludedFromSpec, false);
+  assert.equal(notExcl.heldOutClaim, undefined);
+  // a too-short holdout hash is ignored (not bound); a real rerun binds; a non-string rerun is ignored
+  assert.equal(scorecardReceipt({ ...RIN, holdoutHash: 'd'.repeat(63) }).receipt.holdoutHash, undefined);
+  assert.equal(scorecardReceipt({ ...RIN, rerun: 'https://x/run' }).receipt.rerun, 'https://x/run'); // kills rerun length !== 0 → === 0
+  assert.equal(scorecardReceipt({ ...RIN, rerun: 123 }).receipt.rerun, undefined); // kills the rerun && → ||
+  // the hardened receipt still verifies
+  assert.equal(verifyScorecardReceipt(withHold).valid, true);
 });
 
 test('verifyScorecardReceipt: catches tampering and a lying score, refuses non-receipts', () => {
