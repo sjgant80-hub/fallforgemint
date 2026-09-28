@@ -13,7 +13,7 @@
 // Env:  OLLAMA_HOST (default http://127.0.0.1:11434) · RUN_URL (set by the workflow to this run's real Actions URL;
 //       absent locally, and then no receipt or attestation ever carries a run link — never a placeholder).
 import { readFileSync, writeFileSync, appendFileSync, mkdtempSync, rmSync } from 'node:fs';
-import { tmpdir } from 'node:os';
+import { tmpdir, cpus } from 'node:os';
 import { join, dirname } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { execFileSync } from 'node:child_process';
@@ -23,6 +23,8 @@ const here = dirname(fileURLToPath(import.meta.url));
 const K = await import(pathToFileURL(join(here, '..', 'kernel.mjs')).href);
 const HOST = (process.env.OLLAMA_HOST || 'http://127.0.0.1:11434').replace(/\/$/, '');
 const OPTIONS = { temperature: 0, seed: 42, num_predict: 512 };        // greedy, seeded, the Modelfile's own limits
+// the CPU that ran it: greedy decoding is exact on one CPU class, but a borderline answer can flip between CPU classes
+const MACHINE = (() => { const c = cpus(); return c.length ? c[0].model.trim().replace(/\s+/g, ' ') + ' · ' + c.length + ' threads' : 'unknown CPU'; })();
 const argv = process.argv.slice(2), mode = argv[0], src = argv[1];
 const flag = (f) => { const i = argv.indexOf(f); return i >= 0 ? argv[i + 1] : undefined; };
 const OUT = flag('--out'), SUMMARY = flag('--summary'), NOEXEC = argv.includes('--no-exec');
@@ -110,6 +112,7 @@ async function mint() {
   summary(`## FallForge Mint — a scorecard minted on this runner\n\n${row(sc)} on ${sc.n} held-out examples · measured on \`${evaluatedOn}\`\n\n`
     + `- Held-out answers ${d.excludedFromSpec ? '**hash-disjoint** from the recipe (the narrow-true claim ships)' : 'appear in the recipe, so the held-out claim is **not** made'}\n`
     + `- Signed with a fresh software Ed25519 key (it proves the numbers are unedited, not who ran it)\n`
+    + `- Machine: ${MACHINE}\n`
     + (RUN_URL ? `- This run is the receipt's \`rerun\` link: ${RUN_URL}\n` : '- Run locally: no run link is recorded (never a placeholder)\n')
     + `- Receipt \`${receipt.hash}\` · bundle \`${b.bundle.hash}\`${OUT ? ' → `' + OUT + '`' : ''}\n`);
 }
@@ -147,7 +150,7 @@ async function verifyMode() {
   if (att && !att.ok) die('attestation refused: ' + att.why);
   const result = { outcome: outcome || 'VERIFIED_NOT_EXECUTED', pass: outcome === null ? !tampered : outcome === 'REPRODUCED' || outcome === 'AGREES',
     attestation: att ? att.attestation : null, runUrl: RUN_URL, rail: railCommit(), bundleHash: bundle.hash, receiptHash: bundle.receipt.hash,
-    evaluatedOn: bundle.evaluatedOn, rerunRuntime: runtime, checks, recorded, fresh: cmp ? cmp.fresh : null,
+    evaluatedOn: bundle.evaluatedOn, rerunRuntime: runtime, machine: MACHINE, checks, recorded, fresh: cmp ? cmp.fresh : null,
     freshOutputs: freshRows ? bundle.rows.map((r, i) => ({ input: r.input, correct: r.correct, baseOut: freshRows[i].baseOut, mintedOut: freshRows[i].mintedOut })) : null, createdAt };
   if (OUT) writeFileSync(OUT, JSON.stringify(result, null, 2) + '\n');
 
@@ -159,9 +162,18 @@ async function verifyMode() {
   };
   const failed = checks.filter((c) => !c.ok).map((c) => c.name);
   let md = `## FallForge Mint re-run rail — ${outcome ? HEAD[outcome] : (tampered ? HEAD.TAMPERED : '✓ re-verified (not re-executed)')}\n\n`;
-  md += `| Re-verification (exact) | |\n|---|---|\n` + checks.map((c) => `| ${c.ok ? '✓' : '✗'} \`${c.name}\` | ${c.detail} |`).join('\n') + '\n\n';
+  md += `| Re-verified exactly | What is recomputed |\n|---|---|\n` + checks.map((c) => `| ${c.ok ? '✓' : '✗'} \`${c.name}\` | ${c.detail} |`).join('\n') + '\n\n';
   md += `**Recorded:** ${row(recorded)} · measured on \`${bundle.evaluatedOn}\`\n\n`;
-  if (cmp) md += `**Re-run here:** ${row(cmp.fresh)} · on \`${runtime}\` · ${cmp.sameRuntime ? 'same runtime and model digest, so the hits must match exactly' : 'a different runtime, so the verdict must hold'}\n\n`;
+  if (cmp) {
+    md += `**Re-run here:** ${row(cmp.fresh)} · on \`${runtime}\` · ${MACHINE} · ${cmp.sameRuntime ? 'same runtime and model digest, so the hits must match exactly' : 'a different runtime, so the verdict must hold'}\n\n`;
+    const cell = (s) => '`' + String(s).replace(/\s+/g, ' ').slice(0, 44).replace(/[|`]/g, '·') + (s.length > 44 ? '…' : '') + '`';
+    const hit = (c, o) => (K.gradeAnswer(c, o).hit ? '✓' : '✗');
+    md += `| held-out input | correct | recorded: base · minted | here: base · minted | |\n|---|---|---|---|---|\n`
+      + bundle.rows.map((r, i) => {
+        const f = freshRows[i], same = hit(r.correct, r.baseOut) === hit(r.correct, f.baseOut) && hit(r.correct, r.mintedOut) === hit(r.correct, f.mintedOut);
+        return `| ${cell(r.input)} | ${cell(r.correct)} | ${hit(r.correct, r.baseOut)} · ${hit(r.correct, r.mintedOut)} ${cell(r.mintedOut)} | ${hit(r.correct, f.baseOut)} · ${hit(r.correct, f.mintedOut)} ${cell(f.mintedOut)} | ${same ? '' : '**differs**'} |`;
+      }).join('\n') + '\n\n';
+  }
   if (outcome === 'TAMPERED') md += `The fresh run was not attempted: a record that does not recompute is not re-executed. Failed: ${failed.map((f) => '`' + f + '`').join(', ')}.\n\n`;
   md += (RUN_URL ? `This run: ${RUN_URL}` : 'Run locally — no run link recorded.') + (result.rail ? ` · rail \`${result.rail.slice(0, 12)}\`` : '') + (RUN_URL ? '\n\n> ' + K.RERUN_SCOPE : '') + '\n';
   summary(md);
