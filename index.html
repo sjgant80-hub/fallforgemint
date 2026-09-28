@@ -177,10 +177,11 @@
 <header class="site"><div class="wrap">
   <span class="brand"><span class="glyph">◊</span> FallForge Mint <span class="co">AI-Native Solutions</span></span>
   <nav class="top">
+    <a href="#sizer">Size it</a>
     <a href="#mint">Mint one</a>
     <a href="#verify">Proof</a>
     <a href="#calc">Own vs rent</a>
-    <a href="#work">Work with us</a>
+    <a href="#get">What you get</a>
     <a href="#how">How</a>
     <a href="#faq">FAQ</a>
   </nav>
@@ -197,6 +198,59 @@
     <a class="btn ghost" href="#verify">See the proof it's real</a>
   </div>
   <p class="note">Honest about what this is: your model is <b>specialised</b> — excellent at the one job you give it, not a general chatbot. That's the point, and it's why it can be small, private and cheap.</p>
+</div></section>
+
+<!-- ELITE INSTRUCTIONS — the 4-step path, dead clear -->
+<section id="start"><div class="wrap">
+  <div class="eyebrow">How to use this — 4 steps</div>
+  <h2 class="sec">Dump your job in. Walk out with the right model, proven.</h2>
+  <p class="sub">You don't need to know which model, or how big. That's the first thing this does for you — then it mints it, proves it on your own data, and hands you a signed receipt. All in your browser.</p>
+  <ol class="steps" style="margin-top:20px;max-width:74ch">
+    <li><b>Describe the job + your load.</b> Pick the kind of work, the answer shape, how strict it must be and where it'll run. <a href="#sizer">Size it below</a>.</li>
+    <li><b>Get the right open-weight model.</b> You get the <b>smallest</b> model that should meet your bar — named, real, across the ladder from ~1B to ~200B — with the reasoning shown. Never an upsell.</li>
+    <li><b>Mint it + prove it on your data.</b> Turn a few real examples into a private model, then watch it try to beat the base on examples it never saw. It can say it lost.</li>
+    <li><b>Own it, with a receipt.</b> Download a one-file model you run locally — plus a signed, re-runnable scorecard (the trust rail) you can hand your CFO.</li>
+  </ol>
+</div></section>
+
+<!-- SIZING ENGINE — company data in → sized open-weight recommendation out -->
+<section id="sizer"><div class="wrap">
+  <div class="eyebrow">The sizer · company data in, sized model out</div>
+  <h2 class="sec">Which open-weight model do you actually need?</h2>
+  <p class="sub">Everyone sells you the model or the hosting. Almost nobody tells you <b>which size is enough</b>. This does — biased to the <b>smallest model that clears your bar</b> (a 1B answer says 1B), with every factor shown. It's a starting point to mint and prove, not a benchmark.</p>
+
+  <div class="card grid" style="margin-top:22px;grid-template-columns:1fr 1fr;gap:22px">
+    <div>
+      <label class="fld" for="s_task">What kind of job is it?</label>
+      <select id="s_task"></select>
+      <label class="fld" style="margin-top:14px" for="s_shape">What shape is the answer?</label>
+      <select id="s_shape"></select>
+      <label class="fld" style="margin-top:14px" for="s_quality">How strict must it be?</label>
+      <select id="s_quality"></select>
+      <label class="fld" style="margin-top:14px" for="s_deploy">Where will it run?</label>
+      <select id="s_deploy"></select>
+      <div class="grid" style="grid-template-columns:1fr 1fr;gap:12px;margin-top:14px">
+        <div>
+          <label class="fld" for="s_ctx">Context needed? (tokens, optional)</label>
+          <input type="number" id="s_ctx" placeholder="e.g. 4000" min="0" />
+        </div>
+        <div>
+          <label class="fld" for="s_ex">Examples you have? (optional)</label>
+          <input type="number" id="s_ex" placeholder="e.g. 12" min="0" />
+        </div>
+      </div>
+      <label class="fld" style="margin-top:14px;display:flex;align-items:center;gap:8px;cursor:pointer">
+        <input type="checkbox" id="s_reason" style="width:auto" /> Needs multi-step reasoning
+      </label>
+      <div class="cta-row" style="margin-top:18px">
+        <button class="btn forge" id="s_btn">◊ Size my model</button>
+      </div>
+    </div>
+    <div id="s_out" class="muted" style="align-self:start">
+      <p class="note" style="margin-top:0">Pick your job on the left and press <b>Size my model</b>. You'll get a named open-weight model, why that size, a second opinion to A/B, and a one-click hand-off to mint it.</p>
+    </div>
+  </div>
+  <p class="note" id="s_catalog"></p>
 </div></section>
 
 <!-- THE WORKING MINT -->
@@ -404,6 +458,48 @@
   </div>
 </div></section>
 
+<!-- EVERYTHING YOU GET -->
+<section id="get"><div class="wrap">
+  <div class="eyebrow">Everything you get</div>
+  <h2 class="sec">What you walk away with — and what it plugs into.</h2>
+  <p class="sub">The honest, full list. <span class="pill good" style="font-size:.72rem">live</span> is real on this page today; <span class="pill brass" style="font-size:.72rem">next</span> is on the roadmap and marked as such. No magic, no "full estate power" hand-waving.</p>
+
+  <div class="grid g3" style="margin-top:22px">
+    <div class="card price">
+      <span class="pill good">The model you own</span>
+      <ul>
+        <li><span class="pill good" style="font-size:.68rem">live</span> A sized recommendation: the smallest open-weight model that meets your bar, named, with the reasoning shown</li>
+        <li><span class="pill good" style="font-size:.68rem">live</span> A private <b>Modelfile</b> minted from your own examples — deterministic, reproducible</li>
+        <li><span class="pill good" style="font-size:.68rem">live</span> A one-click installer (Mac/Windows/Linux) — own it in a double-click</li>
+        <li><span class="pill good" style="font-size:.68rem">live</span> A live in-browser preview — try it before you install anything</li>
+        <li><span class="pill good" style="font-size:.68rem">live</span> Runs on your machine, offline. No account, no per-token bill</li>
+      </ul>
+    </div>
+    <div class="card price feature">
+      <span class="pill brass">The trust rail (the proof)</span>
+      <ul>
+        <li><span class="pill good" style="font-size:.68rem">live</span> A <b>signed scorecard</b> — tamper-evident, re-hash to check nobody edited the numbers</li>
+        <li><span class="pill good" style="font-size:.68rem">live</span> <b>keyClass</b> stated honestly: a browser key proves the numbers are unedited, not who ran the eval</li>
+        <li><span class="pill good" style="font-size:.68rem">live</span> <b>Held-out, hash-disjoint</b>: the held-out answers are provably not in the spec the model was given (narrow-true, few-shot)</li>
+        <li><span class="pill good" style="font-size:.68rem">live</span> <b>Re-run in your browser</b> — the eval is deterministic; anyone can reproduce the scores</li>
+        <li><span class="pill brass" style="font-size:.68rem">next</span> <b>Re-run in CI</b> — a one-click third-party re-run job (the receipt carries the field; the rail is a fast-follow)</li>
+        <li><span class="pill good" style="font-size:.68rem">live</span> An <b>own-vs-rent</b> calculator that says <i>keep renting</i> when that's genuinely cheaper</li>
+      </ul>
+    </div>
+    <div class="card price">
+      <span class="pill">The estate on-ramp</span>
+      <p class="muted" style="font-size:.86rem;margin:2px 0 6px">Owning your model is the door into a sovereign stack. These are <b>separate products</b> — open each directly at the address shown; confirm the current status there.</p>
+      <ul>
+        <li><b>Run it</b> — hatch a private assistant around your models in <b>fall-os</b> <span class="muted">(fallworld / the live estate surface)</span></li>
+        <li><b>Federate it</b> — real peer-to-peer, no server in the middle <span class="muted">(meshos / fallroom)</span></li>
+        <li><b>Address it</b> — route jobs to the right model with no silent gaps <span class="muted">(capability-router / the dispatcher)</span></li>
+        <li><b>Verify others'</b> <span class="pill good" style="font-size:.68rem">live</span> — drop any FallForge scorecard in the Proof section to check it's genuine</li>
+      </ul>
+      <p class="note" style="margin-top:6px">Honest scope: this page ships the model + the trust rail. The estate products above are the on-ramp, not bundled here — treat "full estate power" as the sovereign stack you can grow into, stated straight.</p>
+    </div>
+  </div>
+</div></section>
+
 <!-- WORK WITH US -->
 <section id="work"><div class="wrap">
   <div class="eyebrow">Work with us</div>
@@ -456,13 +552,14 @@
   <div class="eyebrow">In plain English</div>
   <h2 class="sec">What's actually happening here.</h2>
   <p class="sub">No jargon. Here is the whole journey, start to finish.</p>
-  <ol class="steps" style="margin-top:20px;max-width:70ch">
+  <ol class="steps" style="margin-top:20px;max-width:72ch">
     <li><b>You describe one job.</b> Something you currently ask a big AI to do over and over — sorting messages, pulling facts out of text, tagging things, drafting the same kind of reply.</li>
+    <li><b>The sizer picks the right model.</b> From the kind of work, the answer shape, how strict it must be and where it'll run, it recommends the <b>smallest</b> open-weight model that should clear your bar — from ~1B up to ~200B — and shows exactly why. It never rounds up to sell you a bigger one.</li>
     <li><b>You show it a few examples.</b> Three to eight is plenty. Each one is an input and the answer you'd want back. This is how the model learns your exact style.</li>
     <li><b>Your browser builds a recipe.</b> Right here, with nothing sent anywhere, it writes a <b>Modelfile</b> — a short, plain recipe that bakes your job and your examples into a small model.</li>
-    <li><b>You run two lines to make it yours.</b> You install a free app called Ollama, and paste the two lines we give you. Now a private model that does your job lives on your own computer.</li>
-    <li><b>It's yours, and it's private.</b> No monthly bill, no per-use charge, no data leaving your machine. It keeps working with the internet switched off.</li>
-    <li><b>If you'd rather not touch any of that</b>, we'll do it for you and prove the result beats your starting point with a signed receipt.</li>
+    <li><b>It proves itself on data it never saw.</b> It holds out some of your examples, runs both the base model and yours on them, and scores them. You get a <b>signed scorecard</b> with the honest small print: what the signature proves (the numbers are unedited), that the held-out answers were <b>not</b> in the spec the model was given (hash-disjoint), and that anyone can re-run the eval. It's allowed to say your model lost.</li>
+    <li><b>You run two lines to make it yours.</b> You install a free app called Ollama, and paste the two lines we give you. Now a private model that does your job lives on your own computer — no monthly bill, no per-use charge, working with the internet switched off.</li>
+    <li><b>If you'd rather not touch any of that</b>, we'll do it for you and prove the result beats your starting point with an issuer-signed receipt.</li>
   </ol>
 </div></section>
 
@@ -1102,6 +1199,162 @@ function verifyManifest(m) {
   if (h.hash !== m.hash) return { ok: true, valid: false, why: 'hash mismatch — the manifest does not match its own facts' };
   return { ok: true, valid: true, why: 'manifest intact' };
 }
+
+// ── sizing engine: company data in → the SMALLEST open-weight model that meets the bar, out ──────────
+// The NVIDIA LLM→SLM idea (arXiv 2506.02153) as a product front door: describe the job and the load,
+// get the RIGHT rung of the open-weight ladder — named, real models — with the reasoning shown, biased
+// DOWN (compression that generalises: the smallest model that clears the bar wins; a 1B answer says 1B).
+// It never upsells and it never fabricates a benchmark: the rung is a transparent HEURISTIC starting
+// point, and the real proof is the scorecard after you mint. Pure and total.
+
+// The ladder. Each rung names open-weight models that were real releases at build time, with released
+// parameter counts and summarised licences. This is DATA — refresh it, don't trust it as a benchmark.
+const CATALOG_VERSION = '2026-09-open-weight';
+const CATALOG_VERIFY_NOTE = 'Model names, sizes and licences are open-weight releases known at build time. Sizes are released parameter counts; licences are summarised — read each model\'s own licence before commercial use. Newer generations (e.g. Qwen3, Llama 4, Gemma 4) may supersede these — refresh the catalog before launch. Capability-by-size is a heuristic for picking a STARTING rung, never a measured score.';
+
+const LADDER = [
+  { tier: 0, band: '~1B', approxParamsB: 1, runsOn: 'phone / CPU / any laptop', ramHintGB: '1–2 (4-bit)',
+    models: [
+      { id: 'llama3.2:1b', name: 'Llama 3.2 1B', paramsB: 1.2, licence: 'Llama Community', note: 'Meta; tiny, fast, solid at short structured jobs' },
+      { id: 'qwen2.5:1.5b', name: 'Qwen2.5 1.5B', paramsB: 1.5, licence: 'Apache-2.0', note: 'Alibaba; strong multilingual for its size' },
+      { id: 'gemma3:1b', name: 'Gemma 3 1B', paramsB: 1.0, licence: 'Gemma', note: 'Google; compact instruction-follower' },
+    ] },
+  { tier: 1, band: '~3–4B', approxParamsB: 3.5, runsOn: 'any modern laptop', ramHintGB: '3–4 (4-bit)',
+    models: [
+      { id: 'llama3.2:3b', name: 'Llama 3.2 3B', paramsB: 3.2, licence: 'Llama Community', note: 'Meta; the reliable small default' },
+      { id: 'qwen2.5:3b', name: 'Qwen2.5 3B', paramsB: 3.1, licence: 'Qwen (research/commercial terms)', note: 'Alibaba; strong extraction/format' },
+      { id: 'phi3.5:3.8b', name: 'Phi-3.5-mini 3.8B', paramsB: 3.8, licence: 'MIT', note: 'Microsoft; punches above its size on reasoning-lite' },
+      { id: 'gemma3:4b', name: 'Gemma 3 4B', paramsB: 4.0, licence: 'Gemma', note: 'Google; good all-rounder' },
+    ] },
+  { tier: 2, band: '~7–8B', approxParamsB: 7.5, runsOn: 'good laptop / consumer GPU', ramHintGB: '5–8 (4-bit)',
+    models: [
+      { id: 'llama3.1:8b', name: 'Llama 3.1 8B', paramsB: 8.0, licence: 'Llama Community', note: 'Meta; the workhorse general 8B' },
+      { id: 'qwen2.5:7b', name: 'Qwen2.5 7B', paramsB: 7.6, licence: 'Apache-2.0', note: 'Alibaba; strong general + multilingual' },
+      { id: 'mistral:7b', name: 'Mistral 7B', paramsB: 7.2, licence: 'Apache-2.0', note: 'Mistral; permissive, well-supported' },
+    ] },
+  { tier: 3, band: '~12–14B', approxParamsB: 13, runsOn: '16–24GB RAM / a decent GPU', ramHintGB: '9–14 (4-bit)',
+    models: [
+      { id: 'phi4:14b', name: 'Phi-4 14B', paramsB: 14.7, licence: 'MIT', note: 'Microsoft; strong reasoning for the size, permissive' },
+      { id: 'qwen2.5:14b', name: 'Qwen2.5 14B', paramsB: 14.8, licence: 'Apache-2.0', note: 'Alibaba; capable nuanced instruction-following' },
+      { id: 'mistral-nemo:12b', name: 'Mistral NeMo 12B', paramsB: 12.2, licence: 'Apache-2.0', note: 'Mistral + NVIDIA; long context, permissive' },
+    ] },
+  { tier: 4, band: '~32B', approxParamsB: 32, runsOn: '32–48GB RAM / a strong GPU', ramHintGB: '18–24 (4-bit)',
+    models: [
+      { id: 'qwen2.5-coder:32b', name: 'Qwen2.5-Coder 32B', paramsB: 32.5, licence: 'Apache-2.0', note: 'Alibaba; a genuinely strong open coder' },
+      { id: 'qwen2.5:32b', name: 'Qwen2.5 32B', paramsB: 32.5, licence: 'Apache-2.0', note: 'Alibaba; strong general reasoning' },
+      { id: 'gemma2:27b', name: 'Gemma 2 27B', paramsB: 27.2, licence: 'Gemma', note: 'Google; high-quality generation' },
+    ] },
+  { tier: 5, band: '~70B', approxParamsB: 70, runsOn: 'workstation / multi-GPU / heavy quant', ramHintGB: '40–48 (4-bit)',
+    models: [
+      { id: 'llama3.3:70b', name: 'Llama 3.3 70B', paramsB: 70, licence: 'Llama Community', note: 'Meta; frontier-adjacent open general model' },
+      { id: 'qwen2.5:72b', name: 'Qwen2.5 72B', paramsB: 72, licence: 'Qwen (research/commercial terms)', note: 'Alibaba; top open general at this size' },
+      { id: 'deepseek-r1:70b', name: 'DeepSeek-R1-Distill-Llama 70B', paramsB: 70, licence: 'MIT', note: 'DeepSeek; distilled reasoning, permissive' },
+    ] },
+  { tier: 6, band: '~100–200B (MoE)', approxParamsB: 141, runsOn: 'a server — you have likely left SLM territory', ramHintGB: '80+ (4-bit)',
+    models: [
+      { id: 'mixtral:8x22b', name: 'Mixtral 8x22B', paramsB: 141, licence: 'Apache-2.0', note: 'Mistral; sparse MoE, ~39B active of ~141B total' },
+    ] },
+];
+
+// Task → the smallest tier that class of work usually needs. A transparent map, not a benchmark. Verbs
+// are matched against the task type the caller declares (or a free-text task, lightly).
+const TASK_TIER = {
+  classify: 0, categorise: 0, categorize: 0, route: 0, tag: 0, label: 0, moderate: 0, detect: 0, flag: 0, match: 0, score: 0, rank: 0,
+  extract: 1, parse: 1, format: 1, normalise: 1, normalize: 1, redact: 1, 'structured-extract': 1,
+  summarise: 2, summarize: 2, rewrite: 2, translate: 2, draft: 2, rag: 2, respond: 2, 'qa-simple': 2,
+  instruct: 3, 'structured-generate': 3, 'qa-domain': 3, explain: 3,
+  reason: 4, code: 4, analyse: 4, analyze: 4, plan: 4,
+  'reason-hard': 5, agent: 5, research: 5,
+  frontier: 6,
+};
+
+const QUALITY_BUMP = { lenient: 0, standard: 0, strict: 1, critical: 1 };
+const SHAPE_ADJUST = { label: -1, enum: -1, number: -1, json: 0, short: 0, freeform: 0, longform: 1 };
+const DEPLOY_CAP = { phone: 1, laptop: 4, gpu: 5, server: 6 };
+const TASK_TYPES = Object.keys(TASK_TIER);
+
+const clampTier = (n) => Math.max(0, Math.min(6, n));   // Math.min/max: no spaced comparator to mutate-equivalently
+
+/** sizeRecommendation(profile) — company data in, sized open-weight recommendation out. Biased DOWN:
+ *  it returns the SMALLEST rung that clears the declared bar, shows every factor, and hands off to the
+ *  mint + the own-vs-rent calculator + the scorecard. It never invents a benchmark. Pure and total. */
+function sizeRecommendation(profile) {
+  if (!isObj(profile)) return { ok: false, why: 'describe the job as an object — at least a taskType' };
+  const taskType = isStr(profile.taskType) ? profile.taskType.trim().toLowerCase() : '';
+  if (!taskType) return { ok: false, why: 'taskType is required — e.g. classify, extract, summarise, code, reason' };
+  if (!(taskType in TASK_TIER)) return { ok: false, why: 'unknown taskType "' + taskType + '" — use one of: ' + TASK_TYPES.join(', ') };
+
+  const factors = [];
+  const baseTier = TASK_TIER[taskType];
+  factors.push({ input: 'task: ' + taskType, effect: 'base rung ' + baseTier, note: 'the kind of work sets the floor' });
+  let tier = baseTier;
+
+  const quality = isStr(profile.qualityBar) ? profile.qualityBar.trim().toLowerCase() : 'standard';
+  if (!(quality in QUALITY_BUMP)) return { ok: false, why: 'qualityBar must be one of: ' + Object.keys(QUALITY_BUMP).join(', ') };
+  const qb = QUALITY_BUMP[quality];
+  if (qb !== 0) factors.push({ input: 'quality bar: ' + quality, effect: '+' + qb, note: 'a stricter bar wants more headroom' });
+  tier += qb;
+
+  const shape = isStr(profile.outputShape) ? profile.outputShape.trim().toLowerCase() : 'freeform';
+  if (!(shape in SHAPE_ADJUST)) return { ok: false, why: 'outputShape must be one of: ' + Object.keys(SHAPE_ADJUST).join(', ') };
+  const sa = SHAPE_ADJUST[shape];
+  if (sa !== 0) {
+    const down = sa === -1;   // one decision, so there is one operator to test, not two
+    factors.push({ input: 'output shape: ' + shape, effect: down ? '-1 rung' : '+1 rung', note: down ? 'a strict short shape is easy to nail small' : 'long free-form generation needs more capacity' });
+  }
+  tier += sa;
+
+  if (profile.needsReasoning === true && baseTier < 4) {
+    factors.push({ input: 'multi-step reasoning: yes', effect: '+1', note: 'chained reasoning raises the floor' });
+    tier += 1;
+  }
+
+  // long context is a MODEL-CHOICE constraint within a rung, not an automatic size bump — say so honestly.
+  let contextNote = null;
+  if (isNum(profile.contextTokens) && profile.contextTokens > 8000) {
+    contextNote = 'You need ~' + Math.round(profile.contextTokens) + ' tokens of context — check the chosen model supports it (most listed models do 32k+, several 128k). It narrows model choice within the rung; it does not force a bigger model.';
+    factors.push({ input: 'context: ~' + Math.round(profile.contextTokens) + ' tokens', effect: 'model-choice note', note: 'narrows which model in the rung, not the rung' });
+  }
+
+  tier = clampTier(tier);
+  const wantedTier = tier;
+
+  // the hard cap: where it has to RUN. You cannot serve a 70B from a phone; say what the deployment allows.
+  const deploy = isStr(profile.deployment) ? profile.deployment.trim().toLowerCase() : 'laptop';
+  if (!(deploy in DEPLOY_CAP)) return { ok: false, why: 'deployment must be one of: ' + Object.keys(DEPLOY_CAP).join(', ') };
+  const cap = DEPLOY_CAP[deploy];
+  let capped = false;
+  if (tier > cap) {
+    capped = true;
+    factors.push({ input: 'deployment: ' + deploy, effect: 'capped at rung ' + cap, note: 'the job wants rung ' + wantedTier + ', but ' + deploy + ' can only run up to rung ' + cap + ' — mint the capped rung and PROVE it; if it falls short, you need bigger hardware, not a bigger claim' });
+    tier = cap;
+  }
+
+  const rung = LADDER[tier];
+  const model = rung.models[0];   // smallest-good default within the rung
+  const secondTier = tier < 6 ? tier + 1 : null;
+  const second = secondTier === null ? null : { band: LADDER[secondTier].band, model: LADDER[secondTier].models[0] };
+
+  // few-shot first (free, often enough); suggest a tune only when the profile genuinely calls for it.
+  const examples = isInt(profile.exampleCount) ? profile.exampleCount : 0;   // negatives are harmless — tuneWanted gates on >= 20
+  const tuneWanted = tier >= 3 && (quality === 'strict' || quality === 'critical') && examples >= 20;
+  const approach = tuneWanted ? 'tune' : 'few-shot';
+
+  const honesty = 'This rung is a transparent heuristic starting point from what you declared — the smallest model that should clear your bar. It is NOT a benchmark. The proof is the scorecard: mint it, run it on your own held-out data, and keep it only if the receipt says it BEATS the base.';
+
+  return { ok: true,
+    rung: { tier, band: rung.band, runsOn: rung.runsOn, ramHintGB: rung.ramHintGB },
+    model, alternatives: rung.models.slice(1),
+    wantedTier, capped, deployment: deploy,
+    factors, contextNote,
+    approach, tuneWanted, exampleCount: examples,
+    secondOpinion: second,
+    baseForMint: model.id,
+    catalogVersion: CATALOG_VERSION, catalogNote: CATALOG_VERIFY_NOTE,
+    honesty,
+    summary: 'Start with ' + model.name + ' (' + rung.band + ', ' + approach + ') — ' + (capped ? 'the largest your ' + deploy + ' can run; ' : 'the smallest that should meet your bar; ') + 'then prove it.',
+  };
+}
 // ⟦KERNEL-END⟧
 
 // ── the real signed record for the "verify, don't trust" demo (a genuine mint we shipped) ─────────
@@ -1443,11 +1696,12 @@ async function runProof(){
       const mintedOut = await ask(mintedMessages(minted.spec, h.input));
       rows.push({ input: h.input, correct: h.output, baseOut, mintedOut });
     }
-    renderScorecard(scorecard(rows.map(r=>({correct:r.correct, baseOut:r.baseOut, mintedOut:r.mintedOut}))), rows);
+    renderScorecard(scorecard(rows.map(r=>({correct:r.correct, baseOut:r.baseOut, mintedOut:r.mintedOut}))), rows,
+      { evalBase: minted.base, evalFingerprint: minted.fingerprint, evalModelfile: minted.modelfile });
   }catch(e){ hideProg(); bad('Couldn\'t run the proof here (' + (e && e.message ? e.message : 'load failed') + '). The mint still works.'); }
   $('proveBtn').disabled = false;
 }
-function renderScorecard(sc, rows){
+function renderScorecard(sc, rows, ctx){
   const out = $('proofOut');
   if (!sc.ok){ out.innerHTML = '<span class="pill bad">⚠ ' + sc.why + '</span>'; return; }
   const col = sc.verdict==='BEATS' ? 'var(--good)' : (sc.verdict==='LOSES' ? 'var(--bad)' : 'var(--brass)');
@@ -1468,22 +1722,30 @@ function renderScorecard(sc, rows){
   h += '<p class="note" id="scResult"></p>';
   out.innerHTML = h;
   const b = $('dlScorecard');
-  if (b) b.addEventListener('click', () => downloadScorecard(sc, rows));
+  if (b) b.addEventListener('click', () => downloadScorecard(sc, rows, ctx));
 }
 
 // ── the downloadable signed scorecard — a tamper-evident record of the buyer's own measurement ──────
 const toHex = (bytes) => [...bytes].map((x) => x.toString(16).padStart(2, '0')).join('');
-async function downloadScorecard(sc, rows){
+async function downloadScorecard(sc, rows, ctx){
   const res = $('scResult');
   if (!lastMint){ if (res) res.textContent = 'Mint a model first.'; return; }
   const taskHash = sha256($('task').value);
   const evidenceHash = sha256(canon(rows));
   if (!taskHash.ok || !evidenceHash.ok){ res.textContent = 'Could not fingerprint the evidence.'; return; }
-  // the NARROW-TRUE anti-cheat: are the held-out answers absent from the minted spec (hash-disjoint)?
-  const disj = holdoutDisjoint(rows, lastMint.modelfile);
+  // Bind the receipt to the model that ACTUALLY produced these scores — the proof model, trained on the
+  // train split only (not the full-data download model, which was baked with the held-out examples). Using
+  // the full model here bound the wrong fingerprint AND made the hash-disjoint check run against a spec that
+  // contains the held-out answers, so the narrow-true claim could never ship. The proof model's spec excludes
+  // them, so the claim ships honestly. Fall back to lastMint only if no proof context was passed.
+  const evalBase = (ctx && ctx.evalBase) || lastMint.base;
+  const evalFingerprint = (ctx && ctx.evalFingerprint) || lastMint.fingerprint;
+  const evalModelfile = (ctx && ctx.evalModelfile) || lastMint.modelfile;
+  // the NARROW-TRUE anti-cheat: are the held-out answers absent from the spec the model was actually given?
+  const disj = holdoutDisjoint(rows, evalModelfile);
   const built = scorecardReceipt({
-    base: lastMint.base,
-    modelFingerprint: lastMint.fingerprint,
+    base: evalBase,
+    modelFingerprint: evalFingerprint,
     taskHash: taskHash.hash,
     evidenceHash: evidenceHash.hash,
     sc: { n: sc.n, baseHits: sc.baseHits, mintedHits: sc.mintedHits, verdict: sc.verdict },
@@ -1636,6 +1898,67 @@ function applyVersion(c){
   $('tuneOut').innerHTML = '<span class="pill good">✓ Applied “' + esc(c.label) + '”. Your Modelfile and installer above now use this version.</span>';
   $('mintOut').scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
+// ── the sizer: company data in → the smallest open-weight model that clears the bar ──────────────────
+// Options are drawn from the gated kernel's own maps (TASK_TIER / SHAPE_ADJUST / QUALITY_BUMP / DEPLOY_CAP)
+// and filtered by presence, so the UI can never offer a value the kernel would reject — one kernel, one truth.
+const TASK_OPTS = [
+  ['classify','Classify / categorise'],['route','Route / triage'],['tag','Tag / label'],['moderate','Moderate content'],
+  ['extract','Extract / pull fields'],['format','Reformat / normalise'],['redact','Redact'],
+  ['summarise','Summarise'],['translate','Translate'],['draft','Draft a reply'],['rag','Answer from docs (RAG)'],
+  ['instruct','Follow detailed instructions'],['qa-domain','Domain Q&A'],['explain','Explain'],
+  ['reason','Multi-step reasoning'],['code','Write code'],['analyse','Analyse'],['plan','Plan'],
+  ['agent','Agent / long-horizon'],['research','Research'],['frontier','Frontier-level'],
+].filter(([v]) => v in TASK_TIER);
+const SHAPE_OPTS = [['label','A short label / class'],['enum','One of a fixed set'],['number','A number'],['json','A JSON object'],['short','A short answer'],['freeform','Free-form text'],['longform','Long-form writing']].filter(([v]) => v in SHAPE_ADJUST);
+const QUALITY_OPTS = [['lenient','Lenient — rough is fine'],['standard','Standard'],['strict','Strict — few mistakes'],['critical','Critical — high stakes']].filter(([v]) => v in QUALITY_BUMP);
+const DEPLOY_OPTS = [['phone','A phone / edge device'],['laptop','A laptop'],['gpu','A GPU / good server'],['server','A big server']].filter(([v]) => v in DEPLOY_CAP);
+function fillSelect(id, opts, def){
+  const el = $(id); if (!el) return;
+  el.innerHTML = opts.map(([v,l]) => '<option value="' + v + '"' + (v===def?' selected':'') + '>' + esc(l) + '</option>').join('');
+}
+fillSelect('s_task', TASK_OPTS, 'classify');
+fillSelect('s_shape', SHAPE_OPTS, 'label');
+fillSelect('s_quality', QUALITY_OPTS, 'standard');
+fillSelect('s_deploy', DEPLOY_OPTS, 'laptop');
+$('s_catalog').innerHTML = 'Catalog <b>' + esc(CATALOG_VERSION) + '</b> · ' + esc(sizeRecommendation({ taskType: 'classify' }).catalogNote);
+
+function sizeIt(){
+  const profile = {
+    taskType: $('s_task').value,
+    outputShape: $('s_shape').value,
+    qualityBar: $('s_quality').value,
+    deployment: $('s_deploy').value,
+    needsReasoning: $('s_reason').checked,
+  };
+  const ctx = parseFloat($('s_ctx').value); if (Number.isFinite(ctx) && ctx > 0) profile.contextTokens = ctx;
+  const ex = parseInt($('s_ex').value, 10); if (Number.isFinite(ex) && ex >= 0) profile.exampleCount = ex;
+  const r = sizeRecommendation(profile);
+  const out = $('s_out');
+  if (!r.ok){ out.innerHTML = '<span class="pill bad">⚠ ' + esc(r.why) + '</span>'; return; }
+  const m = r.model;
+  let h = '<div class="verdict-box good"><div class="big" style="color:var(--cream)">Start with ' + esc(m.name)
+    + ' <span class="pill brass" style="font-size:.72rem">' + esc(r.rung.band) + '</span></div>';
+  h += '<div class="kvline" style="margin-top:6px"><b>' + esc(m.id) + '</b> · ' + m.paramsB + 'B params · ' + esc(m.licence) + ' · ' + esc(m.note) + '</div>';
+  h += '<div class="kvline">Runs on <b>' + esc(r.rung.runsOn) + '</b> · ~' + esc(r.rung.ramHintGB) + ' GB RAM (4-bit) · approach: <b>' + esc(r.approach) + '</b> ' + (r.approach==='few-shot' ? '(free tier — often enough)' : '(weight-tune — done-for-you)') + '</div>';
+  if (r.capped) h += '<div class="kvline" style="color:var(--brass);margin-top:6px">⚠ Your job wants a bigger rung, but ' + esc(r.deployment) + ' can only run this size. Mint it and PROVE it — if it falls short you need bigger hardware, not a bigger claim.</div>';
+  h += '</div>';
+  // why — every factor shown
+  h += '<table class="proof-tbl"><thead><tr><th>what you told it</th><th>effect</th></tr></thead><tbody>';
+  for (const f of r.factors) h += '<tr><td>' + esc(f.input) + '</td><td>' + esc(String(f.effect)) + ' <span class="muted">— ' + esc(f.note) + '</span></td></tr>';
+  h += '</tbody></table>';
+  if (r.contextNote) h += '<p class="note">' + esc(r.contextNote) + '</p>';
+  if (r.alternatives && r.alternatives.length) h += '<p class="note">Also at this size: ' + r.alternatives.map((a)=>'<b>'+esc(a.name)+'</b>').join(', ') + '.</p>';
+  if (r.secondOpinion) h += '<p class="note">Second opinion — if the proof falls short, A/B against <b>' + esc(r.secondOpinion.model.name) + '</b> (' + esc(r.secondOpinion.band) + ') one rung up.</p>';
+  h += '<p class="note">' + esc(r.honesty) + '</p>';
+  h += '<div class="cta-row" style="margin-top:14px"><button class="btn forge" id="s_use">Use ' + esc(m.name) + ' → mint it</button><button class="btn ghost" id="s_calc">Own vs rent for this →</button></div>';
+  out.innerHTML = h;
+  const use = $('s_use');
+  if (use) use.addEventListener('click', () => { $('base').value = r.baseForMint; $('mint').scrollIntoView({ behavior:'smooth', block:'start' }); });
+  const calc = $('s_calc');
+  if (calc) calc.addEventListener('click', () => { $('calc').scrollIntoView({ behavior:'smooth', block:'start' }); });
+}
+$('s_btn').addEventListener('click', sizeIt);
+
 </script>
 </body>
 </html>

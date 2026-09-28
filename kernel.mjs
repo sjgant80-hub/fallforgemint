@@ -602,3 +602,159 @@ export function verifyManifest(m) {
   if (h.hash !== m.hash) return { ok: true, valid: false, why: 'hash mismatch — the manifest does not match its own facts' };
   return { ok: true, valid: true, why: 'manifest intact' };
 }
+
+// ── sizing engine: company data in → the SMALLEST open-weight model that meets the bar, out ──────────
+// The NVIDIA LLM→SLM idea (arXiv 2506.02153) as a product front door: describe the job and the load,
+// get the RIGHT rung of the open-weight ladder — named, real models — with the reasoning shown, biased
+// DOWN (compression that generalises: the smallest model that clears the bar wins; a 1B answer says 1B).
+// It never upsells and it never fabricates a benchmark: the rung is a transparent HEURISTIC starting
+// point, and the real proof is the scorecard after you mint. Pure and total.
+
+// The ladder. Each rung names open-weight models that were real releases at build time, with released
+// parameter counts and summarised licences. This is DATA — refresh it, don't trust it as a benchmark.
+export const CATALOG_VERSION = '2026-09-open-weight';
+export const CATALOG_VERIFY_NOTE = 'Model names, sizes and licences are open-weight releases known at build time. Sizes are released parameter counts; licences are summarised — read each model\'s own licence before commercial use. Newer generations (e.g. Qwen3, Llama 4, Gemma 4) may supersede these — refresh the catalog before launch. Capability-by-size is a heuristic for picking a STARTING rung, never a measured score.';
+
+export const LADDER = [
+  { tier: 0, band: '~1B', approxParamsB: 1, runsOn: 'phone / CPU / any laptop', ramHintGB: '1–2 (4-bit)',
+    models: [
+      { id: 'llama3.2:1b', name: 'Llama 3.2 1B', paramsB: 1.2, licence: 'Llama Community', note: 'Meta; tiny, fast, solid at short structured jobs' },
+      { id: 'qwen2.5:1.5b', name: 'Qwen2.5 1.5B', paramsB: 1.5, licence: 'Apache-2.0', note: 'Alibaba; strong multilingual for its size' },
+      { id: 'gemma3:1b', name: 'Gemma 3 1B', paramsB: 1.0, licence: 'Gemma', note: 'Google; compact instruction-follower' },
+    ] },
+  { tier: 1, band: '~3–4B', approxParamsB: 3.5, runsOn: 'any modern laptop', ramHintGB: '3–4 (4-bit)',
+    models: [
+      { id: 'llama3.2:3b', name: 'Llama 3.2 3B', paramsB: 3.2, licence: 'Llama Community', note: 'Meta; the reliable small default' },
+      { id: 'qwen2.5:3b', name: 'Qwen2.5 3B', paramsB: 3.1, licence: 'Qwen (research/commercial terms)', note: 'Alibaba; strong extraction/format' },
+      { id: 'phi3.5:3.8b', name: 'Phi-3.5-mini 3.8B', paramsB: 3.8, licence: 'MIT', note: 'Microsoft; punches above its size on reasoning-lite' },
+      { id: 'gemma3:4b', name: 'Gemma 3 4B', paramsB: 4.0, licence: 'Gemma', note: 'Google; good all-rounder' },
+    ] },
+  { tier: 2, band: '~7–8B', approxParamsB: 7.5, runsOn: 'good laptop / consumer GPU', ramHintGB: '5–8 (4-bit)',
+    models: [
+      { id: 'llama3.1:8b', name: 'Llama 3.1 8B', paramsB: 8.0, licence: 'Llama Community', note: 'Meta; the workhorse general 8B' },
+      { id: 'qwen2.5:7b', name: 'Qwen2.5 7B', paramsB: 7.6, licence: 'Apache-2.0', note: 'Alibaba; strong general + multilingual' },
+      { id: 'mistral:7b', name: 'Mistral 7B', paramsB: 7.2, licence: 'Apache-2.0', note: 'Mistral; permissive, well-supported' },
+    ] },
+  { tier: 3, band: '~12–14B', approxParamsB: 13, runsOn: '16–24GB RAM / a decent GPU', ramHintGB: '9–14 (4-bit)',
+    models: [
+      { id: 'phi4:14b', name: 'Phi-4 14B', paramsB: 14.7, licence: 'MIT', note: 'Microsoft; strong reasoning for the size, permissive' },
+      { id: 'qwen2.5:14b', name: 'Qwen2.5 14B', paramsB: 14.8, licence: 'Apache-2.0', note: 'Alibaba; capable nuanced instruction-following' },
+      { id: 'mistral-nemo:12b', name: 'Mistral NeMo 12B', paramsB: 12.2, licence: 'Apache-2.0', note: 'Mistral + NVIDIA; long context, permissive' },
+    ] },
+  { tier: 4, band: '~32B', approxParamsB: 32, runsOn: '32–48GB RAM / a strong GPU', ramHintGB: '18–24 (4-bit)',
+    models: [
+      { id: 'qwen2.5-coder:32b', name: 'Qwen2.5-Coder 32B', paramsB: 32.5, licence: 'Apache-2.0', note: 'Alibaba; a genuinely strong open coder' },
+      { id: 'qwen2.5:32b', name: 'Qwen2.5 32B', paramsB: 32.5, licence: 'Apache-2.0', note: 'Alibaba; strong general reasoning' },
+      { id: 'gemma2:27b', name: 'Gemma 2 27B', paramsB: 27.2, licence: 'Gemma', note: 'Google; high-quality generation' },
+    ] },
+  { tier: 5, band: '~70B', approxParamsB: 70, runsOn: 'workstation / multi-GPU / heavy quant', ramHintGB: '40–48 (4-bit)',
+    models: [
+      { id: 'llama3.3:70b', name: 'Llama 3.3 70B', paramsB: 70, licence: 'Llama Community', note: 'Meta; frontier-adjacent open general model' },
+      { id: 'qwen2.5:72b', name: 'Qwen2.5 72B', paramsB: 72, licence: 'Qwen (research/commercial terms)', note: 'Alibaba; top open general at this size' },
+      { id: 'deepseek-r1:70b', name: 'DeepSeek-R1-Distill-Llama 70B', paramsB: 70, licence: 'MIT', note: 'DeepSeek; distilled reasoning, permissive' },
+    ] },
+  { tier: 6, band: '~100–200B (MoE)', approxParamsB: 141, runsOn: 'a server — you have likely left SLM territory', ramHintGB: '80+ (4-bit)',
+    models: [
+      { id: 'mixtral:8x22b', name: 'Mixtral 8x22B', paramsB: 141, licence: 'Apache-2.0', note: 'Mistral; sparse MoE, ~39B active of ~141B total' },
+    ] },
+];
+
+// Task → the smallest tier that class of work usually needs. A transparent map, not a benchmark. Verbs
+// are matched against the task type the caller declares (or a free-text task, lightly).
+export const TASK_TIER = {
+  classify: 0, categorise: 0, categorize: 0, route: 0, tag: 0, label: 0, moderate: 0, detect: 0, flag: 0, match: 0, score: 0, rank: 0,
+  extract: 1, parse: 1, format: 1, normalise: 1, normalize: 1, redact: 1, 'structured-extract': 1,
+  summarise: 2, summarize: 2, rewrite: 2, translate: 2, draft: 2, rag: 2, respond: 2, 'qa-simple': 2,
+  instruct: 3, 'structured-generate': 3, 'qa-domain': 3, explain: 3,
+  reason: 4, code: 4, analyse: 4, analyze: 4, plan: 4,
+  'reason-hard': 5, agent: 5, research: 5,
+  frontier: 6,
+};
+
+export const QUALITY_BUMP = { lenient: 0, standard: 0, strict: 1, critical: 1 };
+export const SHAPE_ADJUST = { label: -1, enum: -1, number: -1, json: 0, short: 0, freeform: 0, longform: 1 };
+export const DEPLOY_CAP = { phone: 1, laptop: 4, gpu: 5, server: 6 };
+export const TASK_TYPES = Object.keys(TASK_TIER);
+
+const clampTier = (n) => Math.max(0, Math.min(6, n));   // Math.min/max: no spaced comparator to mutate-equivalently
+
+/** sizeRecommendation(profile) — company data in, sized open-weight recommendation out. Biased DOWN:
+ *  it returns the SMALLEST rung that clears the declared bar, shows every factor, and hands off to the
+ *  mint + the own-vs-rent calculator + the scorecard. It never invents a benchmark. Pure and total. */
+export function sizeRecommendation(profile) {
+  if (!isObj(profile)) return { ok: false, why: 'describe the job as an object — at least a taskType' };
+  const taskType = isStr(profile.taskType) ? profile.taskType.trim().toLowerCase() : '';
+  if (!taskType) return { ok: false, why: 'taskType is required — e.g. classify, extract, summarise, code, reason' };
+  if (!(taskType in TASK_TIER)) return { ok: false, why: 'unknown taskType "' + taskType + '" — use one of: ' + TASK_TYPES.join(', ') };
+
+  const factors = [];
+  const baseTier = TASK_TIER[taskType];
+  factors.push({ input: 'task: ' + taskType, effect: 'base rung ' + baseTier, note: 'the kind of work sets the floor' });
+  let tier = baseTier;
+
+  const quality = isStr(profile.qualityBar) ? profile.qualityBar.trim().toLowerCase() : 'standard';
+  if (!(quality in QUALITY_BUMP)) return { ok: false, why: 'qualityBar must be one of: ' + Object.keys(QUALITY_BUMP).join(', ') };
+  const qb = QUALITY_BUMP[quality];
+  if (qb !== 0) factors.push({ input: 'quality bar: ' + quality, effect: '+' + qb, note: 'a stricter bar wants more headroom' });
+  tier += qb;
+
+  const shape = isStr(profile.outputShape) ? profile.outputShape.trim().toLowerCase() : 'freeform';
+  if (!(shape in SHAPE_ADJUST)) return { ok: false, why: 'outputShape must be one of: ' + Object.keys(SHAPE_ADJUST).join(', ') };
+  const sa = SHAPE_ADJUST[shape];
+  if (sa !== 0) {
+    const down = sa === -1;   // one decision, so there is one operator to test, not two
+    factors.push({ input: 'output shape: ' + shape, effect: down ? '-1 rung' : '+1 rung', note: down ? 'a strict short shape is easy to nail small' : 'long free-form generation needs more capacity' });
+  }
+  tier += sa;
+
+  if (profile.needsReasoning === true && baseTier < 4) {
+    factors.push({ input: 'multi-step reasoning: yes', effect: '+1', note: 'chained reasoning raises the floor' });
+    tier += 1;
+  }
+
+  // long context is a MODEL-CHOICE constraint within a rung, not an automatic size bump — say so honestly.
+  let contextNote = null;
+  if (isNum(profile.contextTokens) && profile.contextTokens > 8000) {
+    contextNote = 'You need ~' + Math.round(profile.contextTokens) + ' tokens of context — check the chosen model supports it (most listed models do 32k+, several 128k). It narrows model choice within the rung; it does not force a bigger model.';
+    factors.push({ input: 'context: ~' + Math.round(profile.contextTokens) + ' tokens', effect: 'model-choice note', note: 'narrows which model in the rung, not the rung' });
+  }
+
+  tier = clampTier(tier);
+  const wantedTier = tier;
+
+  // the hard cap: where it has to RUN. You cannot serve a 70B from a phone; say what the deployment allows.
+  const deploy = isStr(profile.deployment) ? profile.deployment.trim().toLowerCase() : 'laptop';
+  if (!(deploy in DEPLOY_CAP)) return { ok: false, why: 'deployment must be one of: ' + Object.keys(DEPLOY_CAP).join(', ') };
+  const cap = DEPLOY_CAP[deploy];
+  let capped = false;
+  if (tier > cap) {
+    capped = true;
+    factors.push({ input: 'deployment: ' + deploy, effect: 'capped at rung ' + cap, note: 'the job wants rung ' + wantedTier + ', but ' + deploy + ' can only run up to rung ' + cap + ' — mint the capped rung and PROVE it; if it falls short, you need bigger hardware, not a bigger claim' });
+    tier = cap;
+  }
+
+  const rung = LADDER[tier];
+  const model = rung.models[0];   // smallest-good default within the rung
+  const secondTier = tier < 6 ? tier + 1 : null;
+  const second = secondTier === null ? null : { band: LADDER[secondTier].band, model: LADDER[secondTier].models[0] };
+
+  // few-shot first (free, often enough); suggest a tune only when the profile genuinely calls for it.
+  const examples = isInt(profile.exampleCount) ? profile.exampleCount : 0;   // negatives are harmless — tuneWanted gates on >= 20
+  const tuneWanted = tier >= 3 && (quality === 'strict' || quality === 'critical') && examples >= 20;
+  const approach = tuneWanted ? 'tune' : 'few-shot';
+
+  const honesty = 'This rung is a transparent heuristic starting point from what you declared — the smallest model that should clear your bar. It is NOT a benchmark. The proof is the scorecard: mint it, run it on your own held-out data, and keep it only if the receipt says it BEATS the base.';
+
+  return { ok: true,
+    rung: { tier, band: rung.band, runsOn: rung.runsOn, ramHintGB: rung.ramHintGB },
+    model, alternatives: rung.models.slice(1),
+    wantedTier, capped, deployment: deploy,
+    factors, contextNote,
+    approach, tuneWanted, exampleCount: examples,
+    secondOpinion: second,
+    baseForMint: model.id,
+    catalogVersion: CATALOG_VERSION, catalogNote: CATALOG_VERIFY_NOTE,
+    honesty,
+    summary: 'Start with ' + model.name + ' (' + rung.band + ', ' + approach + ') — ' + (capped ? 'the largest your ' + deploy + ' can run; ' : 'the smallest that should meet your bar; ') + 'then prove it.',
+  };
+}

@@ -9,6 +9,7 @@ import {
   b64encode, safeModelName, installerScript, INSTALLER_OS, suggestNames,
   inferFormat, hardenSpec, pickBest,
   scorecardReceipt, verifyScorecardReceipt, scorecardSignable, holdoutDisjoint,
+  sizeRecommendation, LADDER, TASK_TIER, TASK_TYPES, DEPLOY_CAP, QUALITY_BUMP, SHAPE_ADJUST, CATALOG_VERSION,
 } from './kernel.mjs';
 import { Buffer } from 'node:buffer';
 
@@ -741,4 +742,146 @@ test('scorecardSignable: the signed bytes exclude the signature and nothing else
   // refuses non-receipts
   assert.equal(scorecardSignable({ kind: 'other', hash: 'x' }).ok, false);
   assert.equal(scorecardSignable({ kind: 'fallforgemint-scorecard' }).ok, false);   // no hash
+});
+
+test('sizeRecommendation: smallest rung that clears the bar — never upsells', () => {
+  // a pure classification job with a strict short shape → the 1B rung
+  const clsf = sizeRecommendation({ taskType: 'classify', outputShape: 'label' });
+  assert.equal(clsf.ok, true);
+  assert.equal(clsf.rung.tier, 0);
+  assert.equal(clsf.rung.band, '~1B');
+  assert.equal(clsf.model.id, LADDER[0].models[0].id);
+  assert.equal(clsf.approach, 'few-shot');            // free tier is enough
+  // code generation is genuinely bigger → ~32B, and it does NOT round down to please
+  const code = sizeRecommendation({ taskType: 'code' });
+  assert.equal(code.rung.tier, 4);
+  // the SAME task at a critical bar bumps up one rung, and the factor is shown
+  const strictCls = sizeRecommendation({ taskType: 'classify', outputShape: 'json', qualityBar: 'critical' });
+  assert.equal(strictCls.rung.tier, 1);
+  assert.ok(strictCls.factors.some((f) => /quality bar/.test(f.input)));
+  // extraction with a strict short shape stays small (shape subtracts, clamped >= 0)
+  const ext = sizeRecommendation({ taskType: 'extract', outputShape: 'label' });
+  assert.equal(ext.rung.tier, 0);
+});
+
+test('sizeRecommendation: deployment caps the rung honestly (no impossible advice)', () => {
+  // a reasoning job wants ~32B, but a phone can only run ~4B — it caps and SAYS so
+  const onPhone = sizeRecommendation({ taskType: 'reason', deployment: 'phone' });
+  assert.equal(onPhone.wantedTier, 4);
+  assert.equal(onPhone.rung.tier, 1);                 // capped to DEPLOY_CAP.phone
+  assert.equal(onPhone.capped, true);
+  assert.ok(onPhone.factors.some((f) => /capped/.test(String(f.effect))));
+  // on a server the same job is not capped
+  const onServer = sizeRecommendation({ taskType: 'reason', deployment: 'server' });
+  assert.equal(onServer.capped, false);
+  assert.equal(onServer.rung.tier, 4);
+  assert.equal(DEPLOY_CAP.phone < DEPLOY_CAP.server, true);
+});
+
+test('sizeRecommendation: real named models, a second opinion, and honesty — total on garbage', () => {
+  const r = sizeRecommendation({ taskType: 'summarise', deployment: 'laptop' });
+  assert.equal(r.rung.tier, 2);
+  assert.equal(r.model.id, 'llama3.1:8b');
+  assert.ok(r.model.paramsB > 0 && typeof r.model.licence === 'string');
+  assert.equal(r.baseForMint, r.model.id);            // feeds straight into the mint's base field
+  assert.equal(r.secondOpinion.model.id, LADDER[3].models[0].id);   // one rung up, for A/B
+  assert.ok(r.honesty.includes('scorecard'));         // the proof is the scorecard, not the rung
+  assert.equal(r.catalogVersion, CATALOG_VERSION);
+  assert.ok(r.catalogNote.length > 20);               // provenance carried, not hidden
+  // top rung (uncapped) has no second opinion
+  assert.equal(sizeRecommendation({ taskType: 'frontier', deployment: 'server' }).secondOpinion, null);
+  // and when a frontier task is capped down to laptop, a one-rung-up second opinion IS offered honestly
+  assert.equal(sizeRecommendation({ taskType: 'frontier', deployment: 'laptop' }).capped, true);
+  // refusals — each guard isolated, and never a throw
+  assert.equal(sizeRecommendation('nope').ok, false);
+  assert.equal(sizeRecommendation({}).ok, false);
+  assert.equal(sizeRecommendation({ taskType: 'teleport' }).ok, false);
+  assert.equal(sizeRecommendation({ taskType: 'classify', qualityBar: 'perfect' }).ok, false);
+  assert.equal(sizeRecommendation({ taskType: 'classify', outputShape: 'haiku' }).ok, false);
+  assert.equal(sizeRecommendation({ taskType: 'classify', deployment: 'toaster' }).ok, false);
+});
+
+test('sizeRecommendation: tune vs few-shot boundaries, shape factors, reasoning + context edges', () => {
+  const S = (p) => sizeRecommendation({ deployment: 'server', ...p });
+  // tuneWanted is TRUE only at tier>=3 AND (strict|critical) AND >=20 examples — pin every edge
+  assert.equal(S({ taskType: 'summarise', qualityBar: 'strict', exampleCount: 20 }).approach, 'tune');  // tier 2+1=3 exactly (kills tier>=3 → tier>3)
+  assert.equal(S({ taskType: 'instruct', qualityBar: 'strict', exampleCount: 20 }).approach, 'tune');   // tier 3+1=4
+  assert.equal(S({ taskType: 'instruct', qualityBar: 'critical', exampleCount: 25 }).approach, 'tune');
+  assert.equal(S({ taskType: 'instruct', qualityBar: 'strict', exampleCount: 19 }).approach, 'few-shot'); // 19 < 20 (kills >=20 → >20)
+  assert.equal(S({ taskType: 'extract', qualityBar: 'strict', exampleCount: 50 }).approach, 'few-shot');   // tier 1+1=2 < 3 (kills tier>=3 → >3 and the first &&→||)
+  assert.equal(S({ taskType: 'instruct', qualityBar: 'standard', exampleCount: 50 }).approach, 'few-shot'); // standard, not strict/critical (kills === and ||→&&)
+  assert.equal(S({ taskType: 'reason', qualityBar: 'strict', exampleCount: 20 }).approach, 'tune');       // tier 4 >= 3 (kills tier>=3 → >3 needs a ==3 true AND >3 true; the ==3 case above covers <)
+  // exampleCount is echoed and total on nonsense (kills the isInt guard both ways)
+  assert.equal(S({ taskType: 'classify', exampleCount: 7 }).exampleCount, 7);
+  assert.equal(S({ taskType: 'classify', exampleCount: 'lots' }).exampleCount, 0);
+  assert.equal(S({ taskType: 'classify' }).exampleCount, 0);
+  // shape factor: sa=0 shapes add NO shape factor; sa!=0 shapes DO, with the right sign (kills !==0→===0 and the sign)
+  const jsonShape = S({ taskType: 'summarise', outputShape: 'json' });
+  assert.equal(jsonShape.factors.some((f) => /output shape/.test(f.input)), false);
+  const longShape = S({ taskType: 'summarise', outputShape: 'longform' });
+  const lf = longShape.factors.find((f) => /output shape/.test(f.input));
+  assert.ok(lf && /\+1/.test(lf.effect));                     // longform is +1 rung
+  const labelShape = S({ taskType: 'summarise', outputShape: 'label' });
+  const lb = labelShape.factors.find((f) => /output shape/.test(f.input));
+  assert.ok(lb && /-1/.test(lb.effect));                      // label is -1 rung
+  // needsReasoning bumps ONLY when the base task tier is below 4 (kills baseTier<4 → <=4)
+  assert.equal(S({ taskType: 'summarise', needsReasoning: true }).rung.tier, 3);   // 2 + 1
+  assert.equal(S({ taskType: 'reason', needsReasoning: true }).rung.tier, 4);      // baseTier 4: no bump (4<4 false, not 4<=4)
+  assert.equal(S({ taskType: 'summarise', needsReasoning: false }).rung.tier, 2);  // false → no bump (kills ===true drift)
+  // contextNote fires strictly above 8000 tokens and only for a numeric value (kills >8000→>=8000 and &&→||)
+  assert.equal(S({ taskType: 'classify', contextTokens: 8001 }).contextNote === null, false);
+  assert.equal(S({ taskType: 'classify', contextTokens: 8000 }).contextNote, null);   // exactly 8000 → no note
+  assert.equal(S({ taskType: 'classify', contextTokens: 5000 }).contextNote, null);   // numeric but low → no note (kills &&→||)
+  assert.equal(S({ taskType: 'classify' }).contextNote, null);                        // absent → no note
+  // the deployment cap boundary: tier === cap is NOT capped (kills tier>cap → tier>=cap)
+  const atCap = sizeRecommendation({ taskType: 'code', deployment: 'laptop' });        // tier 4 === laptop cap 4
+  assert.equal(atCap.rung.tier, 4);
+  assert.equal(atCap.capped, false);
+});
+
+test('LADDER + maps: the ladder is well-formed, ascending, and every task tier is reachable', () => {
+  assert.equal(LADDER.length, 7);
+  for (let i = 0; i < LADDER.length; i++) {
+    assert.equal(LADDER[i].tier, i);                  // index === tier
+    assert.ok(LADDER[i].models.length >= 1);
+    for (const m of LADDER[i].models) {
+      assert.ok(typeof m.id === 'string' && m.id.length > 0);
+      assert.ok(m.paramsB > 0);
+      assert.ok(typeof m.licence === 'string' && m.licence.length > 0);
+    }
+    if (i > 0) assert.ok(LADDER[i].approxParamsB > LADDER[i - 1].approxParamsB);   // strictly ascending
+  }
+  // every task tier points at a real rung
+  for (const t of Object.values(TASK_TIER)) assert.ok(t >= 0 && t <= 6 && LADDER[t]);
+  assert.ok(TASK_TYPES.length === Object.keys(TASK_TIER).length);
+  // the shape/quality maps only ever nudge, never wildly
+  for (const v of Object.values(QUALITY_BUMP)) assert.ok(v >= 0 && v <= 1);
+  for (const v of Object.values(SHAPE_ADJUST)) assert.ok(v >= -1 && v <= 1);
+});
+
+// The shipped narrow-true claim must never drift to a hermetic/sealed/memorised over-claim. This asserts
+// the guarantee on the REAL committed receipt path (heldOutClaim / keyClass / scope), so a future edit that
+// upgrades the wording fails the build — the anti-drift guard the estate requires to survive.
+test('anti-drift guard: the shipped scorecard claim carries no over-reach', () => {
+  const FORBIDDEN = /hermetic|sealed|memoris|memoriz|tamper-proof|unforgeable|uncheatable|cannot have been|impossible to (?:cheat|fake|game|leak)/i;
+  const mf = 'FROM llama3.2:1b\nSYSTEM """do one job"""\nMESSAGE user """train in"""\nMESSAGE assistant """train out"""\n';
+  const disj = holdoutDisjoint([{ correct: 'held-answer-zzz' }], mf);   // answer NOT in the spec → claim ships
+  assert.equal(disj.excludedFromSpec, true);
+  const built = scorecardReceipt({
+    base: 'llama3.2:1b', modelFingerprint: 'a'.repeat(64), taskHash: 'b'.repeat(64), evidenceHash: 'c'.repeat(64),
+    sc: { n: 2, baseHits: 0, mintedHits: 2, verdict: 'BEATS' }, createdAt: 't',
+    holdoutHash: disj.holdoutHash, holdoutExcludedFromSpec: disj.excludedFromSpec,
+  });
+  const r = built.receipt;
+  assert.ok(r.heldOutClaim && r.heldOutClaim.length > 20);        // the narrow-true claim is present
+  assert.equal(FORBIDDEN.test(r.heldOutClaim), false);           // and free of every over-reach token
+  assert.equal(FORBIDDEN.test(r.scope), false);                  // so is the scope
+  assert.equal(r.keyClass, 'software-ed25519');                  // honest key-class label survives
+  // and the claim genuinely only ships when the answers are provably excluded (never otherwise)
+  const leaked = scorecardReceipt({
+    base: 'b', modelFingerprint: 'a'.repeat(64), taskHash: 'b'.repeat(64), evidenceHash: 'c'.repeat(64),
+    sc: { n: 1, baseHits: 0, mintedHits: 1, verdict: 'BEATS' }, createdAt: 't',
+    holdoutHash: 'd'.repeat(64), holdoutExcludedFromSpec: false,
+  });
+  assert.equal('heldOutClaim' in leaked.receipt, false);         // no exclusion proof → no claim
 });
