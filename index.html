@@ -40,7 +40,7 @@
       "serviceType": "Custom small-model minting (own, don't rent)",
       "provider": { "@type": "Organization", "name": "AI-Native Solutions" },
       "areaServed": "Worldwide",
-      "description": "Bring one repetitive task you feed a large rented AI model. We mint you a small model specialised to it, prove it beats its baseline with a signed receipt, and hand you a model you own and run privately."
+      "description": "Bring one repetitive task you feed a large rented AI model. We mint you a small model specialised to it, measure it against its baseline with a signed receipt that can say it lost, and hand you a model you own and run privately."
     },
     {
       "@type": "FAQPage",
@@ -48,8 +48,8 @@
         { "@type": "Question", "name": "Do I really own the model?", "acceptedAnswer": { "@type": "Answer", "text": "Yes. The mint produces a Modelfile — a plain text recipe — that you run on your own machine with a free tool called Ollama. The resulting model lives on your computer. There is no account, no per-token bill, and it keeps working with your internet off." } },
         { "@type": "Question", "name": "Do I need to be technical?", "acceptedAnswer": { "@type": "Answer", "text": "No. You paste your task and a few examples and press one button. To run the model yourself you install a free app and paste two lines we give you, step by step. If you would rather not, we can set it up for you." } },
         { "@type": "Question", "name": "Is my data safe?", "acceptedAnswer": { "@type": "Answer", "text": "Yes. Everything on this page runs inside your own browser. Your task and examples are never sent to us or anyone else. The model you build runs on your machine." } },
-        { "@type": "Question", "name": "What is the catch with owning instead of renting?", "acceptedAnswer": { "@type": "Answer", "text": "A small owned model is cheaper and private, but it is specialised — brilliant at the one job you trained it on, not a general chatbot. For a narrow, repetitive, high-volume task that is exactly what you want. The calculator on this page shows, honestly, when renting is actually the better deal." } },
-        { "@type": "Question", "name": "How do I know it is any good?", "acceptedAnswer": { "@type": "Answer", "text": "Every minted node is measured against its starting point by a deterministic gate, and the result is written into a signed receipt that can — and sometimes does — say it lost. You can re-check that proof yourself in your browser on this page. Nobody renting you a black box can offer that." } },
+        { "@type": "Question", "name": "What is the catch with owning instead of renting?", "acceptedAnswer": { "@type": "Answer", "text": "A small owned model is private and, at enough volume, cheaper — but it is specialised: built for the one job you gave it examples of, not a general chatbot. For a narrow, repetitive, high-volume task that is exactly what you want. The calculator on this page shows, honestly, when renting is actually the better deal." } },
+        { "@type": "Question", "name": "How do I know it is any good?", "acceptedAnswer": { "@type": "Answer", "text": "Every minted node is measured against its starting point by a deterministic gate, and the result is written into a signed receipt that can — and sometimes does — say it lost. You can re-check that proof yourself in your browser on this page." } },
         { "@type": "Question", "name": "What does it cost?", "acceptedAnswer": { "@type": "Answer", "text": "Building and downloading your Modelfile here is free — you own it, with no account and no per-token bill. If you would rather we set it up and proved it for you, that is a service we offer too." } }
       ]
     }
@@ -203,18 +203,18 @@
     <a class="btn ghost" href="#verify">See the proof it's real</a>
     <a class="btn ghost" href="https://www.ai-nativesolutions.com/explainer.html#film">▶ Watch the 90-second film</a>
   </div>
-  <p class="note">Honest about what this is: your model is <b>specialised</b> — excellent at the one job you give it, not a general chatbot. That's the point, and it's why it can be small, private and cheap.</p>
+  <p class="note">Honest about what this is: your model is <b>specialised</b> — built for the one job you give it, not a general chatbot. That's the point, and it's why it can be small, private and cheap.</p>
 </div></section>
 
 <!-- ELITE INSTRUCTIONS — the 4-step path, dead clear -->
 <section id="start"><div class="wrap">
   <div class="eyebrow">How to use this — 4 steps</div>
-  <h2 class="sec">Dump your job in. Walk out with the right model, proven.</h2>
+  <h2 class="sec">Dump your job in. Walk out with a sized model and an honest scorecard.</h2>
   <p class="sub">You don't need to know which model, or how big. That's the first thing this does for you — then it mints it, proves it on your own data, and hands you a signed receipt. All in your browser.</p>
   <ol class="steps" style="margin-top:20px;max-width:74ch">
     <li><b>Describe the job + your load.</b> Pick the kind of work, the answer shape, how strict it must be and where it'll run. <a href="#sizer">Size it below</a>.</li>
-    <li><b>Get the right open-weight model.</b> You get the <b>smallest</b> model that should meet your bar — named, real, across the ladder from ~1B to ~200B — with the reasoning shown. Never an upsell.</li>
-    <li><b>Mint it + prove it on your data.</b> Turn a few real examples into a private model, then watch it try to beat the base on examples it never saw. It can say it lost.</li>
+    <li><b>Get a sized open-weight model.</b> You get the <b>smallest</b> model that should meet your bar — named, real, across the ladder from ~1B to ~200B — with the reasoning shown. Never an upsell.</li>
+    <li><b>Mint it + prove it on your data.</b> Turn a few real examples into a private model, then watch it try to beat the base on examples kept out of its spec. It can say it lost.</li>
     <li><b>Own it, with a receipt.</b> Download a one-file model you run locally — plus a signed, re-runnable scorecard (the trust rail) you can hand your CFO.</li>
   </ol>
 </div></section>
@@ -223,7 +223,7 @@
 <section id="sizer"><div class="wrap">
   <div class="eyebrow">The sizer · company data in, sized model out</div>
   <h2 class="sec">Which open-weight model do you actually need?</h2>
-  <p class="sub">Everyone sells you the model or the hosting. Almost nobody tells you <b>which size is enough</b>. This does — biased to the <b>smallest model that clears your bar</b> (a 1B answer says 1B), with every factor shown. It's a starting point to mint and prove, not a benchmark.</p>
+  <p class="sub">This tells you <b>which size is enough</b> — biased to the <b>smallest model that should clear your bar</b> (a 1B answer says 1B), with every factor shown. It's a starting point to mint and prove, not a benchmark.</p>
 
   <div class="card grid" style="margin-top:22px;grid-template-columns:1fr 1fr;gap:22px">
     <div>
@@ -261,7 +261,7 @@
 
 <!-- THE WORKING MINT -->
 <section id="mint"><div class="wrap">
-  <div class="eyebrow">The 60-second mint</div>
+  <div class="eyebrow">The mint</div>
   <h2 class="sec">Tell it the job. Show it a few examples. Get your model.</h2>
   <p class="sub">Type what you want the model to do, then paste a handful of real examples of the job done right. Press the button and you'll get a real model recipe you can run on your own computer. Everything happens in your browser.</p>
 
@@ -328,7 +328,7 @@
     </div>
 
     <div class="own-panel">
-      <p style="margin:0 0 10px"><b style="color:var(--cream)">The easy way — one file.</b> <span class="muted">Download this installer and run it. It builds your model and starts it for you — no typing.</span></p>
+      <p style="margin:0 0 10px"><b style="color:var(--cream)">The one-file way.</b> <span class="muted">Download this installer and run it. It builds your model and starts it for you — no typing.</span></p>
       <div class="cta-row">
         <button class="btn forge" id="installBtn">⤓ Download one-click installer</button>
         <button class="btn ghost" id="dlBtn">Just the Modelfile</button>
@@ -352,7 +352,7 @@
       <h3 style="font-size:1.25rem;color:var(--cream)">◊ Prove it beats the base — on your own examples</h3>
       <span class="pill brass">live · in your browser</span>
     </div>
-    <p class="muted" style="font-size:.92rem;margin-top:8px">This holds back one or two of your examples, then runs the plain base model and your minted model on them — examples your model never saw — and grades both against your correct answers. It can, and sometimes will, say your model tied or lost. That's the honesty that makes the win mean something.</p>
+    <p class="muted" style="font-size:.92rem;margin-top:8px">This holds back one or two of your examples, then runs the plain base model and your minted model on them — examples that weren't in your model's spec — and grades both against your correct answers. It can, and sometimes will, say your model tied or lost. That's the honesty that makes the win mean something.</p>
     <div class="cta-row" style="margin-top:14px">
       <button class="btn forge" id="proveBtn">Run the proof</button>
     </div>
@@ -386,10 +386,10 @@
   <div class="card" style="margin-top:22px">
     <div class="grid g3">
       <div class="stat"><div class="n" id="vNode">review-1b</div><div class="l">the minted model</div></div>
-      <div class="stat"><div class="n" style="color:var(--good)">BEATS +31pts</div><div class="l">vs its own starting model, certified</div></div>
+      <div class="stat"><div class="n" style="color:var(--good)">BEATS +31pts</div><div class="l">vs its own starting model — passed its gate</div></div>
       <div class="stat"><div class="n" style="color:var(--bad)">LOSES</div><div class="l">vs a model 7× its size — shown honestly</div></div>
     </div>
-    <p class="muted" style="font-size:.9rem;margin-top:14px">That second line is the point: the receipt is allowed to say the model <b>lost</b>. A measurement you can't fail isn't a measurement. Renting a black box gives you no receipt at all.</p>
+    <p class="muted" style="font-size:.9rem;margin-top:14px">That second line is the point: the receipt is allowed to say the model <b>lost</b>. A measurement you can't fail isn't a measurement.</p>
 
     <div class="cta-row" style="margin-top:18px">
       <button class="btn forge" id="checkBtn">Re-check the proof</button>
@@ -580,12 +580,12 @@
   <p class="sub">No jargon. Here is the whole journey, start to finish.</p>
   <ol class="steps" style="margin-top:20px;max-width:72ch">
     <li><b>You describe one job.</b> Something you currently ask a big AI to do over and over — sorting messages, pulling facts out of text, tagging things, drafting the same kind of reply.</li>
-    <li><b>The sizer picks the right model.</b> From the kind of work, the answer shape, how strict it must be and where it'll run, it recommends the <b>smallest</b> open-weight model that should clear your bar — from ~1B up to ~200B — and shows exactly why. It never rounds up to sell you a bigger one.</li>
-    <li><b>You show it a few examples.</b> Three to eight is plenty. Each one is an input and the answer you'd want back. This is how the model learns your exact style.</li>
+    <li><b>The sizer suggests a starting model.</b> From the kind of work, the answer shape, how strict it must be and where it'll run, it recommends the <b>smallest</b> open-weight model that should clear your bar — from ~1B up to ~200B — and shows exactly why. It never rounds up to sell you a bigger one.</li>
+    <li><b>You show it a few examples.</b> Start with three to eight. Each one is an input and the answer you'd want back — they show the model what you want.</li>
     <li><b>Your browser builds a recipe.</b> Right here, with nothing sent anywhere, it writes a <b>Modelfile</b> — a short, plain recipe that bakes your job and your examples into a small model.</li>
-    <li><b>It proves itself on data it never saw.</b> It holds out some of your examples, runs both the base model and yours on them, and scores them. You get a <b>signed scorecard</b> with the honest small print: what the signature proves (the numbers are unedited), that the held-out answers were <b>not</b> in the spec the model was given (hash-disjoint), and that anyone can re-run the eval. It's allowed to say your model lost.</li>
+    <li><b>It proves itself on examples kept out of its spec.</b> It holds out some of your examples, runs both the base model and yours on them, and scores them. You get a <b>signed scorecard</b> with the honest small print: what the signature proves (the numbers are unedited), that the held-out answers were <b>not</b> in the spec the model was given (hash-disjoint), and that anyone can re-run the eval. It's allowed to say your model lost.</li>
     <li><b>You run two lines to make it yours.</b> You install a free app called Ollama, and paste the two lines we give you. Now a private model that does your job lives on your own computer — no monthly bill, no per-use charge, working with the internet switched off.</li>
-    <li><b>If you'd rather not touch any of that</b>, we'll do it for you and prove the result beats your starting point with an issuer-signed receipt.</li>
+    <li><b>If you'd rather not touch any of that</b>, we'll do it for you and measure the result against your starting point, with an issuer-signed receipt.</li>
   </ol>
 </div></section>
 
@@ -597,8 +597,8 @@
     <details class="faq" open><summary>Do I really own the model?</summary><p>Yes. The mint produces a Modelfile — a plain text recipe — that you run on your own machine with a free tool called Ollama. The resulting model lives on your computer. There's no account, no per-token bill, and it keeps working with your internet off.</p></details>
     <details class="faq"><summary>Do I need to be technical?</summary><p>No. You paste your task and a few examples and press one button. To run the model yourself you install a free app and paste two lines we give you, step by step. If you'd rather not, we can set it up for you.</p></details>
     <details class="faq"><summary>Is my data safe?</summary><p>Yes. Everything on this page runs inside your own browser. Your task and examples are never sent to us or anyone else. The model you build runs on your machine.</p></details>
-    <details class="faq"><summary>What's the catch with owning instead of renting?</summary><p>A small owned model is cheaper and private, but it's specialised — brilliant at the one job you trained it on, not a general chatbot. For a narrow, repetitive, high-volume task that's exactly what you want. The calculator above shows, honestly, when renting is actually the better deal.</p></details>
-    <details class="faq"><summary>How do I know it's any good?</summary><p>Every minted node is measured against its starting point by a deterministic gate, and the result is written into a signed receipt that can — and sometimes does — say it lost. You can re-check that proof yourself in your browser, in the Proof section above. Nobody renting you a black box can offer that.</p></details>
+    <details class="faq"><summary>What's the catch with owning instead of renting?</summary><p>A small owned model is private and, at enough volume, cheaper — but it's specialised: built for the one job you gave it examples of, not a general chatbot. For a narrow, repetitive, high-volume task that's exactly what you want. The calculator above shows, honestly, when renting is actually the better deal.</p></details>
+    <details class="faq"><summary>How do I know it's any good?</summary><p>Every minted node is measured against its starting point by a deterministic gate, and the result is written into a signed receipt that can — and sometimes does — say it lost. You can re-check that proof yourself in your browser, in the Proof section above.</p></details>
     <details class="faq"><summary>What does it cost?</summary><p>Building and downloading your Modelfile here is free — you own it, with no account and no per-token bill. If you'd rather we set it up and proved it for you, that's a service we offer too.</p></details>
   </div>
 </div></section>
@@ -1947,7 +1947,7 @@ async function runProof(){
   if (!plan.ok){ bad('⚠ ' + plan.why + ' (the proof needs at least two examples — one to learn from, one to test on).'); return; }
   const minted = specFromTask($('task').value, plan.train, $('base').value);
   if (!minted.ok){ bad('⚠ ' + minted.why); return; }
-  out.innerHTML = '<span class="muted">Loading a small model and testing on ' + plan.holdout.length + ' held-out example' + (plan.holdout.length>1?'s':'') + ' your model never saw…</span>';
+  out.innerHTML = '<span class="muted">Loading a small model and testing on ' + plan.holdout.length + ' held-out example' + (plan.holdout.length>1?'s':'') + ' kept out of your model\'s spec…</span>';
   $('proveBtn').disabled = true;
   try{
     await ensureEngine();
@@ -2188,7 +2188,7 @@ function applyVersion(c){
   $('tuneOut').innerHTML = '<span class="pill good">✓ Applied “' + esc(c.label) + '”. Your Modelfile and installer above now use this version.</span>';
   $('mintOut').scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
-// ── the sizer: company data in → the smallest open-weight model that clears the bar ──────────────────
+// ── the sizer: company data in → the smallest open-weight model that should clear the bar ──────────────────
 // Options are drawn from the gated kernel's own maps (TASK_TIER / SHAPE_ADJUST / QUALITY_BUMP / DEPLOY_CAP)
 // and filtered by presence, so the UI can never offer a value the kernel would reject — one kernel, one truth.
 const TASK_OPTS = [
