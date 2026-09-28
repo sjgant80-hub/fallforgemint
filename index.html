@@ -195,6 +195,7 @@
 <!-- HERO -->
 <section class="hero"><div class="wrap">
   <div class="eyebrow">◊ Own the model · don't rent it</div>
+  <p class="note" style="margin:0 0 12px"><!-- ⟦LAUNCH⟧ --><b>Launched 28 September 2026</b> · <a href="https://github.com/sjgant80-hub/fallforgemint/releases/tag/v1.0.0" target="_blank" rel="noopener">v1.0.0 release notes</a>, with a real CI-minted scorecard and the runs that re-check it<!-- ⟦/LAUNCH⟧ --></p>
   <h1>Bring one job you do a lot.<br /><span class="em">Walk out owning the model that does it.</span></h1>
   <p class="lede">You are renting a giant AI model by the token to do a small, repetitive job. FallForge Mint turns a few of your own examples into a <b>private model that does just that job</b> — one you own, run on your own machine, and never pay per use again. Try it free below. Nothing to sign up for. Your examples never leave your browser.</p>
   <div class="cta-row">
@@ -506,7 +507,7 @@
         <li><span class="pill good" style="font-size:.68rem">live</span> A <b>signed scorecard</b> — tamper-evident, re-hash to check nobody edited the numbers</li>
         <li><span class="pill good" style="font-size:.68rem">live</span> <b>keyClass</b> stated honestly: a browser key proves the numbers are unedited, not who ran the eval</li>
         <li><span class="pill good" style="font-size:.68rem">live</span> <b>Held-out, hash-disjoint</b>: the held-out answers are provably not in the spec the model was given (narrow-true, few-shot)</li>
-        <li><span class="pill good" style="font-size:.68rem">live</span> <b>Re-run in your browser</b> — the eval is deterministic; anyone can reproduce the scores</li>
+        <li><span class="pill good" style="font-size:.68rem">live</span> <b>Re-run in your browser</b> — the grading is deterministic (no model judges it), so anyone can re-check the scores</li>
         <li><span class="pill good" style="font-size:.68rem">live</span> <b>Re-run in CI</b> — download a re-run bundle and a clean GitHub runner rebuilds the model, re-runs the held-out set and checks it against the signed record; a mismatch fails the job. <a href="#rerun">How</a></li>
         <li><span class="pill good" style="font-size:.68rem">live</span> An <b>own-vs-rent</b> calculator that says <i>keep renting</i> when that's genuinely cheaper</li>
       </ul>

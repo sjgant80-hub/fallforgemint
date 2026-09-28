@@ -39,7 +39,7 @@ for (const f of html) {
   // The CI re-run rail is part of this product, not another one: it runs from this repo's own source
   // (fallforgemint) and outsiders start from its template (fallforgemint-rerun). Linking those two — and only
   // those two — is how a stranger re-runs a scorecard without trusting us; every other repo stays forbidden.
-  const RAIL = /^https:\/\/github\.com\/sjgant80-hub\/fallforgemint(?:-rerun)?(?:\/(?:actions\/runs\/[1-9][0-9]*|blob\/main\/[A-Za-z0-9._\/-]+))?$/;
+  const RAIL = /^https:\/\/github\.com\/sjgant80-hub\/fallforgemint(?:-rerun)?(?:\/(?:actions\/runs\/[1-9][0-9]*|blob\/main\/[A-Za-z0-9._\/-]+|releases\/tag\/v[0-9]+\.[0-9]+\.[0-9]+))?$/;
   for (const m of markup.matchAll(/(?:href|src)="([^"]*)"/g)) {
     const url = m[1];
     // 4. no cross-repo links — this product is self-contained. Its own canonical URL (used by

@@ -2,6 +2,8 @@
 
 **▶ LIVE: https://sjgant80-hub.github.io/fallforgemint/**
 
+**Launched 28 September 2026 — [v1.0.0](https://github.com/sjgant80-hub/fallforgemint/releases/tag/v1.0.0)**: the release carries a real CI-minted scorecard (4/5 vs its base 0/5, BEATS, link BOUND) and the CI runs that pass it and fail its forgeries.
+
 <!-- film-2026-09 -->
 **▶ [Watch the 90-second film](https://www.ai-nativesolutions.com/explainer.html#film)** — size it, mint it, prove it, own it; then the whole estate · [The brochure (PDF)](https://www.ai-nativesolutions.com/fall-os-prospectus.pdf) · [Every number, sourced](https://www.ai-nativesolutions.com/explainer.html#facts)
 
