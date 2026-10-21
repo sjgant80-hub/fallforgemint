@@ -92,4 +92,12 @@ What it shows and what it doesn't: every recorded number is recomputed, and the 
 
 The free mint here is **prompt-/few-shot tuning** at the Modelfile level: a real, owned, reproducible specialist — not weight fine-tuning. Weight-level tuning is the paid, done-for-you tier. The economics calculator will tell you to **keep renting** when that's genuinely cheaper. Regulated work (legal, tax, medical, financial) is off the menu — counsel first.
 
+## Credit
+
+Proving a model on examples kept out of its spec and re-running the scorecard on a neutral machine instead of trusting it — a recorded score can be held steady and still be wrong — and a receipt allowed to say **LOSES** or **DID_NOT_REPRODUCE**, draw on the Guided Entropy Principle (GEP) result that **a stable system can stabilize a wrong reference**:
+
+> Gary W. Floyd, Lumiea Systems Research Division — ThunderStruck Service LLC — "From GEP Stabilization to Dual-Map Ethical Reasoning: A derivation of positive ethical evidence, negative ethical evidence, and non-legal moral reasoning," Derivation v0.2. Open Defensive Prior Art (Creative Commons).
+
+FallForge Mint itself — the kernel, the page, the re-run rail — is AI-Native Solutions' own work. Powered by the Konomi architecture, created by Thomas Frumkin. See [NOTICE](NOTICE).
+
 Published by AI-Native Solutions. MIT. ◊·κ=1.
