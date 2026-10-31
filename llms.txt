@@ -40,7 +40,6 @@ Everything runs in your browser. Your task and examples are never sent anywhere.
 AI-Native Solutions
 - Product: FallForge Mint
 - Licence: MIT
-- Doctrine: Konomi (◊·κ=1)
 - Architecture: powered by the Konomi architecture, created by Thomas Frumkin
 - Draws on: Gary W. Floyd, Lumiea Systems Research Division — ThunderStruck Service LLC — "From GEP Stabilization to Dual-Map Ethical Reasoning: A derivation of positive ethical evidence, negative ethical evidence, and non-legal moral reasoning," Derivation v0.2. Open Defensive Prior Art (Creative Commons). The held-out scorecard, the neutral-machine re-run and a receipt allowed to say LOSES or DID_NOT_REPRODUCE draw on its result that a stable system can stabilize a wrong reference (a recorded score can be held steady and still be wrong). FallForge Mint itself is AI-Native Solutions' own work.
 
