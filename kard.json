@@ -1,0 +1,29 @@
+{
+  "kind": "kard.v1",
+  "name": "fallforgemint",
+  "title": "FallForge Mint · bring your task, walk out owning the model",
+  "retires": "renting a model for one task",
+  "category": "AI you own",
+  "license": "MIT",
+  "live": "https://sjgant80-hub.github.io/fallforgemint/",
+  "repo": "https://github.com/sjgant80-hub/fallforgemint",
+  "studs": {
+    "brain": {
+      "how": "none",
+      "version": null
+    },
+    "mesh": {
+      "device": false,
+      "peer": false
+    },
+    "memory": {
+      "indexeddb": false,
+      "localstorage": false
+    },
+    "proof": {
+      "workflows": 2,
+      "tests": 1
+    }
+  },
+  "fits": false
+}
