@@ -1,0 +1,24 @@
+{
+  "about": "Measured on GitHub's runner by the gate on every push: each organ's tests, then its witness mutation gate. tools/facts.mjs writes this file from those runs and the gate fails if the committed copy differs. The page reads it.",
+  "witness": "sjgant80-hub/witness v0.6",
+  "organs": [
+    {
+      "file": "kernel.mjs",
+      "tests": 71,
+      "mutants": 377,
+      "killed": 376,
+      "equivalent": 1,
+      "survived": 0,
+      "score": 0.997
+    },
+    {
+      "file": "costcase.mjs",
+      "tests": 12,
+      "mutants": 24,
+      "killed": 24,
+      "equivalent": 0,
+      "survived": 0,
+      "score": 1
+    }
+  ]
+}

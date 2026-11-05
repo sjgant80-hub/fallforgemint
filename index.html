@@ -33,12 +33,12 @@
         "In-browser live preview, nothing to install",
         "Every result carries its own signed, checkable proof"
       ],
-      "publisher": { "@type": "Organization", "name": "AI-Native Solutions" }
+      "publisher": { "@type": "Organization", "name": "AI Native Solutions", "url": "https://www.ai-nativesolutions.com" }
     },
     {
       "@type": "Service",
       "serviceType": "Custom small-model minting (own, don't rent)",
-      "provider": { "@type": "Organization", "name": "AI-Native Solutions" },
+      "provider": { "@type": "Organization", "name": "AI Native Solutions", "url": "https://www.ai-nativesolutions.com" },
       "areaServed": "Worldwide",
       "description": "Bring one repetitive task you feed a large rented AI model. We mint you a small model specialised to it, measure it against its baseline with a signed receipt that can say it lost, and hand you a model you own and run privately."
     },
@@ -50,6 +50,7 @@
         { "@type": "Question", "name": "Is my data safe?", "acceptedAnswer": { "@type": "Answer", "text": "Yes. Everything on this page runs inside your own browser. Your task and examples are never sent to us or anyone else. The model you build runs on your machine." } },
         { "@type": "Question", "name": "What is the catch with owning instead of renting?", "acceptedAnswer": { "@type": "Answer", "text": "A small owned model is private and, at enough volume, cheaper — but it is specialised: built for the one job you gave it examples of, not a general chatbot. For a narrow, repetitive, high-volume task that is exactly what you want. The calculator on this page shows, honestly, when renting is actually the better deal." } },
         { "@type": "Question", "name": "How do I know it is any good?", "acceptedAnswer": { "@type": "Answer", "text": "Every minted node is measured against its starting point by a deterministic gate, and the result is written into a signed receipt that can — and sometimes does — say it lost. You can re-check that proof yourself in your browser on this page." } },
+        { "@type": "Question", "name": "Who supplies it, and who supports it?", "acceptedAnswer": { "@type": "Answer", "text": "AI Native Solutions — start at https://www.ai-nativesolutions.com. The code is MIT-licensed and keeps running without us. Support, service levels, warranty and liability for a deployment are agreed in that deployment's agreement." } },
         { "@type": "Question", "name": "What does it cost?", "acceptedAnswer": { "@type": "Answer", "text": "Building and downloading your Modelfile here is free — you own it, with no account and no per-token bill. If you would rather we set it up and proved it for you, that is a service we offer too." } }
       ]
     }
@@ -80,7 +81,7 @@
   nav.top{margin-left:auto;display:flex;gap:20px;font-size:.9rem}
   nav.top a{color:var(--dim)}
   nav.top a:hover{color:var(--ink);text-decoration:none}
-  @media(max-width:760px){nav.top{display:none}}
+  @media(max-width:1020px){nav.top{display:none}}
   section{padding:64px 0;border-bottom:1px solid var(--line)}
   .eyebrow{font-family:var(--mono);font-size:.74rem;letter-spacing:.18em;text-transform:uppercase;color:var(--forge);margin-bottom:14px}
   .hero h1{font-size:clamp(2.3rem,6vw,3.9rem)}
@@ -175,18 +176,65 @@
   .verdict-box .big{font-family:var(--serif);font-size:1.3rem}
   .verdict-box .kvline{font-size:.86rem;color:var(--dim);margin-top:4px}
   .verdict-box .kvline b{color:var(--cream)}
+  /* how it works · the traced flow */
+  .flow-wrap{display:grid;grid-template-columns:minmax(0,460px) minmax(0,1fr);gap:22px;align-items:start;margin-top:22px}
+  .flow-wrap > *{min-width:0}
+  @media(max-width:900px){.flow-wrap{grid-template-columns:minmax(0,1fr)}}
+  svg.flow{width:100%;height:auto;display:block}
+  svg.flow .box{fill:var(--panel);stroke:var(--line);stroke-width:1}
+  svg.flow .box.hot{stroke:var(--forge)}
+  svg.flow .box.ok{stroke:rgba(86,184,119,.6)}
+  svg.flow .box.bad{stroke:rgba(224,106,95,.7)}
+  svg.flow .n{fill:var(--forge);font-family:var(--serif);font-size:13px;font-weight:700}
+  svg.flow .t{fill:var(--cream);font-family:var(--sans);font-size:12.5px;font-weight:700}
+  svg.flow .v{fill:var(--ink);font-family:var(--mono);font-size:10.5px}
+  svg.flow .f{fill:var(--dim);font-family:var(--mono);font-size:9.5px}
+  svg.flow .arrow{stroke:var(--forge);stroke-width:1.4;fill:none}
+  svg.flow .head{fill:var(--forge)}
+  svg.flow .side{fill:var(--brass);font-family:var(--mono);font-size:9.5px}
+  .tbl-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+  table.proof-tbl td.wrap{font-family:var(--sans);font-size:.85rem;white-space:normal}
+  table.proof-tbl td.num,table.proof-tbl th.num{text-align:right;white-space:nowrap}
+  table.proof-tbl tr.ownrow td{color:var(--cream);background:rgba(224,123,62,.07)}
+  /* blueprint + brochure */
+  .organ code{font-family:var(--mono);font-size:.82em;color:var(--cream)}
+  .organ .fns{font-family:var(--mono);font-size:.76rem;color:var(--dim);line-height:1.55}
+  .roles{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:18px}
+  @media(max-width:820px){.roles{grid-template-columns:1fr}}
+  .role b{color:var(--cream);font-family:var(--serif);font-size:1.05rem}
+  .role p{margin:6px 0 0;color:#cfc9db;font-size:.93rem}
+  .costin{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px}
+  .costhead{font-size:1.08rem;color:var(--ink);margin:18px 0 6px}
+  .costhead b{color:var(--cream)} .costhead .win{color:var(--good)}
+  ul.facts{list-style:none;padding:0;margin:10px 0 0}
+  ul.facts li{padding:6px 0 6px 22px;position:relative;font-size:.93rem;color:#cfc9db}
+  ul.facts li::before{content:'◊';position:absolute;left:0;color:var(--forge)}
+  ul.facts li b{color:var(--cream)}
+  ul.srcs{padding-left:18px;margin:10px 0 0;font-size:.85rem;color:var(--dim)}
+  ul.srcs li{margin:4px 0}
+  dl.risks{margin:10px 0 0}
+  dl.risks dt{font-family:var(--serif);color:var(--cream);margin-top:14px}
+  dl.risks dd{margin:4px 0 0;color:#cfc9db;font-size:.93rem}
+  .boardcase{border-color:var(--brass)}
+  .boardcase p{color:var(--ink);margin:8px 0 0}
+  .paper{max-width:74ch}
+  .paper h3{font-size:1.15rem;color:var(--cream);margin-top:26px}
+  .paper p{color:#cfc9db}
+  .paper .abstract{border-left:3px solid var(--forge);padding-left:14px;color:var(--ink)}
+  .live{color:var(--cream);font-family:var(--mono);font-size:.9em}
 </style>
 </head>
 <body>
 <header class="site"><div class="wrap">
-  <span class="brand"><span class="glyph">◊</span> FallForge Mint <span class="co">AI-Native Solutions</span></span>
+  <span class="brand"><span class="glyph">◊</span> FallForge Mint <span class="co">AI Native Solutions</span></span>
   <nav class="top">
-    <a href="#sizer">Size it</a>
+    <a href="#start">Start here</a>
     <a href="#mint">Mint one</a>
     <a href="#verify">Proof</a>
-    <a href="#calc">Own vs rent</a>
-    <a href="#get">What you get</a>
-    <a href="#how">How</a>
+    <a href="#how">How it works</a>
+    <a href="#blueprint">Blueprint</a>
+    <a href="#business">For business</a>
+    <a href="#paper">Paper</a>
     <a href="#faq">FAQ</a>
   </nav>
 </div></header>
@@ -208,7 +256,7 @@
 
 <!-- ELITE INSTRUCTIONS — the 4-step path, dead clear -->
 <section id="start"><div class="wrap">
-  <div class="eyebrow">How to use this — 4 steps</div>
+  <div class="eyebrow">Start here · 4 steps</div>
   <h2 class="sec">Dump your job in. Walk out with a sized model and an honest scorecard.</h2>
   <p class="sub">You don't need to know which model, or how big. That's the first thing this does for you — then it mints it, proves it on your own data, and hands you a signed receipt. All in your browser.</p>
   <ol class="steps" style="margin-top:20px;max-width:74ch">
@@ -343,7 +391,7 @@
       <div class="cmd" id="cmd1">ollama create my-model -f Modelfile</div>
       <div class="cmd" id="cmd2">ollama run my-model</div>
     </details>
-    <p class="note">Want us to do all of this for you, and prove the model beats its starting point with a signed receipt? That's the <a href="#work">done-for-you option</a>.</p>
+    <p class="note">Want us to do all of this for you, and prove the model beats its starting point with a signed receipt? That's the <a href="#adopt">done-for-you option</a>.</p>
   </div>
 
   <!-- prove it on THEIR data -->
@@ -386,8 +434,8 @@
   <div class="card" style="margin-top:22px">
     <div class="grid g3">
       <div class="stat"><div class="n" id="vNode">review-1b</div><div class="l">the minted model</div></div>
-      <div class="stat"><div class="n" style="color:var(--good)">BEATS +31pts</div><div class="l">vs its own starting model — passed its gate</div></div>
-      <div class="stat"><div class="n" style="color:var(--bad)">LOSES</div><div class="l">vs a model 7× its size — shown honestly</div></div>
+      <div class="stat"><div class="n" style="color:var(--good)" id="vBeats">—</div><div class="l" id="vBeatsL">vs its own starting model — passed its gate</div></div>
+      <div class="stat"><div class="n" style="color:var(--bad)" id="vLoses">—</div><div class="l" id="vLosesL">vs a bigger model — shown honestly</div></div>
     </div>
     <p class="muted" style="font-size:.9rem;margin-top:14px">That second line is the point: the receipt is allowed to say the model <b>lost</b>. A measurement you can't fail isn't a measurement.</p>
 
@@ -446,16 +494,16 @@
 
   <div class="card grid" style="margin-top:22px;grid-template-columns:1fr 1fr;gap:22px">
     <div>
-      <label class="fld" for="c_calls">How many times a month do you run this task?</label>
-      <input type="number" id="c_calls" value="500000" min="1" />
+      <label class="fld" for="c_calls">How many times a month do you run this task? <span style="text-transform:none;letter-spacing:0">— it starts at the cost case below (<span id="c_calls_src">its cases a week</span>); put in yours</span></label>
+      <input type="number" id="c_calls" value="" min="1" />
       <label class="fld" style="margin-top:14px" for="c_tokens">Roughly how many tokens per run? (a token ≈ ¾ of a word, in + out)</label>
-      <input type="number" id="c_tokens" value="800" min="1" />
-      <label class="fld" style="margin-top:14px" for="c_rent">What you pay the rented model, £ per million tokens</label>
-      <input type="number" id="c_rent" value="4" min="0" step="0.5" />
+      <input type="number" id="c_tokens" value="" min="1" />
+      <label class="fld" style="margin-top:14px" for="c_rent">What you pay the rented model, £ per million tokens — it starts at <span id="c_rent_src">a published frontier API price</span>, blended for a short document in and a short answer out; put in yours</label>
+      <input type="number" id="c_rent" value="" min="0" step="0.01" />
       <label class="fld" style="margin-top:14px" for="c_setup">Your own one-off setup cost, £ — the hardware and time to run it yourself (0 if you already have the machine)</label>
       <input type="number" id="c_setup" value="0" min="0" step="50" />
-      <label class="fld" style="margin-top:14px" for="c_run">Cost to run your own node, £ per month</label>
-      <input type="number" id="c_run" value="60" min="0" step="10" />
+      <label class="fld" style="margin-top:14px" for="c_run">Cost to run your own node, £ per month — it starts at the electricity of a laptop you already use, left on all month; put in yours</label>
+      <input type="number" id="c_run" value="" min="0" step="0.01" />
       <label class="fld" style="margin-top:14px;display:flex;align-items:center;gap:8px;cursor:pointer">
         <input type="checkbox" id="c_recycle_on" style="width:auto" />
         Recycling on (the fold-cycle) — cheaper on repeated content
@@ -514,7 +562,7 @@
     </div>
     <div class="card price">
       <span class="pill">The estate on-ramp</span>
-      <p class="muted" style="font-size:.86rem;margin:2px 0 6px">Owning your model is the door into a sovereign stack. These are <b>separate products</b> — open each directly at the address shown; confirm the current status there.</p>
+      <p class="muted" style="font-size:.86rem;margin:2px 0 6px">Owning your model is the door into a sovereign stack. These are <b>separate products</b>, not bundled here and not linked from this self-contained page; ask AI Native Solutions for their current status.</p>
       <ul>
         <li><b>Run it</b> — hatch a private assistant around your models in <b>fall-os</b> <span class="muted">(fallworld / the live estate surface)</span></li>
         <li><b>Federate it</b> — real peer-to-peer, no server in the middle <span class="muted">(meshos / fallroom)</span></li>
@@ -526,67 +574,241 @@
   </div>
 </div></section>
 
-<!-- WORK WITH US -->
-<section id="work"><div class="wrap">
-  <div class="eyebrow">Work with us</div>
-  <h2 class="sec">Start free. Or have us do it for you.</h2>
-  <p class="sub">You can build and own a model here for nothing. If you'd rather we did the work — and proved it — we can do that too.</p>
-  <div class="grid g3" style="margin-top:22px">
-    <div class="card price">
-      <span class="pill">Do it yourself</span>
-      <div class="amt">Free</div>
-      <p class="muted" style="font-size:.9rem">Everything on this page, forever.</p>
-      <ul>
-        <li>Build your Modelfile above</li>
-        <li>Preview it live in your browser</li>
-        <li>Download it and own it outright</li>
-        <li>No account, no per-token bill</li>
-      </ul>
-      <a class="btn ghost" href="#mint">Mint one now</a>
+<!-- HOW IT WORKS — the real flow, traced live from a scorecard minted on a GitHub runner -->
+<section id="how"><div class="wrap">
+  <div class="eyebrow">How it works · traced from a real run</div>
+  <h2 class="sec">One job, from your examples to a scorecard anyone can re-run.</h2>
+  <p class="sub">This diagram is not a drawing of the idea. It is filled in, as you load the page, from a real scorecard minted on a GitHub runner — the same file the re-run rail is proven on — and your browser re-checks every number in it with the same code the mutation gate tests. Change one recorded answer below and watch the check fail.</p>
+
+  <div class="flow-wrap">
+    <div class="card" style="padding:14px">
+      <svg class="flow" viewBox="0 0 360 640" role="img" aria-labelledby="flowTitle flowDesc">
+        <title id="flowTitle">How FallForge Mint works, traced from a real CI-minted scorecard</title>
+        <desc id="flowDesc">Seven steps: your recipe, the Modelfile and its fingerprint, the held-out examples, base and minted graded, the signed scorecard, your browser re-checking it, and the neutral re-run in CI.</desc>
+        <defs><marker id="ah" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto"><path class="head" d="M0,0 L8,4 L0,8 z"/></marker></defs>
+        <g transform="translate(10,8)"><rect class="box hot" width="340" height="70" rx="10"/><text class="n" x="14" y="22">1</text><text class="t" x="32" y="22">Your recipe</text><text class="v" x="14" y="42" id="hw1a">a task and worked examples</text><text class="f" x="14" y="60" id="hw1b">typed on the page (here: the CI proof spec)</text></g>
+        <path class="arrow" d="M180,78 L180,96" marker-end="url(#ah)"/>
+        <g transform="translate(10,98)"><rect class="box" width="340" height="70" rx="10"/><text class="n" x="14" y="22">2</text><text class="t" x="32" y="22">The Modelfile, fingerprinted</text><text class="v" x="14" y="42" id="hw2a">specFromTask → assembleModelfile</text><text class="f" x="14" y="60" id="hw2b">sha256 of the exact bytes</text></g>
+        <path class="arrow" d="M180,168 L180,186" marker-end="url(#ah)"/>
+        <g transform="translate(10,188)"><rect class="box" width="340" height="70" rx="10"/><text class="n" x="14" y="22">3</text><text class="t" x="32" y="22">Held out of the spec</text><text class="v" x="14" y="42" id="hw3a">planProof keeps examples back</text><text class="f" x="14" y="60" id="hw3b">holdoutDisjoint: answers not in the spec</text></g>
+        <path class="arrow" d="M180,258 L180,276" marker-end="url(#ah)"/>
+        <g transform="translate(10,278)"><rect class="box" width="340" height="70" rx="10"/><text class="n" x="14" y="22">4</text><text class="t" x="32" y="22">Base and minted, both graded</text><text class="v" x="14" y="42" id="hw4a">gradeAnswer → scorecard</text><text class="f" x="14" y="60" id="hw4b">no model judges the answers</text></g>
+        <path class="arrow" d="M180,348 L180,366" marker-end="url(#ah)"/>
+        <g transform="translate(10,368)"><rect class="box" width="340" height="70" rx="10"/><text class="n" x="14" y="22">5</text><text class="t" x="32" y="22">The signed scorecard</text><text class="v" x="14" y="42" id="hw5a">scorecardReceipt → self-hashed</text><text class="f" x="14" y="60" id="hw5b">Ed25519 over scorecardSignable</text></g>
+        <path class="arrow" d="M180,438 L180,456" marker-end="url(#ah)"/>
+        <g transform="translate(10,458)"><rect class="box" id="hw6box" width="340" height="70" rx="10"/><text class="n" x="14" y="22">6</text><text class="t" x="32" y="22">Your browser re-checks it</text><text class="v" x="14" y="42" id="hw6a">verifyBundle recomputes every number</text><text class="f" x="14" y="60" id="hw6b">and WebCrypto checks the signature</text></g>
+        <path class="arrow" d="M180,528 L180,546" marker-end="url(#ah)"/>
+        <g transform="translate(10,548)"><rect class="box" width="340" height="84" rx="10"/><text class="n" x="14" y="22">7</text><text class="t" x="32" y="22">A neutral runner re-runs it</text><text class="v" x="14" y="42">re-verify → rerunLinkCheck → re-execute</text><text class="f" x="14" y="60">REPRODUCED · AGREES · TAMPERED · DID NOT REPRODUCE</text><text class="side" x="14" y="76" id="hw7b">the run this scorecard names</text></g>
+      </svg>
     </div>
-    <div class="card price feature">
-      <span class="pill brass">Done for you</span>
-      <div class="amt">You own it</div>
-      <p class="muted" style="font-size:.9rem">We do the work and prove it beats your baseline with a signed receipt.</p>
-      <ul>
-        <li>We mint, tune and prove one owned node</li>
-        <li>Weight-level tuning where it helps</li>
-        <li>A signed receipt — the proof it works</li>
-        <li>Set up private on your machine</li>
-        <li>You own it outright, no per-token bill</li>
-      </ul>
-      <a class="btn forge" href="#contact">Talk to us</a>
-    </div>
-    <div class="card price">
-      <span class="pill">Run it for you</span>
-      <div class="amt">Stays sharp</div>
-      <p class="muted" style="font-size:.9rem">We keep it sharp as your work changes.</p>
-      <ul>
-        <li>We host, watch and re-mint your nodes</li>
-        <li>Add new nodes as new jobs appear</li>
-        <li>Nodes that cross-check each other</li>
-        <li>Your own private AI stack, maintained</li>
-      </ul>
-      <a class="btn ghost" href="#contact">Talk to us</a>
+    <div>
+      <div class="card">
+        <h3 style="font-size:1.15rem;color:var(--cream)">◊ The trace, check by check</h3>
+        <p class="muted" style="font-size:.9rem;margin-top:6px" id="hwHead">Re-checking the CI-minted scorecard in your browser…</p>
+        <div class="tbl-scroll"><table class="proof-tbl" id="hwChecks"><thead><tr><th>Check</th><th>What is recomputed</th><th>Result</th></tr></thead><tbody></tbody></table></div>
+        <div class="cta-row" style="margin-top:14px">
+          <button class="btn ghost" id="hwForge" type="button">Rewrite the one wrong answer, then re-check</button>
+          <button class="btn ghost" id="hwReset" type="button">Back to the real record</button>
+        </div>
+        <p class="note" id="hwForgeNote">The button does what a forger would: it changes the minted model's one wrong answer to the right one. The page does not re-hash it — the rail's proof shows a forger who does is still caught, on the CI run's link and on re-execution.</p>
+      </div>
+      <div class="card" style="margin-top:16px">
+        <h3 style="font-size:1.15rem;color:var(--cream)">◊ The held-out examples, as graded</h3>
+        <p class="muted" style="font-size:.9rem;margin-top:6px">Kept out of the model's spec, run through the plain base model and the minted one, graded against the right answer.</p>
+        <div class="tbl-scroll"><table class="proof-tbl" id="hwRows"><thead><tr><th>Input</th><th>Right answer</th><th>Base</th><th>Minted</th></tr></thead><tbody></tbody></table></div>
+      </div>
     </div>
   </div>
-  <p class="note">Not on the menu: anything regulated — legal advice, tax, medical or financial products. Those need proper professional sign-off first, and we won't pretend otherwise. This is for the everyday, high-volume, unregulated work you're overpaying to rent.</p>
+
+  <h3 style="font-size:1.2rem;color:var(--cream);margin-top:34px">The same journey, in plain English</h3>
+  <ol class="steps" style="margin-top:14px;max-width:72ch">
+    <li><b>You describe one job.</b> Something you currently ask a big AI to do over and over — sorting messages, pulling facts out of text, tagging things, drafting the same kind of reply.</li>
+    <li><b>The sizer suggests a starting model.</b> From the kind of work, the answer shape, how strict it must be and where it'll run, it recommends the <b>smallest</b> open-weight model that should clear your bar and shows exactly why. It never rounds up to sell you a bigger one.</li>
+    <li><b>You show it a few examples.</b> Each one is an input and the answer you'd want back — they show the model what "right" means for you.</li>
+    <li><b>Your browser builds a recipe.</b> Right here, with nothing sent anywhere, it writes a <b>Modelfile</b> — a short, plain recipe that bakes your job and your examples into a small model — and fingerprints its exact bytes.</li>
+    <li><b>It proves itself on examples kept out of its spec.</b> It holds some of your examples back, runs both the base model and yours on them, and grades them. You get a <b>signed scorecard</b>: the numbers are unedited (the signature), the held-out answers were <b>not</b> in the spec the model was given (hash-disjoint), and anyone can re-run it. It is allowed to say your model lost.</li>
+    <li><b>You own it.</b> Install the free Ollama app and run the one-file installer (or paste two lines). A private model that does your job now lives on your own computer — no per-use charge, working with the internet switched off.</li>
+    <li><b>Whoever signs off can check it without trusting you or us.</b> They drop the scorecard into the Proof section, or re-run the bundle on a clean GitHub runner.</li>
+  </ol>
 </div></section>
 
-<!-- HOW (plain english) -->
-<section id="how"><div class="wrap">
-  <div class="eyebrow">In plain English</div>
-  <h2 class="sec">What's actually happening here.</h2>
-  <p class="sub">No jargon. Here is the whole journey, start to finish.</p>
-  <ol class="steps" style="margin-top:20px;max-width:72ch">
-    <li><b>You describe one job.</b> Something you currently ask a big AI to do over and over — sorting messages, pulling facts out of text, tagging things, drafting the same kind of reply.</li>
-    <li><b>The sizer suggests a starting model.</b> From the kind of work, the answer shape, how strict it must be and where it'll run, it recommends the <b>smallest</b> open-weight model that should clear your bar — from ~1B up to ~200B — and shows exactly why. It never rounds up to sell you a bigger one.</li>
-    <li><b>You show it a few examples.</b> Start with three to eight. Each one is an input and the answer you'd want back — they show the model what you want.</li>
-    <li><b>Your browser builds a recipe.</b> Right here, with nothing sent anywhere, it writes a <b>Modelfile</b> — a short, plain recipe that bakes your job and your examples into a small model.</li>
-    <li><b>It proves itself on examples kept out of its spec.</b> It holds out some of your examples, runs both the base model and yours on them, and scores them. You get a <b>signed scorecard</b> with the honest small print: what the signature proves (the numbers are unedited), that the held-out answers were <b>not</b> in the spec the model was given (hash-disjoint), and that anyone can re-run the eval. It's allowed to say your model lost.</li>
-    <li><b>You run two lines to make it yours.</b> You install a free app called Ollama, and paste the two lines we give you. Now a private model that does your job lives on your own computer — no monthly bill, no per-use charge, working with the internet switched off.</li>
-    <li><b>If you'd rather not touch any of that</b>, we'll do it for you and measure the result against your starting point, with an issuer-signed receipt.</li>
-  </ol>
+<!-- BLUEPRINT — organ by organ, with the gate's own measured numbers -->
+<section id="blueprint"><div class="wrap">
+  <div class="eyebrow">The blueprint · how it's built</div>
+  <h2 class="sec">Every part, what it does, and how it's checked.</h2>
+  <p class="sub">FallForge Mint is one page, two gated kernels, a sourced data file and two CI workflows. The test counts and mutation scores below are not typed in: the gate measures them on GitHub's runner on every push, writes them to <code>facts.json</code>, fails if the committed copy differs, and this page reads that file.</p>
+  <p class="note" id="bpWitness">Mutation gate: witness, pinned release.</p>
+  <div class="tbl-scroll" style="margin-top:14px"><table class="proof-tbl">
+    <thead><tr><th>Part</th><th>What it does</th><th>How it's checked</th></tr></thead>
+    <tbody>
+      <tr class="organ"><td><a href="https://github.com/sjgant80-hub/fallforgemint/blob/main/kernel.mjs" target="_blank" rel="noopener"><code>kernel.mjs</code></a></td>
+        <td class="wrap">The whole product's logic, pure and total (garbage in gives a plain reason, never a crash).
+          <div class="fns"><b>mint</b> specFromTask · validSpec · assembleModelfile · sha256 · canon<br><b>prove</b> planProof · gradeAnswer · scorecard · holdoutDisjoint · scorecardReceipt · verifyScorecardReceipt · scorecardSignable<br><b>own</b> safeModelName · suggestNames · installerScript · b64encode<br><b>improve</b> inferFormat · hardenSpec · pickBest<br><b>size</b> sizeRecommendation · LADDER<br><b>own vs rent</b> ownVsRent<br><b>signed record</b> makeManifest · signable · attachSignature · verifyManifest<br><b>re-run rail</b> rerunBundle · verifyBundle · compareRerun · rerunAttestation · verifyRerunAttestation · rerunLinkCheck</div></td>
+        <td class="wrap" data-organ="kernel.mjs">measured on every push</td></tr>
+      <tr class="organ"><td><a href="https://github.com/sjgant80-hub/fallforgemint/blob/main/costcase.mjs" target="_blank" rel="noopener"><code>costcase.mjs</code></a></td>
+        <td class="wrap">The buyer's cost case for one job — staff time today, rented seats, a cloud model on every case, or owning it — and the calculator's sourced starting figures.<div class="fns">costCase · calcDefaults · caseOver · caseSources</div></td>
+        <td class="wrap" data-organ="costcase.mjs">measured on every push</td></tr>
+      <tr class="organ"><td><a href="https://github.com/sjgant80-hub/fallforgemint/blob/main/vendor/sovereign-enterprise/data/basis.json" target="_blank" rel="noopener"><code>basis.json</code></a></td>
+        <td class="wrap">Every outside figure the cost case reads — wage, inflation, electricity, exchange rate, vendor prices — each with its published source.</td>
+        <td class="wrap">Vendored byte for byte; a test pins its SHA-256, so it cannot drift.</td></tr>
+      <tr class="organ"><td><a href="https://github.com/sjgant80-hub/fallforgemint/blob/main/index.html" target="_blank" rel="noopener"><code>index.html</code></a> + <a href="https://github.com/sjgant80-hub/fallforgemint/blob/main/make-page.mjs" target="_blank" rel="noopener"><code>make-page.mjs</code></a></td>
+        <td class="wrap">This page. <code>make-page.mjs</code> inlines both kernels, the basis, the gate's facts, the CI-minted proof bundle and the signed review-1b record into it, so it runs the gated code with nothing to fetch.</td>
+        <td class="wrap">Fixpoint: the gate rebuilds the page and fails if one byte differs.</td></tr>
+      <tr class="organ"><td><a href="https://github.com/sjgant80-hub/fallforgemint/blob/main/tools/page-gate.mjs" target="_blank" rel="noopener"><code>tools/page-gate.mjs</code></a></td>
+        <td class="wrap">Checks the page itself: scripts parse, no placeholders, no dead or cross-repo links, no committed secrets, no own-product price, the credits and the supplier are on it, and every explainer section is present.</td>
+        <td class="wrap">Runs on every push; any miss fails the build.</td></tr>
+      <tr class="organ"><td><a href="https://github.com/sjgant80-hub/fallforgemint/blob/main/tools/facts.mjs" target="_blank" rel="noopener"><code>tools/facts.mjs</code></a></td>
+        <td class="wrap">Writes <code>facts.json</code> from the runner's own test and mutation runs; refuses a red suite or an unclean gate.</td>
+        <td class="wrap">The gate fails if the committed facts differ from what it just measured.</td></tr>
+      <tr class="organ"><td><a href="https://github.com/sjgant80-hub/fallforgemint/blob/main/.github/workflows/gate.yml" target="_blank" rel="noopener"><code>gate.yml</code></a></td>
+        <td class="wrap">The gate: tests, the pinned mutation gate on both kernels, the facts, the page fixpoint, the page gate, and the shipped signed record (hash, Ed25519 signature, receipt and Modelfile hashes).</td>
+        <td class="wrap">GitHub's runner, every push.</td></tr>
+      <tr class="organ"><td><a href="https://github.com/sjgant80-hub/fallforgemint/blob/main/.github/workflows/rerun.yml" target="_blank" rel="noopener"><code>rerun.yml</code></a> + <a href="https://github.com/sjgant80-hub/fallforgemint/blob/main/tools/rerun.mjs" target="_blank" rel="noopener"><code>tools/rerun.mjs</code></a></td>
+        <td class="wrap">The CI re-run rail: re-verifies a bundle, checks the CI run its receipt names, rebuilds the model with a pinned Ollama and runs the held-out set again. <code>rerun.mjs</code> only talks to Ollama and GitHub; every judgement is in <code>kernel.mjs</code>.</td>
+        <td class="wrap">Proven on real runs, both ways — see <a href="#rerun">Re-run it in CI</a>.</td></tr>
+      <tr class="organ"><td><a href="https://github.com/sjgant80-hub/fallforgemint/blob/main/rerun/proof/genuine.json" target="_blank" rel="noopener"><code>rerun/proof/</code></a></td>
+        <td class="wrap">The proof bundles: the CI-minted genuine scorecard (the one traced above), a careful forgery, a naive tamper, and two fragile records kept with the runs that fail them.</td>
+        <td class="wrap">Each has a real CI run that passes or fails it.</td></tr>
+      <tr class="organ"><td><a href="https://github.com/sjgant80-hub/fallforgemint/blob/main/out/manifest.json" target="_blank" rel="noopener"><code>out/</code></a></td>
+        <td class="wrap">The signed review-1b record shown in the Proof section, its two receipts (one BEATS, one LOSES) and its Modelfile.</td>
+        <td class="wrap">Re-verified by the gate on every push.</td></tr>
+    </tbody>
+  </table></div>
+</div></section>
+
+<!-- FOR BUSINESS — the brochure -->
+<section id="business"><div class="wrap">
+  <div class="eyebrow">For business</div>
+  <h2 class="sec">Take one repetitive AI job off the rented bill — and prove it.</h2>
+  <p class="sub">FallForge Mint turns one narrow, repeated job into a small model your company owns and runs on its own machines, and hands whoever signs it off a scorecard measured on your own examples that anyone can re-run. No seats, no per-call meter, nothing leaving the building.</p>
+
+  <div class="roles">
+    <div class="card role"><b>CEO</b><p>Find out whether a small owned model can take one AI job you rent today, on your own examples, before anyone commits budget. The answer is a signed scorecard that is allowed to say no.</p></div>
+    <div class="card role"><b>CFO</b><p>What you own has no seats and no meter: a narrow job runs on a machine you already have, for its electricity. The case below is computed from published UK and vendor figures with your inputs, and the calculator above says "keep renting" when that is cheaper.</p></div>
+    <div class="card role"><b>COO</b><p>One job at a time, measured against the plain base model on examples kept out of the new model's spec. The routine, same-every-time share moves; the exceptions stay with your people. When the job changes, re-mint it from new examples.</p></div>
+    <div class="card role"><b>CTO / CISO</b><p>The mint runs in the browser and the model runs locally under Ollama — no task, example or answer goes to us or to any AI service. The Modelfile is a readable text file with a SHA-256 fingerprint; scorecards are Ed25519-signed and re-runnable on a neutral runner; the page runs the mutation-gated kernel.</p></div>
+    <div class="card role"><b>Department heads</b><p>You choose the job and supply the examples that define "right". The proof holds some back and grades both models against your answers — so the test is yours, not a vendor's benchmark.</p></div>
+    <div class="card role"><b>Your team</b><p>It takes the narrow, repeated part — sorting, extracting, tagging, drafting the same reply. Judgement calls and the unusual case stay with people.</p></div>
+  </div>
+
+  <div class="card" style="margin-top:18px" id="cost">
+    <h3 style="font-size:1.2rem;color:var(--cream)">◊ What one job costs you now — and what owning it would</h3>
+    <p class="muted" style="font-size:.92rem;margin-top:6px">Your numbers, a stated method. Staff time at the UK median wage with no on-costs added — a floor, not a top end. Inflation on every later year. Every price from its published source, listed below. Change any input.</p>
+    <div class="costin" style="margin-top:14px">
+      <div><label class="fld" for="cc_hours">Staff hours a week spent on this job</label><input type="number" id="cc_hours" min="0" max="168" step="1" /></div>
+      <div><label class="fld" for="cc_share">Share of that work the owned model takes off, %</label><input type="number" id="cc_share" min="0" max="100" step="5" /></div>
+      <div><label class="fld" for="cc_seats">People who'd get a rented AI assistant seat instead</label><input type="number" id="cc_seats" min="0" max="100000" step="1" /></div>
+      <div><label class="fld" for="cc_cases">Cases the job handles a week</label><input type="number" id="cc_cases" min="0" max="10000000" step="50" /></div>
+      <div><label class="fld" for="cc_years">Years to compare</label><input type="number" id="cc_years" min="1" max="10" step="1" /></div>
+    </div>
+    <p class="note" style="margin-top:10px">The share is your estimate; the scorecard measures how often the minted model gets your held-out examples right.</p>
+    <p class="costhead" id="ccHead"></p>
+    <div class="tbl-scroll"><table class="proof-tbl" id="ccTable"><thead><tr><th>Route</th><th>What happens</th><th class="num">A year</th><th class="num" id="ccOverH">Over the period</th></tr></thead><tbody></tbody></table></div>
+    <p class="note" id="ccNote"></p>
+    <details style="margin-top:12px"><summary style="cursor:pointer;font-size:.9rem;color:var(--dim)">Where every figure comes from</summary><ul class="srcs" id="ccSrc"></ul></details>
+  </div>
+
+  <div class="grid g2" style="margin-top:16px">
+    <div class="card"><h3 style="font-size:1.1rem;color:var(--cream)">◊ Security and data protection</h3>
+      <ul class="facts">
+        <li><b>Nothing you type leaves your device.</b> The mint, the proof grading and the scorecard all run in your browser; there is no server behind this page to receive your task or examples. Data protection by design (UK GDPR Article 25).</li>
+        <li><b>The model runs on your machine.</b> Ollama runs it locally and offline, so there is no outside AI processor to vet and no international transfer of the data it reads.</li>
+        <li><b>What the page fetches.</b> Its fonts, and — only if you press <i>Try it live</i>, <i>Run the proof</i> or <i>Auto-improve</i> — the preview's runtime library (<span class="live">@mlc-ai/web-llm</span>, pinned to one exact release) and an open model's weights. None of those requests carries your task or examples.</li>
+        <li><b>No processor, no sub-processors.</b> There is no server behind this page, so there is no one to send a data-processing agreement to for the self-serve mint: nothing you type is received by AI Native Solutions or anyone else.</li>
+        <li><b>Every result is checkable.</b> A SHA-256 fingerprint of the exact Modelfile; a self-hashed scorecard with an Ed25519 signature; a re-run bundle a neutral GitHub runner re-verifies and re-executes.</li>
+        <li><b>Honest key class.</b> A scorecard made in a browser is signed with a key made in that browser: it proves nobody edited the numbers, not who ran the test. That is what the neutral re-run is for.</li>
+        <li><b>Open and gated.</b> MIT-licensed source; the page runs the exact mutation-gated kernel, and the build fails if the page drifts from it.</li>
+        <li><b>No certificate is claimed.</b> This page carries no ISO 27001 or SOC 2 badge. What it gives you instead is evidence you can re-run yourself: the source, its gate on GitHub's runner, and scorecards a neutral machine re-checks.</li>
+      </ul>
+    </div>
+    <div class="card"><h3 style="font-size:1.1rem;color:var(--cream)">◊ Ownership, support and exit</h3>
+      <ul class="facts">
+        <li><b>Supplied by AI Native Solutions.</b> Start at <a href="https://www.ai-nativesolutions.com" target="_blank" rel="noopener">ai-nativesolutions.com</a>.</li>
+        <li><b>You own what you mint.</b> The Modelfile and the model it builds live on your machine. MIT — no licence fee.</li>
+        <li><b>It keeps running without us.</b> Ollama and your Modelfile need nothing from us, and this page is one self-contained file: save it and the mint works without a connection.</li>
+        <li><b>Support, service levels, warranty and liability</b> are agreed per deployment, in that deployment's agreement.</li>
+        <li><b>Exit is free of drama.</b> There is no account to close and no meter to switch off; you already hold the files, in open formats (a text Modelfile, JSON scorecards).</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="card" style="margin-top:16px"><h3 style="font-size:1.1rem;color:var(--cream)">◊ Roll-out — what happens, and what it needs from you</h3>
+    <ol class="steps" style="max-width:74ch">
+      <li><b>Pick one job.</b> Repeated, unregulated, with a right answer you can write down — the four templates in the mint are good first picks.</li>
+      <li><b>Collect real examples.</b> Inputs from your own work and the answers you would accept. They define the job and, held back, they become the test.</li>
+      <li><b>Size it, mint it, prove it — on this page.</b> The scorecard grades the base model and yours on the examples kept out of the spec.</li>
+      <li><b>Install it on one machine</b> with the one-click installer, and run it beside the current process.</li>
+      <li><b>Hand over the evidence.</b> Whoever signs off gets the scorecard and the re-run bundle, and can re-run it on a clean GitHub runner without trusting you or us.</li>
+      <li><b>Switch the routine share over.</b> Re-mint when the job changes; add the next job.</li>
+    </ol>
+  </div>
+
+  <div class="card" style="margin-top:16px"><h3 style="font-size:1.1rem;color:var(--cream)">◊ Risks, answered straight</h3>
+    <dl class="risks">
+      <dt>What if a small model isn't good enough for our job?</dt><dd>Then the scorecard says TIES or LOSES, and you keep renting for that job. The shipped review-1b record in the Proof section shows exactly that: it beats its own base and loses to a bigger model, on the record.</dd>
+      <dt>Is this real training?</dt><dd>The mint on this page is few-shot tuning baked into a Modelfile — a real, owned, reproducible model, not weight fine-tuning. Weight-level tuning is part of the done-for-you service, where it helps.</dd>
+      <dt>Could a scorecard be faked?</dt><dd>Editing a number breaks its fingerprint and its signature — try it in the trace above. A careful forgery that recomputes every hash and re-signs is caught by the neutral re-run: the rail's proof runs show it failing on the CI run's link, and without the link, on re-execution.</dd>
+      <dt>Were the test answers leaked into the model?</dt><dd>The held-out answers are checked to be absent from the spec the model was given (hash-disjoint); for a few-shot model that spec is everything it was given. It says nothing about what the base model saw in its own pre-training, and the page says so.</dd>
+      <dt>Will it give identical results on every machine?</dt><dd>Not always, and the page says so: small models on CPUs are not bit-exact across chip types, so a borderline answer can flip. The rail fails that record and shows the row; the proof set holds out only rows that stay put.</dd>
+      <dt>What if our job changes?</dt><dd>Re-mint from new examples. The fingerprint changes with the Modelfile, so you always know exactly which model is running.</dd>
+      <dt>Are we locked in?</dt><dd>No. MIT licence, open formats, and it runs on Ollama, which is free.</dd>
+      <dt>Can we use it for legal, tax, medical or financial decisions?</dt><dd>No. Regulated work needs proper professional sign-off first. This is for the everyday, high-volume, unregulated work.</dd>
+    </dl>
+  </div>
+
+  <div class="card boardcase" style="margin-top:16px"><h3 style="font-size:1.1rem;color:var(--brass)">◊ The case for your board</h3><p id="ccBoard"></p></div>
+
+  <div class="cta-row" style="margin-top:18px">
+    <a class="btn forge" href="https://www.ai-nativesolutions.com" target="_blank" rel="noopener">Talk to AI Native Solutions</a>
+    <a class="btn ghost" href="#mint">Or mint one yourself now</a>
+  </div>
+</div></section>
+
+<!-- ADOPTION — what it does for a team, and the ways to run it -->
+<section id="adopt"><div class="wrap">
+  <div class="eyebrow">Adoption</div>
+  <h2 class="sec">What it does for your teams — and the three ways to run it.</h2>
+  <p class="sub">Each owned model does one job. Start with the one that costs you most in rented calls or staff time, prove it, then add the next. Each card below loads a ready-made starting point into the mint.</p>
+  <div class="grid g3" style="margin-top:20px">
+    <div class="card"><span class="pill brass">Customer support</span><p style="margin:10px 0 0">Sort each incoming message by category and urgency, as JSON your helpdesk can route on.</p><button class="btn ghost" type="button" data-tmpl="0" style="margin-top:12px">Load support triage</button></div>
+    <div class="card"><span class="pill brass">Finance and accounts payable</span><p style="margin:10px 0 0">Pull supplier, total and date out of invoice and receipt text, ready for the ledger.</p><button class="btn ghost" type="button" data-tmpl="1" style="margin-top:12px">Load invoice extraction</button></div>
+    <div class="card"><span class="pill brass">Trust and safety</span><p style="margin:10px 0 0">Decide whether a review is published, with a short reason a moderator can check.</p><button class="btn ghost" type="button" data-tmpl="2" style="margin-top:12px">Load review moderation</button></div>
+    <div class="card"><span class="pill brass">Sales</span><p style="margin:10px 0 0">Score each enquiry hot, warm or cold, with the reason, so people call the right ones first.</p><button class="btn ghost" type="button" data-tmpl="3" style="margin-top:12px">Load lead scoring</button></div>
+    <div class="card"><span class="pill brass">Catalogue and operations</span><p style="margin:10px 0 0">Turn product descriptions into catalogue codes — the job traced in <a href="#how">How it works</a>, minted and proven on a GitHub runner.</p></div>
+    <div class="card"><span class="pill">What changes for people</span><p style="margin:10px 0 0">The repeated, same-every-time share of the job moves to the model on your machine. People keep the exceptions, the judgement calls and the sign-off — with a scorecard that tells them how far to trust it.</p></div>
+  </div>
+
+  <div class="grid g3" style="margin-top:16px">
+    <div class="card"><span class="pill">Run it yourself</span><p style="margin:10px 0 0">Everything on this page: size, mint, prove, own, re-run. MIT — no licence fee, no account.</p><a class="btn ghost" href="#mint" style="margin-top:12px">Mint one now</a></div>
+    <div class="card"><span class="pill brass">Done for you</span><p style="margin:10px 0 0">AI Native Solutions mints, tunes (weight-level where it helps) and proves one owned model against your baseline, with a signed receipt, and sets it up on your machine.</p><a class="btn forge" href="https://www.ai-nativesolutions.com" target="_blank" rel="noopener" style="margin-top:12px">Talk to AI Native Solutions</a></div>
+    <div class="card"><span class="pill">Kept sharp</span><p style="margin:10px 0 0">Your models watched and re-minted as the work changes, new jobs added as they appear, and models that cross-check each other. Where they run is agreed per deployment.</p><a class="btn ghost" href="https://www.ai-nativesolutions.com" target="_blank" rel="noopener" style="margin-top:12px">Talk to AI Native Solutions</a></div>
+  </div>
+  <p class="note">Terms for the done-for-you and kept-sharp options — scope, support, service levels, warranty and liability — are agreed per deployment. Not on the menu: anything regulated (legal advice, tax, medical or financial products).</p>
+</div></section>
+
+<!-- WHITE PAPER — the short explainer, numbers read live from the shipped records -->
+<section id="paper"><div class="wrap">
+  <div class="eyebrow">The white paper</div>
+  <h2 class="sec">Own the narrow model, and prove it with a test that can lose.</h2>
+  <div class="paper">
+    <p class="abstract">Most business AI spend goes on renting a general model, by the token or by the seat, to do narrow jobs that repeat. FallForge Mint replaces one such job with a small model the business owns: a deterministic Modelfile built from the business's own examples, run locally, and judged on examples kept out of its spec by a grader no model controls. The result is a self-hashed, signed scorecard that is allowed to report a loss, and a re-run bundle that a neutral machine re-verifies and re-executes. The page you are reading runs the mutation-gated code that does all of this.</p>
+
+    <h3>1 · The problem</h3>
+    <p>A narrow job — triage, extraction, tagging, a templated reply — does not need a frontier model, but renting one is the default. Its cost rises with volume, every case leaves the building, and the evidence that it works is the vendor's benchmark, not your work. Owning a small model fixes the first two; the third needs a test you can trust without trusting whoever made it.</p>
+
+    <h3>2 · The method</h3>
+    <p><b>Mint.</b> The task and worked examples become a spec, and the spec becomes an Ollama Modelfile, assembled deterministically and fingerprinted with SHA-256 — the same inputs always give the same bytes. <b>Prove.</b> Some examples are held back; the kernel checks that their answers are absent from the spec (hash-disjoint), runs the base model and the minted one on them, and grades both against the right answers with a deterministic grader. <b>Record.</b> The scores, the fingerprints and the hashes of the task and the evidence go into a canonical, self-hashed scorecard, signed with Ed25519; a score that disagrees with its hit counts is refused even if the hash is recomputed. <b>Re-run.</b> A bundle of the scorecard, the recipe and the held-out rows goes to a clean GitHub runner, which recomputes every number, checks that the CI run the scorecard names really made it, rebuilds the model with a pinned Ollama and runs the held-out set again.</p>
+
+    <h3>3 · The evidence</h3>
+    <p id="ppEvidence">The evidence is read from the shipped records as the page loads.</p>
+    <p id="ppGate">The gate's own numbers are read from the runner's measurements.</p>
+
+    <h3>4 · The limits, stated straight</h3>
+    <p>The mint is few-shot tuning at the Modelfile level, not weight fine-tuning. Small models on CPUs are not bit-exact across chip types, so a borderline answer can flip between runners; the rail fails such a record rather than hiding it, and the repo keeps two fragile records with the runs that fail them. A browser-made scorecard carries a software key, so it proves the numbers are unedited, not who ran the test — the neutral re-run closes that gap. The held-out claim is narrow: the answers were not in the spec the model was given; it says nothing about the base model's pre-training.</p>
+
+    <h3>5 · Where the idea comes from</h3>
+    <p>Proving a model on examples kept out of its spec and re-running the scorecard on a neutral machine instead of trusting it — a recorded score can be held steady and still be wrong — and a receipt allowed to say LOSES or DID_NOT_REPRODUCE, draw on the Guided Entropy Principle (GEP) result that a stable system can stabilize a wrong reference: Gary W. Floyd, Lumiea Systems Research Division — ThunderStruck Service LLC — "From GEP Stabilization to Dual-Map Ethical Reasoning: A derivation of positive ethical evidence, negative ethical evidence, and non-legal moral reasoning," Derivation v0.2. Open Defensive Prior Art (Creative Commons). FallForge Mint itself is AI Native Solutions' own work. Powered by the Konomi architecture, created by Thomas Frumkin.</p>
+  </div>
 </div></section>
 
 <!-- FAQ -->
@@ -599,27 +821,418 @@
     <details class="faq"><summary>Is my data safe?</summary><p>Yes. Everything on this page runs inside your own browser. Your task and examples are never sent to us or anyone else. The model you build runs on your machine.</p></details>
     <details class="faq"><summary>What's the catch with owning instead of renting?</summary><p>A small owned model is private and, at enough volume, cheaper — but it's specialised: built for the one job you gave it examples of, not a general chatbot. For a narrow, repetitive, high-volume task that's exactly what you want. The calculator above shows, honestly, when renting is actually the better deal.</p></details>
     <details class="faq"><summary>How do I know it's any good?</summary><p>Every minted node is measured against its starting point by a deterministic gate, and the result is written into a signed receipt that can — and sometimes does — say it lost. You can re-check that proof yourself in your browser, in the Proof section above.</p></details>
+    <details class="faq"><summary>Who supplies it, and who supports it?</summary><p>AI Native Solutions — start at <a href="https://www.ai-nativesolutions.com" target="_blank" rel="noopener">ai-nativesolutions.com</a>. The code is MIT-licensed and keeps running without us. Support, service levels, warranty and liability for a deployment are agreed in that deployment's agreement.</p></details>
     <details class="faq"><summary>What does it cost?</summary><p>Building and downloading your Modelfile here is free — you own it, with no account and no per-token bill. If you'd rather we set it up and proved it for you, that's a service we offer too.</p></details>
   </div>
 </div></section>
 
 <!-- CONTACT -->
 <section id="contact"><div class="wrap">
-  <div class="eyebrow">Bring me one task</div>
-  <h2 class="sec">One job you do a lot. I'll mint you a proof node, free.</h2>
-  <p class="sub">Tell me the repetitive thing you feed an AI most. I'll build you an owned model for it and send you the signed receipt. If it's good, we talk. If it isn't, you've lost nothing and I'll say so plainly.</p>
+  <div class="eyebrow">Bring one job</div>
+  <h2 class="sec">One job you do a lot. We'll mint you a proof model, free.</h2>
+  <p class="sub">Tell AI Native Solutions the repetitive thing you feed an AI most. They'll build an owned model for it and send you the signed scorecard. If it's good, you talk. If it isn't, you've lost nothing and the scorecard says so plainly.</p>
   <div class="cta-row" style="margin-top:22px">
-    <a class="btn forge" id="mailBtn" href="mailto:sjgant80@gmail.com?subject=Mint%20me%20a%20proof%20node&body=Here's%20the%20repetitive%20task%20I%20want%20a%20model%20for%3A%0A%0A(a%20few%20example%20inputs%20and%20the%20correct%20answers%20help%20most)">📩 Email me one task</a>
+    <a class="btn forge" href="https://www.ai-nativesolutions.com" target="_blank" rel="noopener">Talk to AI Native Solutions</a>
     <a class="btn ghost" href="#mint">Or just mint one yourself</a>
   </div>
 </div></section>
 </main>
 
 <footer><div class="wrap">
-  <span class="glyph">◊</span> <b style="color:var(--cream)">FallForge Mint</b> · own the model, don't rent it · by AI-Native Solutions · everything runs in your browser · MIT · powered by the Konomi architecture, created by Thomas Frumkin<br>
-  Proving a model on examples kept out of its spec and re-running the scorecard on a neutral machine instead of trusting it — a recorded score can be held steady and still be wrong — and a receipt allowed to say LOSES or DID_NOT_REPRODUCE, draw on the Guided Entropy Principle (GEP) result that a stable system can stabilize a wrong reference: Gary W. Floyd, Lumiea Systems Research Division — ThunderStruck Service LLC — "From GEP Stabilization to Dual-Map Ethical Reasoning: A derivation of positive ethical evidence, negative ethical evidence, and non-legal moral reasoning," Derivation v0.2. Open Defensive Prior Art (Creative Commons). FallForge Mint itself is AI-Native Solutions' own work.
+  <span class="glyph">◊</span> <b style="color:var(--cream)">FallForge Mint</b> · own the model, don't rent it · supplied by <a href="https://www.ai-nativesolutions.com" target="_blank" rel="noopener">AI Native Solutions</a> · everything runs in your browser · MIT · Powered by the Konomi architecture, created by Thomas Frumkin<br>
+  Proving a model on examples kept out of its spec and re-running the scorecard on a neutral machine instead of trusting it — a recorded score can be held steady and still be wrong — and a receipt allowed to say LOSES or DID_NOT_REPRODUCE, draw on the Guided Entropy Principle (GEP) result that a stable system can stabilize a wrong reference: Gary W. Floyd, Lumiea Systems Research Division — ThunderStruck Service LLC — "From GEP Stabilization to Dual-Map Ethical Reasoning: A derivation of positive ethical evidence, negative ethical evidence, and non-legal moral reasoning," Derivation v0.2. Open Defensive Prior Art (Creative Commons). FallForge Mint itself is AI Native Solutions' own work.
 </div></footer>
 
+<!-- the data the page reads, inlined by make-page.mjs from the repo's own files (the gate fails if they drift) -->
+<script type="application/json" id="data-basis">{
+  "about": "Every external figure the cost case uses, with its source. Nothing in the white paper is typed — the kernel (src/office.mjs) computes from this file and data/office.json. Checked 2026-10-14 unless noted; entries marked 'via estate basis' were sourced in fallfloor-enterprise/prices.lock.json on 2026-09-29/30.",
+  "currency": "GBP, ex-VAT (a VAT-registered business reclaims VAT on hardware; SaaS seats are quoted ex-VAT)",
+  "wageMedianHourly": {
+    "value": 19.67,
+    "unit": "GBP per hour",
+    "what": "ONS ASHE 2025: median hourly earnings excluding overtime, full-time employees, UK",
+    "source": "https://www.ons.gov.uk/employmentandlabourmarket/peopleinwork/earningsandworkinghours/bulletins/annualsurveyofhoursandearnings/2025",
+    "via": "estate basis 2026-09-29"
+  },
+  "seniorSalary": {
+    "value": 56438,
+    "unit": "GBP per year",
+    "what": "ONS ASHE 2025 Table 14.7a, median gross annual pay, full-time, SOC 2132 IT managers — used for every senior / AI-native lead role",
+    "source": "https://www.ons.gov.uk/employmentandlabourmarket/peopleinwork/earningsandworkinghours/datasets/occupation4digitsoc2010ashetable14",
+    "via": "estate basis 2026-09-29"
+  },
+  "employerNiRate": {
+    "value": 0.15,
+    "what": "Employer Class 1 National Insurance above the secondary threshold, 2026 to 2027",
+    "source": "https://www.gov.uk/guidance/rates-and-thresholds-for-employers-2026-to-2027",
+    "also": "https://www.iris.co.uk/blog/payroll/employer-national-insurance-contributions-guide/"
+  },
+  "employerNiThreshold": {
+    "value": 5000,
+    "unit": "GBP per year",
+    "what": "Secondary threshold, 2026 to 2027 (£96 a week, £417 a month, £5,000 a year)",
+    "source": "https://www.gov.uk/guidance/rates-and-thresholds-for-employers-2026-to-2027"
+  },
+  "pensionEmployerRate": {
+    "value": 0.03,
+    "what": "Automatic enrolment: minimum employer contribution on qualifying earnings",
+    "source": "https://www.thepensionsregulator.gov.uk/employers/new-employers/im-an-employer-who-has-to-provide-a-pension/declare-your-compliance/ongoing-duties-for-employers/earnings-thresholds",
+    "also": "https://www.moorepay.co.uk/payroll-hr-rates/automatic-enrolment/"
+  },
+  "pensionQeLower": {
+    "value": 6240,
+    "unit": "GBP per year",
+    "what": "Lower level of qualifying earnings, 2026/27",
+    "source": "https://www.gov.uk/government/publications/review-of-the-automatic-enrolment-earnings-trigger-and-qualifying-earnings-band-for-202627/review-of-the-automatic-enrolment-earnings-trigger-and-qualifying-earnings-band-for-202627"
+  },
+  "pensionQeUpper": {
+    "value": 50270,
+    "unit": "GBP per year",
+    "what": "Upper level of qualifying earnings, 2026/27",
+    "source": "https://www.gov.uk/government/publications/review-of-the-automatic-enrolment-earnings-trigger-and-qualifying-earnings-band-for-202627/review-of-the-automatic-enrolment-earnings-trigger-and-qualifying-earnings-band-for-202627"
+  },
+  "cpi": {
+    "value": 0.031,
+    "what": "UK CPI, 12 months to August 2026 — applied every year to pay, seats and electricity",
+    "source": "https://www.ons.gov.uk/economy/inflationandpriceindices/bulletins/consumerpriceinflation/august2026",
+    "via": "estate basis 2026-09-29"
+  },
+  "electricityPencePerKwh": {
+    "value": 24.51,
+    "what": "UK non-domestic electricity incl. Climate Change Levy, Q2 2026 (DESNZ Quarterly Energy Prices, Sept 2026)",
+    "source": "https://assets.publishing.service.gov.uk/media/6aba2810fe72ed1e2b02f0e7/Quarterly_Energy_Prices_September_2026.pdf",
+    "via": "estate basis 2026-09-29"
+  },
+  "fxGbpPerUsd": {
+    "value": 0.75396,
+    "what": "ECB reference rates 2026-09-28 (GBP 0.85785 / USD 1.1378 per euro)",
+    "source": "https://www.ecb.europa.eu/stats/eurofxref/eurofxref-daily.xml",
+    "via": "estate basis 2026-09-29"
+  },
+  "vat": {
+    "value": 0.2,
+    "what": "UK standard rate of VAT",
+    "source": "https://www.gov.uk/vat-rates",
+    "via": "estate basis 2026-09-29"
+  },
+  "seat.crm": {
+    "value": 80,
+    "unit": "GBP per user per month",
+    "product": "Salesforce Pro Suite",
+    "source": "https://www.salesforce.com/uk/sales/pricing/",
+    "via": "estate basis 2026-09-30"
+  },
+  "seat.finance": {
+    "value": 161.5,
+    "unit": "GBP per user per month",
+    "product": "Microsoft Dynamics 365 Finance",
+    "source": "https://www.microsoft.com/en-gb/dynamics-365/products/finance/pricing",
+    "via": "estate basis 2026-09-30"
+  },
+  "seat.hr": {
+    "value": 103.8,
+    "unit": "GBP per user per month",
+    "product": "Microsoft Dynamics 365 Human Resources",
+    "source": "https://www.microsoft.com/en-gb/dynamics-365/products/human-resources/pricing",
+    "via": "estate basis 2026-09-30"
+  },
+  "seat.copilot": {
+    "value": 23.1,
+    "unit": "GBP per user per month",
+    "product": "Microsoft 365 Copilot (enterprise)",
+    "source": "https://www.microsoft.com/en-gb/microsoft-365-copilot/enterprise",
+    "via": "estate basis 2026-09-29"
+  },
+  "frontier": {
+    "inPerM": 2,
+    "outPerM": 10,
+    "unit": "USD per million tokens",
+    "product": "Claude Sonnet 5 (API)",
+    "source": "https://platform.claude.com/docs/en/about-claude/pricing",
+    "via": "estate basis 2026-09-29"
+  },
+  "voicePerMinute": {
+    "value": 0.08,
+    "unit": "USD per minute",
+    "product": "ElevenLabs conversational AI agents (Business, per-minute rate; the agent's language model runs on our own models)",
+    "source": "https://elevenlabs.io/conversational-ai"
+  },
+  "aiBox": {
+    "product": "NVIDIA DGX Spark (GB10, 128 GB unified memory, 4 TB)",
+    "priceIncVat": 4673.35,
+    "priceSource": "https://shop.teqex.co.uk/nvidia-dgx-spark-gb10-128-gb-lpddr5x-sdram-4-tb-ssd-dgx-os-workstation-gold-940-54242-0005-000.html",
+    "priceNote": "current UK listing (launch price was about £3,700 at Scan / Novatech; we use the higher current figure)",
+    "watts": 240,
+    "wattsSource": "https://docs.nvidia.com/dgx/dgx-spark/hardware.html",
+    "decodeTokPerSec": 368,
+    "prefillTokPerSec": 7950,
+    "throughputSource": "https://www.lmsys.org/blog/2025-10-13-nvidia-dgx-spark",
+    "throughputNote": "LMSYS, SGLang: aggregate decode 368 tokens/s at batch 32, prefill ~7,950 tokens/s"
+  },
+  "hub": {
+    "product": "Apple Mac mini, M4 Pro (12-core CPU, 24 GB, 512 GB)",
+    "priceIncVat": 1399,
+    "priceSource": "https://everymac.com/global-mac-prices/all-msrp-mac-mini-prices-in-united-kingdom.html",
+    "also": "https://pricespy.co.uk/s/mac-mini-m4-pro/",
+    "watts": 155,
+    "wattsSource": "https://www.apple.com/za/mac-mini/specs"
+  },
+  "laptopExtraWatts": {
+    "value": 15,
+    "what": "Intel Core i7-1255U Processor Base Power — the extra draw of in-browser AI on a laptop already in use",
+    "source": "https://www.intel.com/content/www/us/en/products/sku/226259/intel-core-i71255u-processor-12m-cache-up-to-4-70-ghz/specifications.html",
+    "via": "estate basis 2026-09-29"
+  },
+  "awsGpuLondon": {
+    "usdPerHour": 8.944,
+    "unit": "USD per instance-hour",
+    "product": "AWS EC2 p5.4xlarge (1 x NVIDIA H100 80 GB HBM3, 16 vCPU, 256 GiB), Linux on-demand, EU (London) — the dedicated cloud GPU that runs the same open-model class as the AI box",
+    "source": "https://b0.p.awsstatic.com/pricing/2.0/meteredUnitMaps/ec2/USD/current/ec2-ondemand-without-sec-sel/EU%20(London)/Linux/index.json",
+    "specSource": "https://aws.amazon.com/ec2/instance-types/p5/",
+    "via": "AWS price file published 2026-10-12, read 2026-10-14"
+  },
+  "bedrockGptOss120b": {
+    "inPerM": 0.23,
+    "outPerM": 0.93,
+    "unit": "USD per million tokens",
+    "product": "Amazon Bedrock — OpenAI gpt-oss-120b, Standard on-demand, EU (London)",
+    "source": "https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/AmazonBedrock/20261014033016/eu-west-2/index.json",
+    "via": "AWS Price List API, published 2026-10-14, read 2026-10-14 (EUW2-gpt-oss-120b-input-tokens $0.00023 / output-tokens $0.00093 per 1K)"
+  },
+  "hoursPerYear": {
+    "value": 8760,
+    "what": "an always-on service: 24 hours x 365 days"
+  },
+  "redundancy": {
+    "weeklyCap": 751,
+    "capFrom": "2026-04-06",
+    "maxServiceYears": 20,
+    "minServiceYears": 2,
+    "weeksPerYear": {
+      "under22": 0.5,
+      "from22to40": 1,
+      "from41": 1.5
+    },
+    "what": "UK statutory redundancy pay: half a week's pay per full year of service under 22, one week from 22 to 40, one and a half weeks from 41; service capped at 20 years; weekly pay capped at £751 for redundancies on or after 6 April 2026 (maximum £22,530); needs 2 years' service",
+    "source": "https://www.gov.uk/redundancy-your-rights/redundancy-pay",
+    "via": "read 2026-10-14"
+  },
+  "statutoryNotice": {
+    "what": "Statutory minimum notice: one week between one month and two years' service; one week per full year from 2 to 12 years; 12 weeks at 12 years or more",
+    "source": "https://www.gov.uk/redundancy-your-rights/notice-periods",
+    "via": "read 2026-10-14"
+  },
+  "collectiveConsultation": {
+    "threshold": 20,
+    "days20to99": 30,
+    "days100plus": 45,
+    "what": "20 or more redundancies at one establishment within 90 days: consult for at least 30 days (20–99) or 45 days (100+) before the first dismissal, and notify the Redundancy Payments Service on form HR1 before consultation starts",
+    "source": "https://www.gov.uk/staff-redundant/redundancy-consultations",
+    "via": "read 2026-10-14"
+  },
+  "discountRateReal": {
+    "value": 0.035,
+    "what": "HM Treasury Green Book Social Time Preference Rate: 3.5% in real terms for years 1 to 30 of an appraisal — combined here with CPI to discount cash flows that rise with inflation",
+    "source": "https://www.gov.uk/government/publications/the-green-book--2/the-green-book-2026",
+    "via": "read 2026-10-14"
+  }
+}</script>
+<script type="application/json" id="data-trace">{
+  "v": 1,
+  "kind": "fallforgemint-rerun-bundle",
+  "receipt": {
+    "v": 1,
+    "kind": "fallforgemint-scorecard",
+    "base": "llama3.2:1b",
+    "modelFingerprint": "beffb96dc404d182bd4e7a698f06b6b8cfc0f0477bb11663f74a6920716c6b27",
+    "taskHash": "a6d2d378b8d68472155b91b1d5bf92711b654119971dda9be34a828c4f725d0c",
+    "evidenceHash": "fade9daed42b6adc220c4ebb925aa244287e7b495ea1de44d6a044ac975060a4",
+    "heldOut": 5,
+    "baseHits": 0,
+    "mintedHits": 4,
+    "score": 0.8,
+    "verdict": "BEATS",
+    "smallSample": false,
+    "createdAt": "2026-09-28T13:55:01.051Z",
+    "scope": "Self-issued: measured with Ollama on the machine named in evaluatedOn, on held-out examples the holder supplied. Tamper-evident (re-hash to check) but NOT a certification by AI-Native Solutions. The done-for-you tier issues an issuer-signed certified receipt.",
+    "keyClass": "software-ed25519",
+    "holdoutHash": "9101712a5f6a9c971cfcaf5f866b12b074f51e7c8d6cf4d0e81fe6e029183128",
+    "holdoutExcludedFromSpec": true,
+    "heldOutClaim": "The held-out answers were not in the spec given to the model (hash-disjoint); for a few-shot node the spec is all the model was given. Anyone can re-run it on a clean GitHub runner with the re-run rail.",
+    "rerun": "https://github.com/sjgant80-hub/fallforgemint/actions/runs/36431565425",
+    "evaluatedOn": "ollama:llama3.2:1b@baf6a787fdff",
+    "hash": "34f17f8a57ea86c7507b743a144bdf1a946f6001b87cf2c07eefd171ef08f93e",
+    "signature": {
+      "alg": "Ed25519",
+      "pub": "69e1fb019d877c079ba04bbd8b0fbd3bd5a1edee7ebc83882903113e8654d978",
+      "sig": "d376ce8ecbfa92eeca98e0477b951ceb2e65eaa961099be4ef99be2af4a40b5338cd552ada5a1ce4be24c9849834691c70a0fac60989ce24b07754baadee180f"
+    }
+  },
+  "spec": {
+    "task": "Turn a product description into its catalogue SKU: the prefix FF, then every word in capitals, all joined by hyphens.",
+    "base": "llama3.2:1b",
+    "train": [
+      {
+        "input": "blue widget large",
+        "output": "FF-BLUE-WIDGET-LARGE"
+      },
+      {
+        "input": "oak desk",
+        "output": "FF-OAK-DESK"
+      },
+      {
+        "input": "steel water bottle",
+        "output": "FF-STEEL-WATER-BOTTLE"
+      },
+      {
+        "input": "wool scarf grey",
+        "output": "FF-WOOL-SCARF-GREY"
+      }
+    ]
+  },
+  "rows": [
+    {
+      "input": "red gadget small",
+      "correct": "FF-RED-GADGET-SMALL",
+      "baseOut": "You're referring to a small red gadget. There are many possibilities, but I'll give you a few ideas. Can you please provide more context or information about what you're looking for? For example:\n\n* What does it look like? (e.g. a phone, a smartwatch, a gadget for a specific task)\n* What's its purpose? (e.g. a fitness tracker, a camera, a tool for work or hobbies)\n* Do you have any specific brand or model in mind?\n\nThe more details you provide, the better I can help you identify what you're looking for.",
+      "mintedOut": "FF-RED-GADGET-SMALL"
+    },
+    {
+      "input": "linen shirt",
+      "correct": "FF-LINEN-SHIRT",
+      "baseOut": "A linen shirt is a type of casual, breathable, and often lightweight clothing made from linen, a natural fiber derived from the flax plant. Here are some key characteristics and benefits of linen shirts:\n\n**Characteristics:**\n\n* Lightweight and breathable, making it perfect for warm weather\n* Soft and smooth to the touch\n* Can be made from a variety of linen blends, including 100% linen, linen-blend, or linen-wool blends\n* Often features a relaxed fit, with a loose silhouette\n* Can be dressed up or down, making it suitable for both casual and formal occasions\n\n**Benefits:**\n\n* Natural temperature regulation: Linen helps to keep you cool in the summer and warm in the winter, making it an excellent choice for warm weather.\n* Breathability: Linen allows for airflow and moisture wicking, making it ideal for active wear and outdoor activities.\n* Hypoallergenic: Linen is a natural fiber that is resistant to dust mites, mold, and mildew, making it a great choice for people with allergies.\n* Sustainable: Linen is a natural, biodegradable, and renewable resource, making it a more environmentally friendly option compared to synthetic fibers.\n* Versatile: Linen shirts can be dressed up or down and paired with a variety of bottoms, shoes, and accessories.\n\n**Who wears linen shirts?**\n\n* Outdoor enthusiasts (hikers, campers, etc.)\n* Fitness enthusiasts (athletes, runners, etc.)\n* People who value comfort and breathability\n* Those looking for a sustainable and eco-friendly alternative to synthetic fibers\n* Individuals who prefer a relaxed, casual style",
+      "mintedOut": "FF-LINEN-SHIRT"
+    },
+    {
+      "input": "copper kettle",
+      "correct": "FF-COPPER-KETTLE",
+      "baseOut": "A copper kettle is a type of kettle made from copper, a popular material for cookware due to its excellent heat conductivity, durability, and aesthetic appeal. Here are some key characteristics and benefits of copper kettles:\n\n**Characteristics:**\n\n* Copper is an excellent conductor of heat, which means it can heat up quickly and efficiently.\n* Copper kettles are often made from pure copper or a copper alloy, which provides excellent durability and resistance to corrosion.\n* They are typically made from a thick, heavy-gauge copper that can withstand high temperatures.\n* Copper kettles often have a smooth, polished finish that can be an attractive feature.\n\n**Benefits:**\n\n* Copper kettles are known for their excellent heat conductivity, which means they can boil water quickly and efficiently.\n* They are also resistant to corrosion, which means they can withstand exposure to acidic or salty water without rusting or discoloring.\n* Copper kettles are often considered a high-quality, long-lasting option for cooking and brewing.\n* They can add a touch of elegance and sophistication to any kitchen.\n\n**Drawbacks:**\n\n* Copper kettles can be expensive, especially high-quality, pure copper options.\n* They can be heavy, which can make them difficult to handle and store.\n* Copper kettles can be prone to scratches and dents, which can affect their appearance.\n\n**Care and maintenance:**\n\n* Copper kettles require regular cleaning and maintenance to prevent corrosion and maintain their appearance.\n* They should be dried thoroughly after use to prevent water spots and mineral deposits.\n* Avoid using abrasive cleaners or scouring pads, which can scratch the copper surface.\n\nOverall, copper kettles are a popular choice for those who value excellent heat conductivity, durability, and aesthetic appeal. However, they may not be the best option for those on a tight budget or who are looking for a lightweight, easy-to-handle kettle.",
+      "mintedOut": "FF-COPPER-KETTLE"
+    },
+    {
+      "input": "cotton towel white",
+      "correct": "FF-COTTON-TOWEL-WHITE",
+      "baseOut": "A white cotton towel is a common and versatile item. Here are a few things you might want to consider:\n\n1. Absorbency: Cotton is a natural fiber that is known for its absorbency. A white cotton towel is likely to be quite absorbent, making it suitable for drying dishes, wiping up spills, or as a bath towel.\n2. Softness: Cotton is a soft fiber, which means that a white cotton towel is likely to be gentle on your skin.\n3. Durability: Cotton is a relatively durable fabric, which means that a white cotton towel can withstand repeated washing and use without losing its shape or softness.\n4. Care instructions: To keep your white cotton towel looking its best, it's a good idea to follow the care instructions on the label. This may include washing it in cold water, drying it on a low heat setting, and avoiding wringing or twisting it.\n\nSome things to keep in mind when using a white cotton towel:\n\n* It may not be as absorbent as a towel made from a more absorbent material, such as microfiber.\n* It may not be as durable as a towel made from a more durable material, such as polyester.\n* It may not be as soft as a towel made from a softer material, such as bamboo.\n* It may not be as eco-friendly as a towel made from a more sustainable material, such as organic cotton.",
+      "mintedOut": "FF-COTTON-TOWEL-WHITE"
+    },
+    {
+      "input": "denim jacket",
+      "correct": "FF-DENIM-JACKET",
+      "baseOut": "A denim jacket is a classic and versatile piece of clothing that has been a staple in many people's wardrobes for decades. Here are some interesting facts and tips about denim jackets:\n\n**History:** The denim jacket originated in the 19th century in the United States, where it was known as a \"work jacket.\" It was designed to be durable and practical for working-class people, who needed a jacket that could withstand the rigors of their jobs.\n\n**Design:** Denim jackets are typically made from denim fabric, which is a type of cotton twill fabric. The fabric is woven in a specific way to create a strong and durable texture that can withstand wear and tear. Denim jackets often have a relaxed fit, with a loose silhouette and a slight bell shape at the shoulders.\n\n**Types:** There are many different types of denim jackets, including:\n\n* Classic denim jacket: A traditional denim jacket with a straight cut and a fitted silhouette.\n* Flannel denim jacket: A denim jacket with a flannel lining, often worn for colder weather.\n* Chinos denim jacket: A denim jacket made from chinos, a type of cotton fabric that is similar to denim but lighter in weight.\n* Denim jacket with embroidery or patches: A denim jacket with decorative embroidery or patches, often worn for fashion or novelty purposes.\n\n**Care:** To keep your denim jacket looking its best, it's essential to follow proper care instructions. Here are some tips:\n\n* Wash your denim jacket in cold water to prevent fading or shrinkage.\n* Avoid using bleach or harsh chemicals, which can damage the fabric.\n* Hang your denim jacket to dry, rather than putting it in the dryer.\n* Consider applying a fabric protector to your denim jacket to repel stains and spills.\n\n**Style tips:** Here are some style tips to keep in mind when wearing a denim jacket:\n\n* Pair your denim jacket with a plain white or black t-shirt and jeans for a classic look.\n* Add a leather jacket or a denim vest for a more edgy look.\n* Wear your denim jacket with a dress shirt and dress pants for a more formal look.\n* Experiment with different styles, such as a fitted jacket or a loose, flowy silhouette.\n\nOverall, a denim jacket is a timeless and versatile piece of clothing that can be worn in many different ways. With proper care and styling, it can last for years to come.",
+      "mintedOut": "FF-DENI-JACKET"
+    }
+  ],
+  "evaluatedOn": "ollama:llama3.2:1b@baf6a787fdff",
+  "hash": "dda8e3825032393014c4b717971d2305b9ec4cb22bbc5e819e7f62e84057a94b"
+}</script>
+<script type="application/json" id="data-facts">{
+  "about": "Measured on GitHub's runner by the gate on every push: each organ's tests, then its witness mutation gate. tools/facts.mjs writes this file from those runs and the gate fails if the committed copy differs. The page reads it.",
+  "witness": "sjgant80-hub/witness v0.6",
+  "organs": [
+    {
+      "file": "kernel.mjs",
+      "tests": 71,
+      "mutants": 377,
+      "killed": 376,
+      "equivalent": 1,
+      "survived": 0,
+      "score": 0.997
+    },
+    {
+      "file": "costcase.mjs",
+      "tests": 12,
+      "mutants": 24,
+      "killed": 24,
+      "equivalent": 0,
+      "survived": 0,
+      "score": 1
+    }
+  ]
+}</script>
+<script type="application/json" id="data-manifest">{
+  "v": 1,
+  "kind": "fallforge-mint-manifest",
+  "node": "review-1b",
+  "base": "llama3.2:1b",
+  "limb": "qwen2.5:14b",
+  "tuning": "prompt-tuned (Modelfile) — weight-level LoRA is v2",
+  "rounds": 1,
+  "evalName": "code-review-v1",
+  "trainHash": "f50d2f1ba62a71fb4fb477194f0f0040098e2a9210638a0c040ea5c477870717",
+  "modelfileHash": "69cd0c622467504ead22fdfc148292a34b038d7d21ff0ce298d5c40c1af787b9",
+  "receipts": [
+    {
+      "vs": "llama3.2:1b",
+      "hash": "52517cbf310f94124165ea6bd1d31fdb83901696c6aa43aba6ace6a6344f4a74",
+      "verdict": "BEATS",
+      "certified": true
+    },
+    {
+      "vs": "qwen2.5:7b",
+      "hash": "82fa7701ba5319cb2f76b6c54c5d4d8a5c7af28384545fd463d9235eaae7d728",
+      "verdict": "LOSES",
+      "certified": false
+    }
+  ],
+  "createdAt": "2026-09-14T21:49:02.243Z",
+  "scope": "receipts are scoped to their probe sets — a mint is a measurement, never a general claim",
+  "hash": "41a7c0a902725a4e142410d401328f0ed7ac319ddf6a8456e438291fff87d57a",
+  "signature": {
+    "alg": "Ed25519",
+    "pub": "302a300506032b65700321005fdc6d87aaead5ae124f74a837b236646301101483a5789a2e97b10041caa0a6",
+    "sig": "a414442dbc35a04f8abb39b5a5997429822d28554425c225bb2ec85ee1533f7bbdbd5d33f9e2f360f37fe04d94fa7ad9cc0178d5367c778092dabe13eeac8309"
+  }
+}</script>
+<script type="application/json" id="data-receipt-base">{
+  "v": 1,
+  "kind": "fallforge-gate-receipt",
+  "task": "code-review-v1",
+  "probes": 16,
+  "candidate": {
+    "model": "review-1b",
+    "passed": 9,
+    "passRate": 0.5625,
+    "meanMs": 3235
+  },
+  "baseline": {
+    "model": "llama3.2:1b",
+    "passed": 4,
+    "passRate": 0.25,
+    "meanMs": 1859
+  },
+  "passDelta": 0.3125,
+  "speedX": 0.57,
+  "verdict": "BEATS",
+  "certified": true,
+  "scoredAt": "2026-09-14T21:49:02.243Z",
+  "scope": "this probe set only — a receipt is a measurement, never a general claim",
+  "hash": "52517cbf310f94124165ea6bd1d31fdb83901696c6aa43aba6ace6a6344f4a74"
+}</script>
+<script type="application/json" id="data-receipt-qwen">{
+  "v": 1,
+  "kind": "fallforge-gate-receipt",
+  "task": "code-review-v1",
+  "probes": 16,
+  "candidate": {
+    "model": "review-1b",
+    "passed": 9,
+    "passRate": 0.5625,
+    "meanMs": 3235
+  },
+  "baseline": {
+    "model": "qwen2.5:7b",
+    "passed": 11,
+    "passRate": 0.6875,
+    "meanMs": 7003
+  },
+  "passDelta": -0.125,
+  "speedX": 2.17,
+  "verdict": "LOSES",
+  "certified": false,
+  "scoredAt": "2026-09-14T21:49:02.243Z",
+  "scope": "this probe set only — a receipt is a measurement, never a general claim",
+  "hash": "82fa7701ba5319cb2f76b6c54c5d4d8a5c7af28384545fd463d9235eaae7d728"
+}</script>
 <script type="module">
 // ⟦KERNEL-BEGIN⟧ generated from kernel.mjs by make-page.mjs — do not edit here
 // FallForge Mint — the minting pipeline's pure core. Layer 2 of the sovereign-node factory:
@@ -1616,22 +2229,99 @@ function rerunLinkCheck(receipt, ev) {
   return no('the run is recent enough to still hold its minted bundle and holds none, so it did not mint this receipt');
 }
 // ⟦KERNEL-END⟧
+// ⟦COSTCASE-BEGIN⟧ generated from costcase.mjs by make-page.mjs — do not edit here
+// costcase.mjs — the cost case for ONE repetitive job, for the buyer's brochure on the page: what the job costs a team in
+// staff time today, what the two rented-AI routes add, and what owning the minted model costs to run. It follows the
+// estate's mint cost case (liveware src/mintcase.mjs): the same method on the same sourced basis.
+// Every external figure is read from the vendored, sourced basis (vendor/sovereign-enterprise/data/basis.json, byte for
+// byte from sovereign-enterprise data/basis.json); the hours, the share and the counts are the reader's own.
+// Floors, never top ends: staff time at the UK median wage with on-costs left out; CPI applied to every later year.
+// Like for like: the cloud-API route takes the SAME share of the work off as the owned model, so the two differ only in
+// the per-call bill (and where the data goes); rented assistant seats help each person but take no work off, so the
+// staff time stays. No price of ours appears here — these are the buyer's own costs.
+// calcDefaults seeds the page's own-vs-rent calculator from the same basis, so even its starting figures are sourced.
+// Pure, total, deterministic: garbage in gives { ok: false, why }, never a throw. Names are prefixed so this file can be
+// inlined beside kernel.mjs in one page scope.
+
+const CASE_DEFAULTS = Object.freeze({ hoursPerWeek: 20, share: 0.5, seats: 5, casesPerWeek: 500, tokensIn: 1500, tokensOut: 300, years: 3 });
+const CASE_BASIS_KEYS = Object.freeze(['wageMedianHourly', 'cpi', 'electricityPencePerKwh', 'laptopExtraWatts', 'hoursPerYear', 'seat.copilot', 'frontier', 'fxGbpPerUsd']);
+
+const ccNum = (x) => typeof x === 'number' && Number.isFinite(x) && x >= 0;
+const ccR2 = (x) => Math.round(x * 100) / 100;
+
+/** the basis entries the case reads, each a sourced number; null when one is missing or unreadable */
+function ccFigures(basis) {
+  const b = basis || {}, f = (k) => b[k] || {};
+  const out = {
+    wage: f('wageMedianHourly').value, cpi: f('cpi').value, pence: f('electricityPencePerKwh').value, watts: f('laptopExtraWatts').value,
+    hours: f('hoursPerYear').value, seat: f('seat.copilot').value, apiIn: f('frontier').inPerM, apiOut: f('frontier').outPerM, fx: f('fxGbpPerUsd').value,
+  };
+  return Object.values(out).every(ccNum) ? out : null;
+}
+
+/** where each figure came from, for the page to list beside the numbers */
+function caseSources(basis) {
+  try { return CASE_BASIS_KEYS.map((k) => ({ key: k, what: basis[k].what || basis[k].product, source: basis[k].source })); } catch { return []; }
+}
+
+/** a yearly cost carried over `years`, rising by CPI each year after the first */
+function caseOver(perYear, cpi, years) {
+  let total = 0, factor = 1;
+  for (let y = 0; y < years; y++) { total += perYear * factor; factor *= 1 + cpi; }
+  return ccR2(total);
+}
+
+/** the case. input (all optional, defaults above): hoursPerWeek, share (0 to 1), seats, casesPerWeek, tokensIn, tokensOut, years */
+function costCase(basis, input) {
+  try {
+    const f = ccFigures(basis);
+    if (!f) return { ok: false, why: 'a sourced basis with every figure the case reads' };
+    const i = { ...CASE_DEFAULTS, ...(input || {}) };
+    if (!ccNum(i.hoursPerWeek) || i.hoursPerWeek > 168) return { ok: false, why: 'hours a week: 0 to 168' };
+    if (!ccNum(i.share) || i.share > 1) return { ok: false, why: 'the share of the work taken off: 0 to 1' };
+    if (!Number.isInteger(i.seats) || i.seats < 0) return { ok: false, why: 'seats: a whole number' };
+    if (!ccNum(i.casesPerWeek) || !ccNum(i.tokensIn) || !ccNum(i.tokensOut)) return { ok: false, why: 'cases and tokens: numbers' };
+    if (!Number.isInteger(i.years) || i.years < 1 || i.years > 10) return { ok: false, why: 'years: 1 to 10' };
+    const staff = ccR2(i.hoursPerWeek * 52 * f.wage);                                              // the job, in staff time, a year
+    const takenOff = ccR2(staff * i.share);                                                        // the share the owned (or cloud) model does
+    const seats = ccR2(i.seats * 12 * f.seat);                                                     // rented assistants: help, take nothing off
+    const api = ccR2(i.casesPerWeek * 52 * (i.tokensIn * f.apiIn + i.tokensOut * f.apiOut) / 1e6 * f.fx);   // a cloud model on every case
+    const power = ccR2(f.watts * f.hours / 1000 * f.pence / 100);                                  // owned: an always-on extra draw, a year
+    const perYear = { today: staff, rentSeats: ccR2(staff + seats), cloudApi: ccR2(staff - takenOff + api), own: ccR2(staff - takenOff + power) };
+    const total = Object.fromEntries(Object.entries(perYear).map(([k, v]) => [k, caseOver(v, f.cpi, i.years)]));
+    return {
+      ok: true, inputs: i, lines: { staff, takenOff, seats, api, power }, perYear, over: total,
+      savingPerYear: ccR2(perYear.today - perYear.own), savingOver: ccR2(total.today - total.own), versusCloudOver: ccR2(total.cloudApi - total.own),
+    };
+  } catch { return { ok: false, why: 'the inputs could not be read' }; }
+}
+
+/** calcDefaults(basis, input) — sourced starting figures for the own-vs-rent calculator: the rented price per million
+ *  tokens is the basis's frontier API price, blended at the case's in/out split and converted to pounds; the run cost is
+ *  the case's always-on electricity, a month; the tokens per call are the case's in + out. The reader replaces any of them. */
+function calcDefaults(basis, input) {
+  try {
+    const f = ccFigures(basis);
+    if (!f) return { ok: false, why: 'a sourced basis with every figure the case reads' };
+    const i = { ...CASE_DEFAULTS, ...(input || {}) };
+    if (!ccNum(i.tokensIn) || !ccNum(i.tokensOut)) return { ok: false, why: 'cases and tokens: numbers' };
+    const tokensPerCall = i.tokensIn + i.tokensOut;
+    if (tokensPerCall === 0) return { ok: false, why: 'a call has at least one token' };
+    const rentPerMillion = ccR2((i.tokensIn * f.apiIn + i.tokensOut * f.apiOut) / tokensPerCall * f.fx);
+    const runPerMonth = ccR2(f.watts * f.hours / 1000 * f.pence / 100 / 12);
+    return { ok: true, tokensPerCall, rentPerMillion, runPerMonth };
+  } catch { return { ok: false, why: 'the inputs could not be read' }; }
+}
+// ⟦COSTCASE-END⟧
 
 // ── the real signed record for the "verify, don't trust" demo (a genuine mint we shipped) ─────────
-const REAL_MANIFEST = {
-  "v":1,"kind":"fallforge-mint-manifest","node":"review-1b","base":"llama3.2:1b","limb":"qwen2.5:14b",
-  "tuning":"prompt-tuned (Modelfile) — weight-level LoRA is v2","rounds":1,"evalName":"code-review-v1",
-  "trainHash":"f50d2f1ba62a71fb4fb477194f0f0040098e2a9210638a0c040ea5c477870717",
-  "modelfileHash":"69cd0c622467504ead22fdfc148292a34b038d7d21ff0ce298d5c40c1af787b9",
-  "receipts":[
-    {"vs":"llama3.2:1b","hash":"52517cbf310f94124165ea6bd1d31fdb83901696c6aa43aba6ace6a6344f4a74","verdict":"BEATS","certified":true},
-    {"vs":"qwen2.5:7b","hash":"82fa7701ba5319cb2f76b6c54c5d4d8a5c7af28384545fd463d9235eaae7d728","verdict":"LOSES","certified":false}
-  ],
-  "createdAt":"2026-09-14T21:49:02.243Z",
-  "scope":"receipts are scoped to their probe sets — a mint is a measurement, never a general claim",
-  "hash":"41a7c0a902725a4e142410d401328f0ed7ac319ddf6a8456e438291fff87d57a",
-  "signature":{"alg":"Ed25519","pub":"302a300506032b65700321005fdc6d87aaead5ae124f74a837b236646301101483a5789a2e97b10041caa0a6","sig":"a414442dbc35a04f8abb39b5a5997429822d28554425c225bb2ec85ee1533f7bbdbd5d33f9e2f360f37fe04d94fa7ad9cc0178d5367c778092dabe13eeac8309"}
-};
+const dataOf = (id) => { try { return JSON.parse(document.getElementById(id).textContent); } catch (e) { return null; } };
+const REAL_MANIFEST = dataOf('data-manifest');           // out/manifest.json, inlined by make-page.mjs
+const BASIS = dataOf('data-basis');                     // vendor/sovereign-enterprise/data/basis.json — every outside figure, sourced
+const TRACE = dataOf('data-trace');                     // rerun/proof/genuine.json — the CI-minted scorecard the rail is proven on
+const FACTS = dataOf('data-facts');                     // facts.json — the gate's own numbers, measured on GitHub's runner
+const RECEIPT_BASE = dataOf('data-receipt-base');       // out/receipt-vs-base.json
+const RECEIPT_QWEN = dataOf('data-receipt-qwen');       // out/receipt-vs-qwen.json
 
 const $ = (id) => document.getElementById(id);
 const esc = (s) => s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
@@ -1830,6 +2520,18 @@ function showVerdict(ok, text){
   el.textContent = text;
 }
 renderManifest();
+// the two receipt stats, read from the shipped receipts (out/receipt-vs-*.json), not typed in
+(function receiptStats(){
+  const pts = (r) => { const p = Math.round(Math.abs(r.passDelta) * 1000) / 10; return (r.passDelta < 0 ? '−' : '+') + p + ' pts'; };
+  const size = (m) => { const x = /(\d+(?:\.\d+)?)b\b/i.exec(String(m || '')); return x ? Number(x[1]) : null; };
+  const line = (r) => r.candidate.passed + '/' + r.probes + ' vs ' + r.baseline.passed + '/' + r.probes;
+  if (RECEIPT_BASE){ $('vBeats').textContent = RECEIPT_BASE.verdict + ' ' + pts(RECEIPT_BASE); $('vBeatsL').textContent = 'vs its own starting model, ' + RECEIPT_BASE.baseline.model + ' (' + line(RECEIPT_BASE) + ' probes passed)'; }
+  if (RECEIPT_QWEN){
+    const k = size(RECEIPT_QWEN.baseline.model), c = size(RECEIPT_QWEN.candidate.model);
+    $('vLoses').textContent = RECEIPT_QWEN.verdict + ' ' + pts(RECEIPT_QWEN);
+    $('vLosesL').textContent = 'vs ' + RECEIPT_QWEN.baseline.model + (k && c ? ', a model ' + (k / c) + '× its size' : '') + ' (' + line(RECEIPT_QWEN) + ') — shown honestly';
+  }
+})();
 $('checkBtn').addEventListener('click', () => {
   const v = verifyManifest(viewManifest);
   if (v.ok && v.valid) showVerdict(true, '✓ INTACT — the record matches its own signed fingerprint. ' + v.why);
@@ -1880,9 +2582,20 @@ function recalc(){
   $('o_tok').textContent = (r.tokensPerMonth/1e6).toLocaleString('en-GB',{maximumFractionDigits:0}) + 'M';
   $('calcMsg').textContent = (r.verdict === 'RENT_WINS'
     ? 'Honest answer: at these numbers, renting is the better deal. Owning shines when your volume is high or the rented price per million is steep.'
-    : 'Owning saves ' + gbp(r.year1Saving) + ' in the first year — and every year after is cheaper still, because your setup cost is one-off.')
+    : 'Owning saves ' + gbp(r.year1Saving) + ' in the first year' + (input.setupCost > 0 ? ' — and every year after is cheaper still, because your setup cost is one-off.' : ', and the same again every year after: there is no setup cost to pay back.'))
     + (r.recyclingApplied ? ' Recycling repeated content cuts ' + gbp(r.runSavedPerMonth) + ' a month off the run cost.' : '');
 }
+// the calculator's starting figures come from the sourced basis through costcase.mjs — never a typed-in price
+(function seedCalc(){
+  const d = calcDefaults(BASIS, {});
+  if (!d.ok) return;
+  $('c_calls').value = Math.round(CASE_DEFAULTS.casesPerWeek * 52 / 12);
+  $('c_calls_src').textContent = CASE_DEFAULTS.casesPerWeek.toLocaleString('en-GB') + ' cases a week';
+  $('c_tokens').value = d.tokensPerCall;
+  $('c_rent').value = d.rentPerMillion;
+  $('c_run').value = d.runPerMonth;
+  if (BASIS.frontier && BASIS.frontier.product) $('c_rent_src').textContent = BASIS.frontier.product + '’s published API price';
+})();
 ['c_calls','c_tokens','c_rent','c_setup','c_run','c_savingpct','c_recur'].forEach((id)=>$(id).addEventListener('input', recalc));
 $('c_recycle_on').addEventListener('change', recalc);
 recalc();
@@ -1890,11 +2603,12 @@ recalc();
 // ── WebLLM (progressive enhancement, nothing to install) — shared by the live preview AND the proof ─
 let engine = null;
 const LIVE_MODEL = 'Qwen2.5-0.5B-Instruct-q4f16_1-MLC';
+const WEBLLM_URL = 'https://esm.run/@mlc-ai/web-llm@0.2.85';   // pinned: one exact release, never "latest"
 function hideProg(){ document.querySelectorAll('.wl-prog').forEach((e)=>e.classList.add('hidden')); }
 async function ensureEngine(){
   if (engine) return engine;
   document.querySelectorAll('.wl-prog').forEach((e)=>e.classList.remove('hidden'));
-  const webllm = await import('https://esm.run/@mlc-ai/web-llm');
+  const webllm = await import(WEBLLM_URL);
   engine = await webllm.CreateMLCEngine(LIVE_MODEL, { initProgressCallback: (p) => {
     const t = p.text || 'loading…';
     document.querySelectorAll('.wl-progtxt').forEach((e)=>e.textContent = t);
@@ -2109,7 +2823,7 @@ function scVerdict(good, headline, receipt, sig, bundleChecks){
     }
     if (good){
       const sigMsg = sig === 'valid' ? 'The signature is valid — nobody edited it since it was signed.' : (sig === 'unsigned' ? 'It has no signature, but the numbers match its own fingerprint (unedited).' : 'The signature could not be checked in this browser, but the numbers match its own fingerprint.');
-      h += '<div class="kvline" style="margin-top:8px">' + sigMsg + ' Remember: it is <b>self-issued</b> — it proves the sender didn\'t edit it, not that AI-Native Solutions certified the scores.</div>';
+      h += '<div class="kvline" style="margin-top:8px">' + sigMsg + ' Remember: it is <b>self-issued</b> — it proves the sender didn\'t edit it, not that AI Native Solutions certified the scores.</div>';
     }
   }
   h += '</div>';
@@ -2230,7 +2944,7 @@ function sizeIt(){
   let h = '<div class="verdict-box good"><div class="big" style="color:var(--cream)">Start with ' + esc(m.name)
     + ' <span class="pill brass" style="font-size:.72rem">' + esc(r.rung.band) + '</span></div>';
   h += '<div class="kvline" style="margin-top:6px"><b>' + esc(m.id) + '</b> · ' + m.paramsB + 'B params · ' + esc(m.licence) + ' · ' + esc(m.note) + '</div>';
-  h += '<div class="kvline">Runs on <b>' + esc(r.rung.runsOn) + '</b> · ~' + esc(r.rung.ramHintGB) + ' GB RAM (4-bit) · approach: <b>' + esc(r.approach) + '</b> ' + (r.approach==='few-shot' ? '(free tier — often enough)' : '(weight-tune — done-for-you)') + '</div>';
+  h += '<div class="kvline">Runs on <b>' + esc(r.rung.runsOn) + '</b> · ~' + esc(String(r.rung.ramHintGB).replace(/\s*\(4-bit\)\s*$/, '')) + ' GB RAM (4-bit) · approach: <b>' + esc(r.approach) + '</b> ' + (r.approach==='few-shot' ? '(free tier — often enough)' : '(weight-tune — done-for-you)') + '</div>';
   if (r.capped) h += '<div class="kvline" style="color:var(--brass);margin-top:6px">⚠ Your job wants a bigger rung, but ' + esc(r.deployment) + ' can only run this size. Mint it and PROVE it — if it falls short you need bigger hardware, not a bigger claim.</div>';
   h += '</div>';
   // why — every factor shown
@@ -2249,6 +2963,180 @@ function sizeIt(){
   if (calc) calc.addEventListener('click', () => { $('calc').scrollIntoView({ behavior:'smooth', block:'start' }); });
 }
 $('s_btn').addEventListener('click', sizeIt);
+
+// ── adoption: each team card loads its ready-made starting point into the mint ─────────────────────
+document.querySelectorAll('[data-tmpl]').forEach((b) => b.addEventListener('click', () => {
+  const t = TEMPLATES[Number(b.dataset.tmpl)];
+  if (!t) return;
+  loadTemplate(t);
+  $('mint').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}));
+
+// ── HOW IT WORKS: the diagram and the trace, filled in from the CI-minted scorecard (rerun/proof/genuine.json) ─
+// Every value is recomputed here with the gated kernel; nothing in this trace is typed in.
+const short = (h, a, b) => { const s = String(h || ''); return s.length > a + b ? s.slice(0, a) + '…' + (b > 0 ? s.slice(-b) : '') : s; };
+const setText = (id, t) => { const el = $(id); if (el) el.textContent = t; };
+function traceRow(name, what, ok, okText, badText){
+  return '<tr><td>' + esc(name) + '</td><td class="wrap">' + esc(what) + '</td><td class="' + (ok ? 'hit' : 'miss') + '">' + (ok ? '✓ ' + okText : '✗ ' + badText) + '</td></tr>';
+}
+async function sigCheck(receipt){
+  const s = receipt && receipt.signature;
+  if (!s || s.alg !== 'Ed25519' || typeof s.pub !== 'string' || typeof s.sig !== 'string') return 'unsigned';
+  try {
+    const pub = await crypto.subtle.importKey('raw', fromHex(s.pub), { name: 'Ed25519' }, false, ['verify']);
+    const ok = await crypto.subtle.verify({ name: 'Ed25519' }, pub, fromHex(s.sig), new TextEncoder().encode(scorecardSignable(receipt).payload));
+    return ok ? 'valid' : 'invalid';
+  } catch (e) { return 'uncheckable'; }
+}
+let traceRun = 0;
+async function renderTrace(bundle, forged){
+  const run = ++traceRun;
+  if (!bundle || !bundle.receipt || !bundle.spec){ setText('hwHead', 'The proof scorecard could not be read on this page.'); return; }
+  const rc = bundle.receipt, sp = bundle.spec, rows = Array.isArray(bundle.rows) ? bundle.rows : [];
+  const vb = verifyBundle(bundle);
+  const rebuilt = specFromTask(sp.task, sp.train, sp.base);
+  const disj = rebuilt.ok ? holdoutDisjoint(rows, rebuilt.modelfile) : { ok: false };
+  const sc = scorecard(rows.map((r) => ({ correct: r.correct, baseOut: r.baseOut, mintedOut: r.mintedOut })));
+  const checks = vb.ok ? vb.checks : [];
+  const nOk = checks.filter((c) => c.ok).length;
+  // the diagram's boxes
+  setText('hw1a', '“' + short(sp.task, 44, 0) + '”');
+  setText('hw1b', (Array.isArray(sp.train) ? sp.train.length : 0) + ' worked examples · base ' + sp.base);
+  setText('hw2a', rebuilt.ok ? 'sha256 ' + short(rebuilt.fingerprint, 12, 6) : '⚠ ' + rebuilt.why);
+  setText('hw2b', rebuilt.ok && rebuilt.fingerprint === rc.modelFingerprint ? 'rebuilt here: same bytes, same fingerprint ✓' : 'rebuilt here: a different fingerprint ✗');
+  setText('hw3a', rows.length + ' held out · ' + (disj.ok && disj.excludedFromSpec ? 'answers not in the spec ✓' : 'answers found in the spec ✗'));
+  setText('hw3b', disj.ok ? 'holdoutHash ' + short(disj.holdoutHash, 16, 0) : 'holdoutDisjoint: not checkable');
+  setText('hw4a', sc.ok ? 'minted ' + sc.mintedHits + '/' + sc.n + ' · base ' + sc.baseHits + '/' + sc.n + ' → ' + sc.verdict : '⚠ ' + sc.why);
+  setText('hw4b', 'exact-match grading: no model judges it');
+  setText('hw5a', 'receipt ' + short(rc.hash, 12, 0) + ' · stamped ' + String(rc.createdAt || '').slice(0, 10));
+  setText('hw5b', 'Ed25519 · key class ' + (rc.keyClass || 'none'));
+  setText('hw6a', nOk + ' of ' + checks.length + ' checks recompute ' + (vb.valid ? '✓' : '✗'));
+  setText('hw6b', 'signature: checking…');
+  const runId = (RERUN_URL.test(String(rc.rerun || '')) ? String(rc.rerun).split('/').pop() : null);
+  setText('hw7b', runId ? 'this scorecard names CI run ' + runId : 'this scorecard names no CI run');
+  const box = $('hw6box'); if (box) box.setAttribute('class', 'box ' + (vb.valid ? 'ok' : 'bad'));
+  // the trace table: the kernel's own checks, then the signature
+  let body = checks.map((c) => traceRow(c.name, c.detail, c.ok, 'recomputes', 'does not match')).join('');
+  body += '<tr id="hwSigRow"><td>signature</td><td class="wrap">the Ed25519 signature, over the scorecard’s signed bytes (your browser’s WebCrypto)</td><td class="muted">checking…</td></tr>';
+  if (runId) body += '<tr><td>rerun link</td><td class="wrap">the CI run the scorecard names. A browser cannot read that run’s upload, so the <a href="#rerun">re-run rail</a> checks it made this exact scorecard</td><td><a href="' + esc(rc.rerun) + '" target="_blank" rel="noopener">run ' + esc(runId) + '</a></td></tr>';
+  document.querySelector('#hwChecks tbody').innerHTML = body;
+  // the held-out rows, as graded
+  document.querySelector('#hwRows tbody').innerHTML = rows.map((r) => {
+    const gb = gradeAnswer(r.correct, r.baseOut), gm = gradeAnswer(r.correct, r.mintedOut);
+    const bh = gb.ok && gb.hit, mh = gm.ok && gm.hit;
+    return '<tr><td>' + esc(String(r.input)) + '</td><td>' + esc(String(r.correct)) + '</td>'
+      + '<td class="' + (bh ? 'hit' : 'miss') + '">' + (bh ? '✓ ' : '✗ ') + esc(short(r.baseOut, 70, 0)) + '</td>'
+      + '<td class="' + (mh ? 'hit' : 'miss') + '">' + (mh ? '✓ ' : '✗ ') + esc(short(r.mintedOut, 70, 0)) + '</td></tr>';
+  }).join('');
+  const sig = await sigCheck(rc);
+  if (run !== traceRun) return;                         // a newer render (forge / reset) has taken over
+  const sigOk = sig === 'valid';
+  const sigTxt = sigOk ? 'valid' : (sig === 'invalid' ? 'does not match' : (sig === 'unsigned' ? 'no signature' : 'not checkable in this browser'));
+  setText('hw6b', 'signature: ' + sigTxt + (sigOk ? ' ✓' : ''));
+  const sr = $('hwSigRow');
+  if (sr) sr.lastElementChild.outerHTML = '<td class="' + (sigOk ? 'hit' : (sig === 'invalid' ? 'miss' : 'muted')) + '">' + (sigOk ? '✓ ' : (sig === 'invalid' ? '✗ ' : '')) + sigTxt + '</td>';
+  const head = vb.valid
+    ? 'Re-checked in your browser just now: all ' + checks.length + ' recorded numbers recompute, and the signature is ' + sigTxt + '. Minted on a GitHub runner on ' + String(rc.createdAt || '').slice(0, 10) + ' (' + String(rc.evaluatedOn || '') + '): the minted model ' + rc.mintedHits + '/' + rc.heldOut + ', the base ' + rc.baseHits + '/' + rc.heldOut + ', ' + rc.verdict + '.'
+    : 'CAUGHT: ' + (checks.length - nOk) + ' of ' + checks.length + ' checks fail (' + checks.filter((c) => !c.ok).map((c) => c.name).join(', ') + '). ' + (forged ? 'The scorecard still says ' + rc.mintedHits + '/' + rc.heldOut + ', but the rows no longer match it.' : '');
+  $('hwHead').innerHTML = esc(head);
+  $('hwHead').style.color = vb.valid ? '' : 'var(--bad)';
+}
+renderTrace(TRACE, false);
+$('hwForge').addEventListener('click', () => {
+  if (!TRACE) return;
+  const f = JSON.parse(JSON.stringify(TRACE));
+  const i = f.rows.findIndex((r) => { const g = gradeAnswer(r.correct, r.mintedOut); return !(g.ok && g.hit); });
+  if (i === -1) return;
+  const was = f.rows[i].mintedOut;
+  f.rows[i].mintedOut = f.rows[i].correct;
+  renderTrace(f, true);
+  $('hwForgeNote').textContent = 'Done: the minted answer to “' + f.rows[i].input + '” was ' + was + '; it now reads ' + f.rows[i].correct + '. The bundle’s fingerprint, the evidence hash and the re-graded scores no longer match the signed scorecard. A forger who also re-hashes and re-signs is still caught, on the CI run’s link and on re-execution — see the proof runs.';
+});
+$('hwReset').addEventListener('click', () => {
+  renderTrace(TRACE, false);
+  $('hwForgeNote').textContent = 'Back to the real record, exactly as the GitHub runner minted it.';
+});
+
+// ── BLUEPRINT + WHITE PAPER: the gate's own numbers, from facts.json (measured on GitHub's runner) ─────
+(function blueprintFacts(){
+  if (!FACTS || !Array.isArray(FACTS.organs)) return;
+  setText('bpWitness', 'Mutation gate: ' + FACTS.witness + ', cloned at its pinned tag on every run. ' + FACTS.about);
+  const lines = [];
+  for (const o of FACTS.organs){
+    const td = document.querySelector('[data-organ="' + o.file + '"]');
+    const txt = o.tests + ' tests pass · witness killed ' + o.killed + ' of ' + o.mutants + ' mutants'
+      + (o.equivalent ? ' (' + o.equivalent + ' reviewed-equivalent, its reason written in witness.baseline.json)' : '')
+      + ' · ' + o.survived + ' survived';
+    if (td) td.textContent = txt + '. Measured on GitHub’s runner.';
+    lines.push(o.file + ': ' + o.tests + ' tests, ' + o.killed + ' of ' + o.mutants + ' mutants killed' + (o.equivalent ? ', ' + o.equivalent + ' reviewed-equivalent' : '') + ', ' + o.survived + ' survived');
+  }
+  setText('ppGate', 'The code is held to its tests by a mutation gate (' + FACTS.witness + '): each line is broken on purpose, one at a time, and the tests must catch it. On GitHub’s runner — ' + lines.join('; ') + '. The page is rebuilt from that code on every push and the build fails if one byte differs.');
+})();
+(function paperEvidence(){
+  const parts = [];
+  if (TRACE && TRACE.receipt){
+    const r = TRACE.receipt, vb = verifyBundle(TRACE);
+    parts.push('A scorecard minted on a GitHub runner — the catalogue-code job traced above — scores the minted model ' + r.mintedHits + '/' + r.heldOut + ' against the plain base model’s ' + r.baseHits + '/' + r.heldOut + ' on held-out examples whose answers were not in its spec: ' + r.verdict + '. Your browser recomputed ' + (vb.ok ? vb.checks.filter((c) => c.ok).length + ' of ' + vb.checks.length : 'its') + ' recorded numbers from it as this page loaded.');
+  }
+  if (RECEIPT_BASE && RECEIPT_QWEN){
+    parts.push('The signed review-1b record in the Proof section ' + RECEIPT_BASE.verdict + ' its own base, ' + RECEIPT_BASE.baseline.model + ' (' + RECEIPT_BASE.candidate.passed + '/' + RECEIPT_BASE.probes + ' probes against ' + RECEIPT_BASE.baseline.passed + '/' + RECEIPT_BASE.probes + '), and ' + RECEIPT_QWEN.verdict + ' to ' + RECEIPT_QWEN.baseline.model + ' (' + RECEIPT_QWEN.candidate.passed + '/' + RECEIPT_QWEN.probes + ' against ' + RECEIPT_QWEN.baseline.passed + '/' + RECEIPT_QWEN.probes + ') — the loss is on the record, not hidden.');
+  }
+  parts.push('On the re-run rail the untouched scorecard is BOUND and REPRODUCED, a careful forgery that re-hashes and re-signs is TAMPERED on its borrowed link, the same forgery without a link DID NOT REPRODUCE, and an edited hit count is TAMPERED — each on a real, linked GitHub run in the Proof section.');
+  setText('ppEvidence', parts.join(' '));
+})();
+
+// ── FOR BUSINESS: the cost case, computed by costcase.mjs from the sourced basis and the reader's own inputs ─
+(function costCaseUI(){
+  if (!BASIS) { setText('ccHead', 'The sourced basis could not be read on this page.'); return; }
+  const D = CASE_DEFAULTS;
+  $('cc_hours').value = D.hoursPerWeek; $('cc_share').value = Math.round(D.share * 100); $('cc_seats').value = D.seats;
+  $('cc_cases').value = D.casesPerWeek; $('cc_years').value = D.years;
+  const B = BASIS, pct = (x) => Math.round(x * 1000) / 10 + '%';
+  const yrs = (n) => n + ' year' + (n === 1 ? '' : 's');
+  function render(){
+    const input = { hoursPerWeek: num('cc_hours'), share: num('cc_share') / 100, seats: num('cc_seats'), casesPerWeek: num('cc_cases'), years: num('cc_years') };
+    const r = costCase(B, input);
+    const tb = document.querySelector('#ccTable tbody');
+    if (!r.ok){ $('ccHead').innerHTML = '<span class="pill bad">⚠ ' + esc(r.why) + '</span>'; tb.innerHTML = ''; setText('ccBoard', 'Put in your own figures above and the case for your board is written from them.'); return; }
+    const i = r.inputs, L = r.lines;
+    setText('ccOverH', 'Over ' + yrs(i.years));
+    const row = (cls, route, what, y, o) => '<tr' + (cls ? ' class="' + cls + '"' : '') + '><td class="wrap"><b>' + esc(route) + '</b></td><td class="wrap">' + what + '</td><td class="num">' + gbp(y) + '</td><td class="num">' + gbp(o) + '</td></tr>';
+    tb.innerHTML =
+      row('', 'Today', 'Your people do the job by hand: ' + i.hoursPerWeek + ' hours a week of staff time (' + gbp(L.staff) + ' a year).', r.perYear.today, r.over.today)
+      + row('', 'Rent AI assistant seats', i.seats + ' seats of ' + esc(B['seat.copilot'].product) + ' (' + gbp(L.seats) + ' a year). They help each person, but take none of the job off, so the staff time stays.', r.perYear.rentSeats, r.over.rentSeats)
+      + row('', 'Rent a cloud model on every case', esc(B.frontier.product) + ' on ' + i.casesPerWeek.toLocaleString('en-GB') + ' cases a week (' + gbp(L.api) + ' a year), taking the same ' + Math.round(i.share * 100) + '% of the job off. Every case leaves the building.', r.perYear.cloudApi, r.over.cloudApi)
+      + row('ownrow', 'Own the minted model', 'The same ' + Math.round(i.share * 100) + '% off (' + gbp(L.takenOff) + ' of staff time a year), on a machine you already use, for its extra electricity (' + gbp(L.power) + ' a year). No seats, no per-call bill, nothing leaves the building.', r.perYear.own, r.over.own);
+    const save = r.savingOver, vsCloud = r.versusCloudOver;
+    $('ccHead').innerHTML = 'Owning it: <b>' + gbp(r.perYear.own) + '</b> a year against <b>' + gbp(r.perYear.today) + '</b> today — '
+      + (save >= 0 ? '<span class="win">' + gbp(save) + ' less</span>' : '<b>' + gbp(-save) + ' more</b>') + ' over ' + yrs(i.years) + '. '
+      + 'Against a cloud model doing the same share: ' + (vsCloud >= 0 ? '<span class="win">' + gbp(vsCloud) + ' less</span>' : '<b>' + gbp(-vsCloud) + ' more</b>') + ' over the period.';
+    $('ccNote').textContent = 'Floors, not top ends: staff time at £' + B.wageMedianHourly.value.toFixed(2) + ' an hour (' + B.wageMedianHourly.what + '), with no National Insurance, pension or overheads added; '
+      + pct(B.cpi.value) + ' a year inflation (' + B.cpi.what.replace(/ — .*$/, '') + ') on every later year. Each case is ' + i.tokensIn.toLocaleString('en-GB') + ' tokens in and ' + i.tokensOut + ' out at ' + B.frontier.product + '’s published rate, converted at ' + B.fxGbpPerUsd.value + ' pounds to the dollar. '
+      + 'Owning: a ' + B.laptopExtraWatts.value + ' W extra draw on a machine already in use, ' + B.hoursPerYear.value.toLocaleString('en-GB') + ' hours a year, at ' + B.electricityPencePerKwh.value + 'p per kWh. '
+      + 'Not counted: the time to set it up, the time your people spend checking its answers (the same for either AI route), or any hardware you buy — the own-vs-rent calculator above takes setup and hardware. '
+      + (typeof B.currency === 'string' ? 'Currency: ' + B.currency + '.' : '');
+    $('ccSrc').innerHTML = caseSources(B).map((s) => {
+      const e = B[s.key] || {};
+      const val = s.key === 'frontier' ? '$' + e.inPerM + ' in and $' + e.outPerM + ' out for a million tokens'
+        : s.key === 'seat.copilot' ? '£' + e.value + ' a month for each user'
+        : s.key === 'wageMedianHourly' ? '£' + e.value.toFixed(2) + ' an hour'
+        : s.key === 'electricityPencePerKwh' ? e.value + 'p a kWh'
+        : s.key === 'laptopExtraWatts' ? e.value + ' W'
+        : s.key === 'cpi' ? pct(e.value) + ' a year'
+        : s.key === 'fxGbpPerUsd' ? e.value + ' pounds to the dollar'
+        : s.key === 'hoursPerYear' ? e.value.toLocaleString('en-GB') + ' hours'
+        : String(e.value);
+      return '<li><b>' + esc(String(s.what || s.key)) + '</b> — ' + esc(val) + ' · ' + (s.source ? '<a href="' + esc(s.source) + '" target="_blank" rel="noopener">source</a>' + (e.via ? ' (' + esc(e.via) + ')' : '') : 'arithmetic, no outside source') + '</li>';
+    }).join('');
+    setText('ccBoard', 'One repetitive job takes ' + i.hoursPerWeek + ' staff hours a week today — ' + gbp(r.over.today) + ' over ' + yrs(i.years) + ' at the UK median wage, before any on-costs. '
+      + 'If a model the company owns takes ' + Math.round(i.share * 100) + '% of it off, the job costs ' + gbp(r.over.own) + ' over the same period: '
+      + (save >= 0 ? gbp(save) + ' less.' : gbp(-save) + ' more, so at this share it does not pay.') + ' '
+      + 'Renting a cloud model for the same share costs ' + (vsCloud >= 0 ? gbp(vsCloud) + ' more than owning' : gbp(-vsCloud) + ' less than owning') + ' and sends every case outside; rented assistant seats add ' + gbp(L.seats) + ' a year and take none of the job off. '
+      + 'Finding out costs nothing but the examples: the proof runs on your own data first, the scorecard is allowed to say no, anyone can re-run it on a neutral machine, and the software is MIT-licensed with no account to open.');
+  }
+  ['cc_hours', 'cc_share', 'cc_seats', 'cc_cases', 'cc_years'].forEach((id) => $(id).addEventListener('input', render));
+  render();
+})();
 
 </script>
 </body>

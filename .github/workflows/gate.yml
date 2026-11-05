@@ -1,30 +1,54 @@
 name: gate
 # FallForge Mint is a self-contained, kernel-backed page. This gate proves the whole thing on every push:
-# the kernel's contract holds, the mutation gate is CLEAN, the LIVE page runs that exact kernel, the page
-# has no dead or cross-repo links, and the shipped signed receipt still verifies. No green is faked here.
+# each organ's contract holds, the pinned mutation gate (witness v0.6) is CLEAN on each organ, the page's numbers are
+# the ones this runner just measured, the LIVE page runs that exact code and data, the page explains itself with no
+# dead or cross-repo links, and the shipped signed receipt still verifies. No green is faked here.
 on: [push, pull_request, workflow_dispatch]
 jobs:
   gate:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with: { node-version: '22' }
 
       - name: the kernel's contract holds
-        run: node --test kernel.test.mjs
+        run: node --test kernel.test.mjs | tee kernel.tests.out
 
-      - name: the mutation gate is CLEAN (kernel.mjs is not test-theatre)
+      - name: the cost case's contract holds (every figure from the vendored, sourced basis)
+        run: node --test costcase.test.mjs | tee costcase.tests.out
+
+      - name: the mutation gate is the pinned release — witness v0.6 (the vendored copy is byte-identical to it)
         run: |
-          node tools/witness.mjs mutate kernel.mjs --timeout 30000 --cap 500 --test node --test kernel.test.mjs | tee gate.out || true
-          node -e "const b=require('fs').readFileSync('gate.out','utf8');const j=JSON.parse(b.slice(b.indexOf('{'),b.lastIndexOf('}')+1));if(j.clean!==true){console.error('GATE NOT CLEAN');process.exit(1)}console.log('CLEAN '+j.killed+'/'+j.total)"
+          git clone --depth 1 --branch v0.6 https://github.com/sjgant80-hub/witness.git "$RUNNER_TEMP/witness"
+          cmp tools/witness.mjs "$RUNNER_TEMP/witness/witness.mjs"
+          cmp tools/runner.mjs "$RUNNER_TEMP/witness/runner.mjs"
+          echo "witness $(git -C "$RUNNER_TEMP/witness" rev-parse --short HEAD) (v0.6)"
 
-      - name: the LIVE page IS the gated kernel (fixpoint)
+      - name: the mutation gate is CLEAN on kernel.mjs (not test-theatre)
+        run: |
+          node "$RUNNER_TEMP/witness/witness.mjs" mutate kernel.mjs --timeout 30000 --cap 500 --test node --test kernel.test.mjs | tee kernel.witness.out || true
+          node -e "const b=require('fs').readFileSync('kernel.witness.out','utf8');const j=JSON.parse(b.slice(b.indexOf('{'),b.lastIndexOf('}')+1));if(j.clean!==true){console.error('GATE NOT CLEAN');process.exit(1)}console.log('CLEAN '+j.killed+'/'+j.total)"
+
+      - name: the mutation gate is CLEAN on costcase.mjs (not test-theatre)
+        run: |
+          node "$RUNNER_TEMP/witness/witness.mjs" mutate costcase.mjs --timeout 30000 --cap 500 --test node --test costcase.test.mjs | tee costcase.witness.out || true
+          node -e "const b=require('fs').readFileSync('costcase.witness.out','utf8');const j=JSON.parse(b.slice(b.indexOf('{'),b.lastIndexOf('}')+1));if(j.clean!==true){console.error('GATE NOT CLEAN');process.exit(1)}console.log('CLEAN '+j.killed+'/'+j.total)"
+
+      - name: the page's test counts and mutation scores are this runner's own (facts.json)
+        run: |
+          node tools/facts.mjs kernel.mjs=kernel.tests.out,kernel.witness.out costcase.mjs=costcase.tests.out,costcase.witness.out
+          git diff --exit-code facts.json || { echo "facts.json differs from what this runner measured — commit the measured copy above"; cat facts.json; exit 1; }
+
+      - name: the LIVE page IS the gated code and data (fixpoint)
         run: |
           node make-page.mjs
           git diff --exit-code index.html
 
-      - name: the page is self-contained — parses, no placeholders, no dead or cross-repo links
+      - name: the page is self-contained and explains itself — parses, no placeholders, no dead or cross-repo links, no price, brochure + credits on it
         run: node tools/page-gate.mjs
 
       - name: the shipped signed receipt still verifies — hash, Ed25519 signature, receipt + Modelfile hashes

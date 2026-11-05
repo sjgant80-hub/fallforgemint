@@ -80,12 +80,19 @@ The two fragile records are why the proof bundle holds out only rows that stay p
 
 What it shows and what it doesn't: every recorded number is recomputed, and the held-out set is run again on that runner. A small model on a CPU is not bit-exact across chip types: a borderline answer can flip between them, and the rail fails that record and shows you the row. It does not attest the machine that made the original. The link check takes GitHub's own record of the run (its commit, its jobs, its upload) as given. It says nothing about what the base model saw in its own training. The held-out claim stays narrow: the held-out answers were not in the spec the model was given (hash-disjoint).
 
+## What the page explains (on the page, not here)
+
+A stranger can understand and judge it without this repo: what it is at the top · **Start here** (four steps) · **How it works** — an inline diagram and a check-by-check trace filled in, as the page loads, from the real CI-minted scorecard (`rerun/proof/genuine.json`), re-verified in the browser by the gated kernel (with a button that forges one answer and shows the check fail) · **Blueprint** — every file, what it does and its gate numbers, read from `facts.json` · **For business** — benefits for the CEO, CFO, COO, CTO/CISO, department heads and the team; a **cost case** computed by `costcase.mjs` from the sourced basis (`vendor/sovereign-enterprise/data/basis.json`, vendored byte for byte, every figure cited) with the reader's own inputs; security and data protection; ownership, support and exit; roll-out; risks; the case for the board · **Adoption** · a short **white paper** · FAQ.
+
+Supplied by **AI Native Solutions** — start at https://www.ai-nativesolutions.com. Support, service levels, warranty and liability are agreed per deployment; the code is MIT and keeps running without us. No price of ours appears on the page (the page gate refuses one).
+
 ## The gate (what CI checks on every push)
 
-- `node --test kernel.test.mjs` — the contract and determinism suite.
-- `node tools/witness.mjs mutate kernel.mjs` — the mutation gate must be **CLEAN** (survivors baselined only with a written reason in `witness.baseline.json`).
-- `node make-page.mjs && git diff --exit-code index.html` — the live page IS the gated kernel.
-- `node tools/page-gate.mjs` — scripts parse, no placeholders, no dead links, **no cross-repo links**, no committed secrets, and **no own-product price**: no money amount or /mo on the page, no Offer schema, and every money field starts at 0 or blank unless it is argued (the rented model's price you compare against, and your own running cost).
+- `node --test kernel.test.mjs` and `node --test costcase.test.mjs` — the two organs' contracts.
+- The mutation gate is the **pinned release, witness v0.6**, cloned at its tag on the runner (the vendored `tools/witness.mjs` + `tools/runner.mjs` must be byte-identical to it). It must be **CLEAN** on `kernel.mjs` and on `costcase.mjs` (survivors baselined only with a written reason in `witness.baseline.json`).
+- `node tools/facts.mjs …` then `git diff --exit-code facts.json` — every test count and mutation score on the page is the one this runner just measured.
+- `node make-page.mjs && git diff --exit-code index.html` — the live page IS the gated code and data: both kernels, the sourced basis, the gate's facts, the CI-minted proof bundle and the signed review-1b record are inlined from the repo's own files.
+- `node tools/page-gate.mjs` — scripts parse, no placeholders, no dead links, **no cross-repo links**, no committed secrets, **no own-product price** (no money amount or /mo on the page, no Offer schema, and every money field starts at 0 or blank unless it is argued: the rented model's price you compare against, and your own running cost), and the page **explains itself**: every explainer section, the inline diagram, every buyer role, the cost case, the credits in full and the supplier, no mailto, every data block filled.
 - The shipped signed manifest re-verifies — hash, Ed25519 signature, receipt and Modelfile hashes.
 
 ## Honest scope
@@ -98,6 +105,6 @@ Proving a model on examples kept out of its spec and re-running the scorecard on
 
 > Gary W. Floyd, Lumiea Systems Research Division — ThunderStruck Service LLC — "From GEP Stabilization to Dual-Map Ethical Reasoning: A derivation of positive ethical evidence, negative ethical evidence, and non-legal moral reasoning," Derivation v0.2. Open Defensive Prior Art (Creative Commons).
 
-FallForge Mint itself — the kernel, the page, the re-run rail — is AI-Native Solutions' own work. Powered by the Konomi architecture, created by Thomas Frumkin. See [NOTICE](NOTICE).
+FallForge Mint itself — the kernel, the page, the re-run rail — is AI Native Solutions' own work. Powered by the Konomi architecture, created by Thomas Frumkin. See [NOTICE](NOTICE).
 
-Published by AI-Native Solutions. MIT. ◊·κ=1.
+Supplied by AI Native Solutions (https://www.ai-nativesolutions.com). MIT. ◊·κ=1.

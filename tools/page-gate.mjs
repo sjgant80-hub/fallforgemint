@@ -9,6 +9,9 @@
 //   5. no obvious secret is committed
 //   6. NO own-product price: no money amount or /mo in the visible page, no Offer schema, and every money input
 //      starts at 0 or blank unless argued (a third party's price or the visitor's own cost)
+//   7. the page explains itself and carries the brochure: hero, START HERE, HOW IT WORKS (inline SVG), BLUEPRINT,
+//      ADOPTION, the paper; every buyer role, the cost case, security, exit, roll-out, risks, board case; the credits in
+//      full; the supplier named and linked, no mailto; every inline data block filled
 import { readdirSync, readFileSync, existsSync } from 'node:fs';
 import { Script } from 'node:vm';
 
@@ -85,6 +88,44 @@ for (const f of html) {
 }
 for (const id of Object.keys(MONEY_DEFAULTS)) if (!usedExempt.has(id)) { console.error('page-gate: STALE money-default exemption — no money input #' + id + ' any more, remove it'); fail = 1; }
 
+// 7. THE PAGE EXPLAINS ITSELF AND CAN BE BOUGHT FROM (Simon's standing rules: a stranger understands it without the repo;
+//    a buyer finds the brochure, the supplier and the credits ON the page). Each part is checked for the markup that makes it
+//    real, not just a heading: the traced diagram is an inline SVG, the cost case has its table and board case, and every
+//    data block the page reads is filled by make-page.mjs.
+//    a · the explainer sections: what it is (hero), START HERE, HOW IT WORKS (with an inline SVG), BLUEPRINT, ADOPTION, the paper
+//    b · the brochure: every buyer role, the cost case wired to its kernel, security, ownership/exit, roll-out, risks, board case
+//    c · the credits, in full: Konomi / Thomas Frumkin; Gary W. Floyd, ThunderStruck Service, the paper
+//    d · the supplier and its site; no personal mailto on a product page (contact is through the supplier's site)
+//    e · every inline data block is non-empty JSON
+const SECTIONS = { start: 'START HERE', how: 'HOW IT WORKS', blueprint: 'BLUEPRINT', business: 'the brochure', adopt: 'ADOPTION', paper: 'the white paper' };
+const MUST = [
+  [/<section class="hero">[\s\S]*?<h1>[\s\S]*?<p class="lede">/, 'a plain-words hero (h1 + lede) at the top'],
+  [/<section id="how">[\s\S]*?<svg class="flow"[\s\S]*?<\/svg>[\s\S]*?<\/section>/, 'an inline SVG diagram inside HOW IT WORKS'],
+  [/id="hwChecks"/, 'the trace table HOW IT WORKS fills from the CI-minted scorecard'],
+  [/data-organ="kernel\.mjs"/, 'the blueprint row the gate\'s facts fill for kernel.mjs'],
+  [/data-organ="costcase\.mjs"/, 'the blueprint row the gate\'s facts fill for costcase.mjs'],
+  [/id="ccTable"/, 'the cost case table'], [/id="ccBoard"/, 'the case for the board'], [/id="ccSrc"/, 'the list of sources'],
+  [/costCase\(B, input\)/, 'the cost case computed by costcase.mjs'],
+  [/Security and data protection/, 'the security and data-protection answers'], [/Ownership, support and exit/, 'ownership, support and exit'],
+  [/Roll-out/, 'the roll-out'], [/Risks, answered straight/, 'the risks, answered'],
+  [/Powered by the Konomi architecture, created by Thomas Frumkin/, 'the Konomi credit (Thomas Frumkin)'],
+  [/Gary W\. Floyd, Lumiea Systems Research Division — ThunderStruck Service LLC — "From GEP Stabilization to Dual-Map Ethical Reasoning/, 'Gary W. Floyd\'s credit in full (name, company, paper)'],
+  [/supplied by <a href="https:\/\/www\.ai-nativesolutions\.com"[^>]*>AI Native Solutions<\/a>/, 'the supplier, named and linked'],
+  [/Support, service levels, warranty and liability/, 'support, SLA, warranty and liability terms (agreed per deployment)'],
+];
+for (const f of html) {
+  const s = readFileSync(f, 'utf8');
+  for (const [id, what] of Object.entries(SECTIONS)) if (!new RegExp('<section id="' + id + '"').test(s)) { console.error(f + ' is missing ' + what + ' (section #' + id + ')'); fail = 1; }
+  for (const [re, what] of MUST) if (!re.test(s)) { console.error(f + ' is missing ' + what); fail = 1; }
+  for (const role of ['CEO', 'CFO', 'COO', 'CTO / CISO']) if (!new RegExp('<div class="card role"><b>' + role + '</b>').test(s)) { console.error(f + ' brochure has no benefit for the ' + role); fail = 1; }
+  if (/href="mailto:/i.test(s)) { console.error(f + ' carries a mailto: link — contact goes through the supplier\'s site'); fail = 1; }
+  for (const m of s.matchAll(/<script type="application\/json" id="(data-[a-z-]+)">([\s\S]*?)<\/script>/g)) {
+    let ok = m[2].trim() !== '';
+    try { if (ok) JSON.parse(m[2]); } catch { ok = false; }
+    if (!ok) { console.error(f + ' data block #' + m[1] + ' is empty or not JSON — run make-page.mjs'); fail = 1; }
+  }
+}
+
 // 5. committed secret (top-level served files).
 for (const f of readdirSync('.')) {
   if (!/\.(html|js|mjs|json|md|txt)$/.test(f)) continue;
@@ -94,4 +135,4 @@ for (const f of readdirSync('.')) {
 }
 
 if (fail) { console.error('\nPAGE GATE FAILED'); process.exit(1); }
-console.log('page gate clean — ' + html.length + ' page(s): scripts parse, no placeholders, no dead links, no cross-repo links, no committed keys, no own-product price');
+console.log('page gate clean — ' + html.length + ' page(s): scripts parse, no placeholders, no dead links, no cross-repo links, no committed keys, no own-product price, explains itself, brochure + credits + supplier on it');

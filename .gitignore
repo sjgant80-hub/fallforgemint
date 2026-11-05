@@ -1,4 +1,5 @@
 node_modules/
 gate.out
+*.out
 *.log
 .DS_Store
