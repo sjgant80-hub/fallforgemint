@@ -7,8 +7,8 @@
 //   4. NO link points at another repo — github.com or *.github.io (this product stands alone; its own CI
 //      re-run rail — this repo and its fallforgemint-rerun template — is the one argued exception)
 //   5. no obvious secret is committed
-//   6. NO own-product price: no money amount or /mo in the visible page, no Offer schema, and every money input
-//      starts at 0 or blank unless argued (a third party's price or the visitor's own cost)
+//   6. NO own-product price: no money amount or /mo in the visible page, no Offer schema, every money input
+//      starts at 0 or blank unless argued (a third party's price or the visitor's own cost), and no pricing-tier wording
 //   7. the page explains itself and carries the brochure: hero, START HERE, HOW IT WORKS (inline SVG), BLUEPRINT,
 //      ADOPTION, the paper; every buyer role, the cost case, security, exit, roll-out, risks, board case; the credits in
 //      full; the supplier named and linked, no mailto; every inline data block filled
@@ -87,6 +87,23 @@ for (const f of html) {
   }
 }
 for (const id of Object.keys(MONEY_DEFAULTS)) if (!usedExempt.has(id)) { console.error('page-gate: STALE money-default exemption — no money input #' + id + ' any more, remove it'); fail = 1; }
+//    e · no pricing-tier wording ("free tier", "the done-for-you tier", "tiers") in the visible page or in any text the page's
+//        own script writes. The inlined kernel is left out, with a reason: its two SCOPE_* sentences are stamped into the
+//        CI-minted, signed proof receipts (rerun/proof/*.json), so rewording them would break those records' hashes, and the
+//        page never displays a receipt's scope. The data blocks are left out for the same reason (they are those records).
+const TIER = /\b(?:free|paid|done-for-you|premium|starter|basic|pro|enterprise|business)\s+tiers?\b|\btiers\b/i;
+for (const f of html) {
+  const s = readFileSync(f, 'utf8');
+  const visible = s.replace(/<script[\s\S]*?<\/script>/g, ' ').replace(/<style[\s\S]*?<\/style>/g, ' ').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ');
+  const vt = visible.match(TIER);
+  if (vt || /\btier\b/i.test(visible)) { const m = vt ? vt[0] : 'tier'; console.error(f + ' shows pricing-tier wording: "' + m + '" — say "service" or "option"'); fail = 1; }
+  const own = [...s.matchAll(/<script(?![^>]*type="application\/(?:ld\+)?json")[^>]*>([\s\S]*?)<\/script>/g)].map((m) => m[1]).join('\n')
+    .replace(/\/\/ ⟦KERNEL-BEGIN⟧[\s\S]*?\/\/ ⟦KERNEL-END⟧/g, ' ');
+  const st = own.match(TIER);
+  if (st) { console.error(f + ' a page script writes pricing-tier wording: "' + st[0] + '"'); fail = 1; }
+  const ld = [...s.matchAll(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/g)].map((m) => m[1]).join('\n');
+  if (TIER.test(ld)) { console.error(f + ' its JSON-LD carries pricing-tier wording'); fail = 1; }
+}
 
 // 7. THE PAGE EXPLAINS ITSELF AND CAN BE BOUGHT FROM (Simon's standing rules: a stranger understands it without the repo;
 //    a buyer finds the brochure, the supplier and the credits ON the page). Each part is checked for the markup that makes it

@@ -81,7 +81,14 @@
   nav.top{margin-left:auto;display:flex;gap:20px;font-size:.9rem}
   nav.top a{color:var(--dim)}
   nav.top a:hover{color:var(--ink);text-decoration:none}
-  @media(max-width:1020px){nav.top{display:none}}
+  /* below desktop width the section links stay, as one swipeable row under the brand (it scrolls inside itself, never the page) */
+  @media(max-width:1020px){
+    header.site .wrap{flex-wrap:wrap;height:auto;gap:4px 18px;padding-top:10px;padding-bottom:6px}
+    nav.top{margin-left:0;width:100%;overflow-x:auto;white-space:nowrap;gap:18px;padding-bottom:4px;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+    nav.top::-webkit-scrollbar{display:none}
+    nav.top a{flex:0 0 auto;padding:4px 0}
+    section[id]{scroll-margin-top:40px}
+  }
   section{padding:64px 0;border-bottom:1px solid var(--line)}
   .eyebrow{font-family:var(--mono);font-size:.74rem;letter-spacing:.18em;text-transform:uppercase;color:var(--forge);margin-bottom:14px}
   .hero h1{font-size:clamp(2.3rem,6vw,3.9rem)}
@@ -234,6 +241,7 @@
     <a href="#how">How it works</a>
     <a href="#blueprint">Blueprint</a>
     <a href="#business">For business</a>
+    <a href="#adopt">Adoption</a>
     <a href="#paper">Paper</a>
     <a href="#faq">FAQ</a>
   </nav>
@@ -509,8 +517,8 @@
         Recycling on (the fold-cycle) — cheaper on repeated content
       </label>
       <div id="recycleFields" hidden>
-        <label class="fld" for="c_savingpct">Measured saving on repeated content, %</label>
-        <input type="number" id="c_savingpct" value="67" min="0" max="100" step="1" />
+        <label class="fld" for="c_savingpct">Your measured saving on repeated content, % — it starts at 0; put in one you have measured on your own work</label>
+        <input type="number" id="c_savingpct" value="0" min="0" max="100" step="1" />
         <label class="fld" style="margin-top:10px" for="c_recur">Share of your runs that repeat content (0–1)</label>
         <input type="number" id="c_recur" value="0.5" min="0" max="1" step="0.05" />
         <p class="note" style="margin-top:6px">Opt-in and conservative: recycling only lowers the run cost on the repeating share of your work. On all-unique work it saves nothing — leave it off.</p>
@@ -536,7 +544,7 @@
 <section id="get"><div class="wrap">
   <div class="eyebrow">Everything you get</div>
   <h2 class="sec">What you walk away with — and what it plugs into.</h2>
-  <p class="sub">The honest, full list. <span class="pill good" style="font-size:.72rem">live</span> is real on this page today; <span class="pill brass" style="font-size:.72rem">next</span> is on the roadmap and marked as such. No magic, no "full estate power" hand-waving.</p>
+  <p class="sub">The honest, full list. Everything marked <span class="pill good" style="font-size:.72rem">live</span> works on this page today. No magic, no "full estate power" hand-waving.</p>
 
   <div class="grid g3" style="margin-top:22px">
     <div class="card price">
@@ -2694,7 +2702,7 @@ function renderScorecard(sc, rows, ctx){
   }
   h += '</tbody></table>';
   h += '<div class="cta-row" style="margin-top:14px"><button class="btn brass" id="dlScorecard">⤓ Download signed scorecard</button></div>';
-  if (sc.smallSample) h += '<p class="note">Small sample (' + sc.n + ' example' + (sc.n>1?'s':'') + ') — a live sanity check, not a full benchmark. The done-for-you tier proves it on a proper held-out set and hands you a signed receipt.</p>';
+  if (sc.smallSample) h += '<p class="note">Small sample (' + sc.n + ' example' + (sc.n>1?'s':'') + ') — a live sanity check, not a full benchmark. More examples give a sharper read; the done-for-you service proves it on a larger held-out set, with a signed receipt.</p>';
   h += '<p class="note" id="scResult"></p>';
   out.innerHTML = h;
   const b = $('dlScorecard');
@@ -2746,7 +2754,7 @@ async function downloadScorecard(sc, rows, ctx){
   download(JSON.stringify(receipt, null, 2), 'scorecard-' + name + '.json', 'application/json');
   const holdLine = (receipt.heldOutClaim) ? ' ' + esc(receipt.heldOutClaim) : '';
   const keyLine = receipt.keyClass === 'software-ed25519' ? ' Signed with a software key — the holder could fabricate it, which is why it is re-runnable.' : '';
-  res.innerHTML = (v.valid ? '✓ ' : '⚠ ') + 'Downloaded <b>scorecard-' + esc(name) + '.json</b> — ' + (signed ? 'signed and ' : '') + 'tamper-evident (anyone can re-check the hash). It is <b>self-issued</b>: it proves nobody edited these numbers, not that we certified them — that is the done-for-you tier.' + holdLine + keyLine;
+  res.innerHTML = (v.valid ? '✓ ' : '⚠ ') + 'Downloaded <b>scorecard-' + esc(name) + '.json</b> — ' + (signed ? 'signed and ' : '') + 'tamper-evident (anyone can re-check the hash). It is <b>self-issued</b>: it proves nobody edited these numbers, not who ran the test — the <a href="#rerun">CI re-run rail</a> is how someone else checks the result for themselves.' + holdLine + keyLine;
   // the re-run bundle: the same signed receipt + the recipe + the held-out rows, so a neutral machine can re-run it
   if (ctx && Array.isArray(ctx.train) && ctx.train.length){
     const rb = rerunBundle({ receipt, task, base: evalBase, train: ctx.train, rows, evaluatedOn: 'webllm:' + LIVE_MODEL });
@@ -2885,7 +2893,7 @@ function renderTune(cands, valN){
     h += '<p class="note">Every version scored the same on this small held-out set — your current model is already as good, so there\'s nothing to change. (More examples give a sharper read.)</p>';
   } else {
     h += '<div class="cta-row" style="margin-top:14px"><button class="btn forge" id="applyTuneBtn">Use the best version (' + esc(winner.label) + ')</button></div>';
-    h += '<p class="note">Measured on ' + valN + ' held-out example' + (valN > 1 ? 's' : '') + ' — a live check, not a full benchmark. The done-for-you tier tunes on a proper set with a signed receipt.</p>';
+    h += '<p class="note">Measured on ' + valN + ' held-out example' + (valN > 1 ? 's' : '') + ' — a live check, not a full benchmark. The done-for-you service tunes on a larger set, with a signed receipt.</p>';
   }
   out.innerHTML = h;
   const btn = $('applyTuneBtn');
@@ -2944,7 +2952,7 @@ function sizeIt(){
   let h = '<div class="verdict-box good"><div class="big" style="color:var(--cream)">Start with ' + esc(m.name)
     + ' <span class="pill brass" style="font-size:.72rem">' + esc(r.rung.band) + '</span></div>';
   h += '<div class="kvline" style="margin-top:6px"><b>' + esc(m.id) + '</b> · ' + m.paramsB + 'B params · ' + esc(m.licence) + ' · ' + esc(m.note) + '</div>';
-  h += '<div class="kvline">Runs on <b>' + esc(r.rung.runsOn) + '</b> · ~' + esc(String(r.rung.ramHintGB).replace(/\s*\(4-bit\)\s*$/, '')) + ' GB RAM (4-bit) · approach: <b>' + esc(r.approach) + '</b> ' + (r.approach==='few-shot' ? '(free tier — often enough)' : '(weight-tune — done-for-you)') + '</div>';
+  h += '<div class="kvline">Runs on <b>' + esc(r.rung.runsOn) + '</b> · ~' + esc(String(r.rung.ramHintGB).replace(/\s*\(4-bit\)\s*$/, '')) + ' GB RAM (4-bit) · approach: <b>' + esc(r.approach) + '</b> ' + (r.approach==='few-shot' ? '(few-shot, as this page mints — often enough)' : '(weight-tune — the done-for-you service)') + '</div>';
   if (r.capped) h += '<div class="kvline" style="color:var(--brass);margin-top:6px">⚠ Your job wants a bigger rung, but ' + esc(r.deployment) + ' can only run this size. Mint it and PROVE it — if it falls short you need bigger hardware, not a bigger claim.</div>';
   h += '</div>';
   // why — every factor shown

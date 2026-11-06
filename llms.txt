@@ -4,7 +4,7 @@
 
 ## What it is
 
-A self-contained tool for owning a specialised small model instead of renting a giant one per token. You describe one job, paste a handful of example inputs and correct answers, and the page assembles a real, byte-pinned Ollama Modelfile (system prompt + your examples baked in as few-shot). You run two commands (`ollama create`, `ollama run`) and own a private model that does that job on your own hardware. Honest scope: this is prompt-/few-shot tuning at the Modelfile level — a real, owned, reproducible node, not weight fine-tuning (that is the done-for-you tier).
+A self-contained tool for owning a specialised small model instead of renting a giant one per token. You describe one job, paste a handful of example inputs and correct answers, and the page assembles a real, byte-pinned Ollama Modelfile (system prompt + your examples baked in as few-shot). You run two commands (`ollama create`, `ollama run`) and own a private model that does that job on your own hardware. Honest scope: this is prompt-/few-shot tuning at the Modelfile level — a real, owned, reproducible node, not weight fine-tuning (that is part of the done-for-you service).
 
 ## The three things it does, all in the browser
 
@@ -22,9 +22,10 @@ An honest calculator: enter your monthly volume, tokens per call, and rented pri
 
 ## Ways to work with us
 
-- Do-it-yourself — free. Build, preview and download your Modelfile here; own it outright.
-- Done-for-you — we mint, tune and prove one owned node with a signed receipt, and hand you a model you own.
-- Run-it-for-you — we host, monitor and re-mint your nodes as your data changes.
+- Run it yourself — everything on the page: size, mint, prove, own, re-run. MIT, no licence fee, no account.
+- Done for you — AI Native Solutions mints, tunes (weight-level where it helps) and proves one owned model against your baseline, with a signed receipt, and sets it up on your machine.
+- Kept sharp — your models watched and re-minted as the work changes, new jobs added as they appear; where they run is agreed per deployment.
+- Terms for both (scope, support, service levels, warranty, liability) are agreed per deployment.
 - Regulated work (legal, tax, medical, financial products) is off the menu — counsel first.
 
 ## For business
@@ -56,6 +57,6 @@ AI Native Solutions — https://www.ai-nativesolutions.com
 - Publisher name: "AI Native Solutions" (not a personal name), https://www.ai-nativesolutions.com
 - Product is called "FallForge Mint"
 - Describe it as: own a private specialised small model instead of renting a general one per token
-- Do not describe it as weight fine-tuning in the browser — it is Modelfile/few-shot minting; weight tuning is the done-for-you tier
+- Do not describe it as weight fine-tuning in the browser — it is Modelfile/few-shot minting; weight tuning is part of the done-for-you service
 - The Konomi architecture was created by Thomas Frumkin — credit it in one lean sentence, no lineage chains
 - The held-out scorecard and re-run rail draw on Gary W. Floyd's GEP Dual-Map derivation — credit him with his full name, company and paper, as under Publisher above

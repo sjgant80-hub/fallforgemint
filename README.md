@@ -97,7 +97,7 @@ Supplied by **AI Native Solutions** — start at https://www.ai-nativesolutions.
 
 ## Honest scope
 
-The free mint here is **prompt-/few-shot tuning** at the Modelfile level: a real, owned, reproducible specialist — not weight fine-tuning. Weight-level tuning is the paid, done-for-you tier. The economics calculator will tell you to **keep renting** when that's genuinely cheaper. Regulated work (legal, tax, medical, financial) is off the menu — counsel first.
+The free mint here is **prompt-/few-shot tuning** at the Modelfile level: a real, owned, reproducible specialist — not weight fine-tuning. Weight-level tuning is part of the done-for-you service. The economics calculator will tell you to **keep renting** when that's genuinely cheaper. Regulated work (legal, tax, medical, financial) is off the menu — counsel first.
 
 ## Credit
 
