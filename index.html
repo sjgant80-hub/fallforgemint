@@ -534,8 +534,10 @@
         <div class="stat"><div class="n" id="o_be">—</div><div class="l">months to pay back your setup cost</div></div>
         <div class="stat"><div class="n" id="o_runsaved">—</div><div class="l">run cost saved by recycling, per month</div></div>
         <div class="stat"><div class="n" id="o_tok">—</div><div class="l">tokens a month</div></div>
+        <div class="stat"><div class="n" id="o_cap">—</div><div class="l">calls a month one machine answers, flat out</div></div>
       </div>
       <p id="calcMsg" class="note"></p>
+      <p id="capNote" class="note"></p>
     </div>
   </div>
 </div></section>
@@ -654,7 +656,7 @@
           <div class="fns"><b>mint</b> specFromTask · validSpec · assembleModelfile · sha256 · canon<br><b>prove</b> planProof · gradeAnswer · scorecard · holdoutDisjoint · scorecardReceipt · verifyScorecardReceipt · scorecardSignable<br><b>own</b> safeModelName · suggestNames · installerScript · b64encode<br><b>improve</b> inferFormat · hardenSpec · pickBest<br><b>size</b> sizeRecommendation · LADDER<br><b>own vs rent</b> ownVsRent<br><b>signed record</b> makeManifest · signable · attachSignature · verifyManifest<br><b>re-run rail</b> rerunBundle · verifyBundle · compareRerun · rerunAttestation · verifyRerunAttestation · rerunLinkCheck</div></td>
         <td class="wrap" data-organ="kernel.mjs">measured on every push</td></tr>
       <tr class="organ"><td><a href="https://github.com/sjgant80-hub/fallforgemint/blob/main/costcase.mjs" target="_blank" rel="noopener"><code>costcase.mjs</code></a></td>
-        <td class="wrap">The buyer's cost case for one job — staff time today, rented seats, a cloud model on every case, or owning it — and the calculator's sourced starting figures.<div class="fns">costCase · calcDefaults · caseOver · caseSources</div></td>
+        <td class="wrap">The buyer's cost case for one job — staff time today, rented seats, a cloud model on every case, or owning it — the calculator's sourced starting figures, and how many calls a month one machine can take at a measured answer time.<div class="fns">costCase · calcDefaults · caseOver · caseSources · machineCapacity</div></td>
         <td class="wrap" data-organ="costcase.mjs">measured on every push</td></tr>
       <tr class="organ"><td><a href="https://github.com/sjgant80-hub/fallforgemint/blob/main/vendor/sovereign-enterprise/data/basis.json" target="_blank" rel="noopener"><code>basis.json</code></a></td>
         <td class="wrap">Every outside figure the cost case reads — wage, inflation, electricity, exchange rate, vendor prices — each with its published source.</td>
@@ -720,9 +722,9 @@
     <div class="card"><h3 style="font-size:1.1rem;color:var(--cream)">◊ Security and data protection</h3>
       <ul class="facts">
         <li><b>Nothing you type leaves your device.</b> The mint, the proof grading and the scorecard all run in your browser; there is no server behind this page to receive your task or examples. Data protection by design (UK GDPR Article 25).</li>
-        <li><b>The model runs on your machine.</b> Ollama runs it locally and offline, so there is no outside AI processor to vet and no international transfer of the data it reads.</li>
-        <li><b>What the page fetches.</b> Its fonts, and — only if you press <i>Try it live</i>, <i>Run the proof</i> or <i>Auto-improve</i> — the preview's runtime library (<span class="live">@mlc-ai/web-llm</span>, pinned to one exact release) and an open model's weights. None of those requests carries your task or examples.</li>
-        <li><b>No processor, no sub-processors.</b> There is no server behind this page, so there is no one to send a data-processing agreement to for the self-serve mint: nothing you type is received by AI Native Solutions or anyone else.</li>
+        <li><b>The model runs on your machine.</b> Ollama runs it locally: the first build downloads the open base model's weights from Ollama's library once, and after that it runs offline, so there is no outside AI processor to vet and no international transfer of the data it reads.</li>
+        <li><b>What the page fetches.</b> Its fonts (from Google Fonts), and — only if you press <i>Try it live</i>, <i>Run the proof</i> or <i>Auto-improve</i> — the preview's runtime library (<span class="live">@mlc-ai/web-llm</span>, pinned to one exact release) and an open model's weights. None of those requests carries your task or examples.</li>
+        <li><b>No processor, no sub-processors.</b> There is no server behind this page, so there is no one to send a data-processing agreement to for the self-serve mint: nothing you type is received by AI Native Solutions or anyone else. For the done-for-you service, which examples AI Native Solutions sees and how they are handled are set in that deployment's agreement.</li>
         <li><b>Every result is checkable.</b> A SHA-256 fingerprint of the exact Modelfile; a self-hashed scorecard with an Ed25519 signature; a re-run bundle a neutral GitHub runner re-verifies and re-executes.</li>
         <li><b>Honest key class.</b> A scorecard made in a browser is signed with a key made in that browser: it proves nobody edited the numbers, not who ran the test. That is what the neutral re-run is for.</li>
         <li><b>Open and gated.</b> MIT-licensed source; the page runs the exact mutation-gated kernel, and the build fails if the page drifts from it.</li>
@@ -758,6 +760,7 @@
       <dt>Could a scorecard be faked?</dt><dd>Editing a number breaks its fingerprint and its signature — try it in the trace above. A careful forgery that recomputes every hash and re-signs is caught by the neutral re-run: the rail's proof runs show it failing on the CI run's link, and without the link, on re-execution.</dd>
       <dt>Were the test answers leaked into the model?</dt><dd>The held-out answers are checked to be absent from the spec the model was given (hash-disjoint); for a few-shot model that spec is everything it was given. It says nothing about what the base model saw in its own pre-training, and the page says so.</dd>
       <dt>Will it give identical results on every machine?</dt><dd>Not always, and the page says so: small models on CPUs are not bit-exact across chip types, so a borderline answer can flip. The rail fails that record and shows the row; the proof set holds out only rows that stay put.</dd>
+      <dt>Can one machine take our volume?</dt><dd>The own-vs-rent calculator works it out: from a measured answer time (the shipped review-1b record's) it shows how many calls a month one machine answers, one at a time, and how many machines your volume needs — put their cost in. Your job and hardware will differ, so time it on your own machine in step 4 of the roll-out, beside the current process.</dd>
       <dt>What if our job changes?</dt><dd>Re-mint from new examples. The fingerprint changes with the Modelfile, so you always know exactly which model is running.</dd>
       <dt>Are we locked in?</dt><dd>No. MIT licence, open formats, and it runs on Ollama, which is free.</dd>
       <dt>Can we use it for legal, tax, medical or financial decisions?</dt><dd>No. Regulated work needs proper professional sign-off first. This is for the everyday, high-volume, unregulated work.</dd>
@@ -1148,9 +1151,9 @@
     },
     {
       "file": "costcase.mjs",
-      "tests": 12,
-      "mutants": 24,
-      "killed": 24,
+      "tests": 14,
+      "mutants": 28,
+      "killed": 28,
       "equivalent": 0,
       "survived": 0,
       "score": 1
@@ -2304,6 +2307,24 @@ function costCase(basis, input) {
   } catch { return { ok: false, why: 'the inputs could not be read' }; }
 }
 
+/** a month, in seconds: 365.25 / 12 days of 86,400 seconds (2,629,800) — arithmetic, no outside source */
+const CASE_SECONDS_PER_MONTH = 365.25 / 12 * 86400;
+
+/** machineCapacity(meanMs, callsPerMonth) — what ONE machine answering one call at a time can take, at a measured mean
+ *  answer time: the calls a month it answers flat out, how many such machines the reader's volume needs, and whether that
+ *  volume is over one machine. The own-vs-rent sums assume the volume runs on the machine whose cost they hold; this is
+ *  the check that it can. The mean time is a measurement the caller names (the page reads the shipped review-1b
+ *  receipt's); the volume is the reader's own. */
+function machineCapacity(meanMs, callsPerMonth) {
+  // no try/catch: ccNum reads only typeof and finiteness, so nothing past it can throw on any input
+  if (!ccNum(meanMs) || meanMs === 0) return { ok: false, why: 'a measured mean answer time above zero, in milliseconds' };
+  if (!ccNum(callsPerMonth)) return { ok: false, why: 'calls a month: zero or more' };
+  const perMonth = Math.floor(CASE_SECONDS_PER_MONTH * 1000 / meanMs);
+  if (perMonth < 1) return { ok: false, why: 'a measured mean answer time under a month' };
+  const machines = Math.ceil(callsPerMonth / perMonth);
+  return { ok: true, perMonth, machines, over: callsPerMonth > perMonth };
+}
+
 /** calcDefaults(basis, input) — sourced starting figures for the own-vs-rent calculator: the rented price per million
  *  tokens is the basis's frontier API price, blended at the case's in/out split and converted to pounds; the run cost is
  *  the case's always-on electricity, a month; the tokens per call are the case's in + out. The reader replaces any of them. */
@@ -2575,6 +2596,13 @@ function recalc(){
   };
   if (recycleOn) input.recycling = { savingPct: num('c_savingpct'), recurringFraction: num('c_recur') };
   const r = ownVsRent(input);
+  // can one machine take this volume? costcase.mjs works it out from the shipped review-1b receipt's measured answer time
+  const capMs = RECEIPT_BASE && RECEIPT_BASE.candidate ? RECEIPT_BASE.candidate.meanMs : null;
+  const cap = machineCapacity(capMs, input.callsPerMonth);
+  $('o_cap').textContent = cap.ok ? cap.perMonth.toLocaleString('en-GB') : '—';
+  const capLine = cap.ok && cap.over
+    ? ' Capacity: at ' + (capMs / 1000).toFixed(1) + ' s an answer, one machine answering one call at a time takes about ' + cap.perMonth.toLocaleString('en-GB') + ' calls a month, so this volume needs about ' + cap.machines.toLocaleString('en-GB') + ' such machines — put their cost in your setup and running figures above.'
+    : '';
   const badge = $('verdictBadge');
   if (!r.ok){ badge.className = 'pill bad'; badge.textContent = '⚠ ' + r.why; $('calcMsg').textContent='';
     ['o_rentmo','o_rentyr','o_own1','o_save','o_be','o_runsaved','o_tok'].forEach((id)=>{ $(id).textContent = '—'; });   // no stale figures beside an error
@@ -2591,8 +2619,15 @@ function recalc(){
   $('calcMsg').textContent = (r.verdict === 'RENT_WINS'
     ? 'Honest answer: at these numbers, renting is the better deal. Owning shines when your volume is high or the rented price per million is steep.'
     : 'Owning saves ' + gbp(r.year1Saving) + ' in the first year' + (input.setupCost > 0 ? ' — and every year after is cheaper still, because your setup cost is one-off.' : ', and the same again every year after: there is no setup cost to pay back.'))
-    + (r.recyclingApplied ? ' Recycling repeated content cuts ' + gbp(r.runSavedPerMonth) + ' a month off the run cost.' : '');
+    + (r.recyclingApplied ? ' Recycling repeated content cuts ' + gbp(r.runSavedPerMonth) + ' a month off the run cost.' : '')
+    + capLine;
 }
+// where the one-machine figure comes from, read from the shipped receipt (out/receipt-vs-base.json), never typed in
+(function capacityNote(){
+  if (!RECEIPT_BASE || !RECEIPT_BASE.candidate) return;
+  const c = RECEIPT_BASE.candidate;
+  $('capNote').textContent = 'One machine’s calls a month is worked out from a measured answer time: the shipped ' + c.model + ' record answered its ' + RECEIPT_BASE.probes + ' probes in ' + (c.meanMs / 1000).toFixed(1) + ' s on average, one at a time (its receipt does not name the machine). Your job and your hardware will differ. The owned-side sums assume your volume fits on the machine whose running cost you put in; when it does not, the line above says how many it needs.';
+})();
 // the calculator's starting figures come from the sourced basis through costcase.mjs — never a typed-in price
 (function seedCalc(){
   const d = calcDefaults(BASIS, {});

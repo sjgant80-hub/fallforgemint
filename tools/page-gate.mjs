@@ -123,6 +123,7 @@ const MUST = [
   [/data-organ="costcase\.mjs"/, 'the blueprint row the gate\'s facts fill for costcase.mjs'],
   [/id="ccTable"/, 'the cost case table'], [/id="ccBoard"/, 'the case for the board'], [/id="ccSrc"/, 'the list of sources'],
   [/costCase\(B, input\)/, 'the cost case computed by costcase.mjs'],
+  [/id="o_cap"[\s\S]*?machineCapacity\(capMs, input\.callsPerMonth\)/, 'the calculator\'s one-machine capacity, computed by costcase.mjs from the shipped receipt'],
   [/Security and data protection/, 'the security and data-protection answers'], [/Ownership, support and exit/, 'ownership, support and exit'],
   [/Roll-out/, 'the roll-out'], [/Risks, answered straight/, 'the risks, answered'],
   [/Powered by the Konomi architecture, created by Thomas Frumkin/, 'the Konomi credit (Thomas Frumkin)'],

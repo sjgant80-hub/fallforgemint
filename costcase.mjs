@@ -64,6 +64,24 @@ export function costCase(basis, input) {
   } catch { return { ok: false, why: 'the inputs could not be read' }; }
 }
 
+/** a month, in seconds: 365.25 / 12 days of 86,400 seconds (2,629,800) — arithmetic, no outside source */
+export const CASE_SECONDS_PER_MONTH = 365.25 / 12 * 86400;
+
+/** machineCapacity(meanMs, callsPerMonth) — what ONE machine answering one call at a time can take, at a measured mean
+ *  answer time: the calls a month it answers flat out, how many such machines the reader's volume needs, and whether that
+ *  volume is over one machine. The own-vs-rent sums assume the volume runs on the machine whose cost they hold; this is
+ *  the check that it can. The mean time is a measurement the caller names (the page reads the shipped review-1b
+ *  receipt's); the volume is the reader's own. */
+export function machineCapacity(meanMs, callsPerMonth) {
+  // no try/catch: ccNum reads only typeof and finiteness, so nothing past it can throw on any input
+  if (!ccNum(meanMs) || meanMs === 0) return { ok: false, why: 'a measured mean answer time above zero, in milliseconds' };
+  if (!ccNum(callsPerMonth)) return { ok: false, why: 'calls a month: zero or more' };
+  const perMonth = Math.floor(CASE_SECONDS_PER_MONTH * 1000 / meanMs);
+  if (perMonth < 1) return { ok: false, why: 'a measured mean answer time under a month' };
+  const machines = Math.ceil(callsPerMonth / perMonth);
+  return { ok: true, perMonth, machines, over: callsPerMonth > perMonth };
+}
+
 /** calcDefaults(basis, input) — sourced starting figures for the own-vs-rent calculator: the rented price per million
  *  tokens is the basis's frontier API price, blended at the case's in/out split and converted to pounds; the run cost is
  *  the case's always-on electricity, a month; the tokens per call are the case's in + out. The reader replaces any of them. */

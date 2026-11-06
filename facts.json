@@ -13,9 +13,9 @@
     },
     {
       "file": "costcase.mjs",
-      "tests": 12,
-      "mutants": 24,
-      "killed": 24,
+      "tests": 14,
+      "mutants": 28,
+      "killed": 28,
       "equivalent": 0,
       "survived": 0,
       "score": 1

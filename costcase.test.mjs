@@ -3,7 +3,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { createHash } from 'node:crypto';
-import { CASE_DEFAULTS, CASE_BASIS_KEYS, caseSources, caseOver, costCase, calcDefaults } from './costcase.mjs';
+import { CASE_DEFAULTS, CASE_BASIS_KEYS, caseSources, caseOver, costCase, calcDefaults, CASE_SECONDS_PER_MONTH, machineCapacity } from './costcase.mjs';
 
 const RAW = readFileSync(new URL('./vendor/sovereign-enterprise/data/basis.json', import.meta.url));
 const BASIS = JSON.parse(RAW.toString('utf8'));
@@ -132,4 +132,30 @@ test('costCase / calcDefaults · totality: garbage never throws', () => {
   assert.deepEqual(costCase(toxic, {}), { ok: false, why: 'the inputs could not be read' });
   assert.deepEqual(calcDefaults(toxic, {}), { ok: false, why: 'the inputs could not be read' });
   assert.deepEqual(calcDefaults(BASIS, { get tokensIn() { throw new Error('boom'); } }), { ok: false, why: 'the inputs could not be read' });
+});
+
+test('machineCapacity · one machine, one call at a time, at a measured mean answer time', () => {
+  assert.equal(CASE_SECONDS_PER_MONTH, 2629800);                                   // 365.25 / 12 days of 86,400 s
+  // the shipped review-1b receipt's measured mean (out/receipt-vs-base.json candidate.meanMs) — what the page reads
+  const REC = JSON.parse(readFileSync(new URL('./out/receipt-vs-base.json', import.meta.url), 'utf8'));
+  assert.equal(REC.candidate.meanMs, 3235);
+  assert.deepEqual(machineCapacity(REC.candidate.meanMs, 5e6), { ok: true, perMonth: 812921, machines: 7, over: true });
+  // whole calls only: 2,629,800,000 / 1859 = 1,414,631.52, so it rounds DOWN (a machine cannot answer half a call)
+  assert.equal(machineCapacity(1859, 1).perMonth, 1414631);
+  // the boundary: exactly one machine's worth is not over; one more call needs a second machine
+  assert.deepEqual(machineCapacity(3235, 812921), { ok: true, perMonth: 812921, machines: 1, over: false });
+  assert.deepEqual(machineCapacity(3235, 812922), { ok: true, perMonth: 812921, machines: 2, over: true });
+  assert.deepEqual(machineCapacity(3235, 0), { ok: true, perMonth: 812921, machines: 0, over: false });
+  // one answer a month is the slowest it will size; slower than that is refused, not rounded to zero machines' worth
+  assert.deepEqual(machineCapacity(CASE_SECONDS_PER_MONTH * 1000, 1), { ok: true, perMonth: 1, machines: 1, over: false });
+  assert.deepEqual(machineCapacity(CASE_SECONDS_PER_MONTH * 1000 + 1, 1), { ok: false, why: 'a measured mean answer time under a month' });
+});
+
+test('machineCapacity · refuses what it cannot size, never throws', () => {
+  const slow = { ok: false, why: 'a measured mean answer time above zero, in milliseconds' };
+  const vol = { ok: false, why: 'calls a month: zero or more' };
+  for (const m of [0, -1, NaN, Infinity, '3235', null, undefined, {}]) assert.deepEqual(machineCapacity(m, 10), slow, String(m));
+  for (const c of [-1, NaN, Infinity, '10', null, undefined, []]) assert.deepEqual(machineCapacity(3235, c), vol, String(c));
+  const G = [undefined, null, 0, 'x', [], {}, true, () => 1, Symbol('s'), 10n];
+  for (const a of G) for (const b of G) assert.doesNotThrow(() => machineCapacity(a, b));
 });
