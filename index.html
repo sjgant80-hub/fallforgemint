@@ -636,6 +636,7 @@
         <p class="note" id="gateLimit"></p>
         <div class="cta-row" style="margin-top:12px"><button class="btn ghost" id="gateBreak" type="button">Break the grader in this tab, then hash it again</button></div>
         <p class="note" id="gateBreakOut">The button changes one comparison in the grader's text (the first change witness itself tries) and asks whether a scorecard made by that grader could still carry this strength. It does not change the code this page is running.</p>
+        <p class="note"><b>Proven on real runs:</b> a scorecard minted on a GitHub runner (<a href="https://github.com/sjgant80-hub/fallforgemint/actions/runs/42747647363" target="_blank" rel="noopener">the mint run</a>) carries this block, and the rail found it <b>CONFIRMED</b>: the same grader and tests, every number what the gate measured (<a href="https://github.com/sjgant80-hub/fallforgemint/actions/runs/42747973952" target="_blank" rel="noopener">run</a>). The same scorecard claiming every broken version was stopped, re-hashed and re-signed, adds up on its own; it is not what the gate measured, so the rail calls it <b>CONTRADICTED</b>, the record <b>TAMPERED</b>, and the job fails (<a href="https://github.com/sjgant80-hub/fallforgemint/actions/runs/42747979422" target="_blank" rel="noopener">the failed run</a>; <a href="rerun/proof/make-gate-forged.mjs">how it was forged</a>).</p>
       </div>
     </div>
   </div>

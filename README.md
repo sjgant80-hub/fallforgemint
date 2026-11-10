@@ -49,6 +49,12 @@ block with its own checkout: **CONFIRMED** (same grader and tests, same numbers)
 tests, different numbers: a re-verification failure, so TAMPERED) or **OTHER_VERSION** (a different grader: it cannot
 confirm the number, and it says so). Receipts made before this field still verify unchanged.
 
+**Proven on real runs** (`rerun/proof/gate-genuine.json`, `gate-forged.json`, and `make-gate-forged.mjs` showing how the forgery was made):
+
+- [Mint run 42747647363](https://github.com/sjgant80-hub/fallforgemint/actions/runs/42747647363): a scorecard minted on a GitHub runner carries the gate block.
+- [Run 42747973952](https://github.com/sjgant80-hub/fallforgemint/actions/runs/42747973952): that scorecard, untouched → **CONFIRMED**, link **BOUND**, **REPRODUCED**; the job passes.
+- [Run 42747979422](https://github.com/sjgant80-hub/fallforgemint/actions/runs/42747979422): the same scorecard claiming every broken version was stopped, re-hashed, re-signed and with the borrowed link removed. It adds up on its own, and the only check that fails is `gate-measured` → **CONTRADICTED** → **TAMPERED**; the job fails.
+
 ## Re-run it in CI (the rail)
 
 A scorecard proves nobody edited the numbers. The **re-run rail** (`.github/workflows/rerun.yml`) lets a neutral machine check the result itself. Give it a **re-run bundle** — the signed scorecard, the recipe (task, base, the examples the model was given) and the held-out rows. The page's *Download re-run bundle* button makes one. A clean GitHub runner then makes two judgements:
