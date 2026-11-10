@@ -26,6 +26,29 @@ There's also a **live in-browser preview** (nothing to install) and a **proof** 
 
 The page runs the **exact same code the mutation gate proves**. `kernel.mjs` is inlined into `index.html` by `make-page.mjs`; CI regenerates it and fails if the shipped logic ever drifts from the gated kernel. The kernel is pure and total — garbage in returns a plain-English reason, never a crash.
 
+## The number inside the check (the `gate` block)
+
+A signed scorecard proves nobody edited its numbers. Signed, hash-chained receipts are now free open-source tools, so
+that alone says little. What they don't say is how strong the check behind the PASS is. Every new scorecard receipt
+carries it (claims and bars sealed first, in `CLAIMS.md`):
+
+- `grader` and `graderSha256`: the code that marked the held-out answers (`kernel.mjs`), named by the SHA-256 of
+  that code exactly as the page runs it. `testsSha256`: the test file its mutants faced.
+- `mutants`, `killed`, `equivalent`, `survived`, measured by witness v0.6 on GitHub's runner. `killRate` is
+  killed ÷ mutants, with nothing excused in the number.
+- `survivors[]`: every mutant the tests did not kill, each with its line, the change, the code and its written reason.
+- `limit`: one sentence generated from those numbers. It says what was stopped out of how many were tried, and that the
+  check cannot see a fault outside what it grades, nor say anything about inputs unlike the held-out set.
+
+Where the numbers come from: the gate workflow re-measures them on every push and writes `facts.json` (it fails if the
+committed copy differs). The page hashes the grader it is running and binds the block only when that hash is the one
+measured. One changed byte means no block, and the page says why (`page.test.mjs`, run in CI and kept out of the
+mutation gate on purpose: a test comparing the page with a mutated source would kill every mutant by hash alone and make
+the kill rate meaningless). `verifyScorecardReceipt` refuses a block that doesn't add up. The rail compares a receipt's
+block with its own checkout: **CONFIRMED** (same grader and tests, same numbers), **CONTRADICTED** (same grader and
+tests, different numbers: a re-verification failure, so TAMPERED) or **OTHER_VERSION** (a different grader: it cannot
+confirm the number, and it says so). Receipts made before this field still verify unchanged.
+
 ## Re-run it in CI (the rail)
 
 A scorecard proves nobody edited the numbers. The **re-run rail** (`.github/workflows/rerun.yml`) lets a neutral machine check the result itself. Give it a **re-run bundle** — the signed scorecard, the recipe (task, base, the examples the model was given) and the held-out rows. The page's *Download re-run bundle* button makes one. A clean GitHub runner then makes two judgements:
@@ -90,7 +113,8 @@ Supplied by **AI Native Solutions** — start at https://www.ai-nativesolutions.
 
 - `node --test kernel.test.mjs` and `node --test costcase.test.mjs` — the two organs' contracts.
 - The mutation gate is the **pinned release, witness v0.6**, cloned at its tag on the runner (the vendored `tools/witness.mjs` + `tools/runner.mjs` must be byte-identical to it). It must be **CLEAN** on `kernel.mjs` and on `costcase.mjs` (survivors baselined only with a written reason in `witness.baseline.json`).
-- `node tools/facts.mjs …` then `git diff --exit-code facts.json` — every test count and mutation score on the page is the one this runner just measured.
+- `node tools/facts.mjs …` then `git diff --exit-code facts.json` — every test count and mutation score on the page is the one this runner just measured, with each organ's grader and tests hashes and its survivors (the `gate` block's source).
+- `node --test page.test.mjs` — the live page runs exactly the grader the gate measured, and `facts.json` carries its gate block (G3).
 - `node make-page.mjs && git diff --exit-code index.html` — the live page IS the gated code and data: both kernels, the sourced basis, the gate's facts, the CI-minted proof bundle and the signed review-1b record are inlined from the repo's own files.
 - `node tools/page-gate.mjs` — scripts parse, no placeholders, no dead links, **no cross-repo links**, no committed secrets, **no own-product price** (no money amount or /mo on the page, no Offer schema, and every money field starts at 0 or blank unless it is argued: the rented model's price you compare against, and your own running cost), and the page **explains itself**: every explainer section, the inline diagram, every buyer role, the cost case, the credits in full and the supplier, no mailto, every data block filled.
 - The shipped signed manifest re-verifies — hash, Ed25519 signature, receipt and Modelfile hashes.

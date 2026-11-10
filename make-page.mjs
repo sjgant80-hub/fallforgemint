@@ -8,9 +8,10 @@
 // CI runs this and then `git diff --exit-code index.html`: if the shipped page's logic or data ever drifts from the gated
 // files, the build goes red. One copy of each, gated once, is what the page runs — no second hand-typed copy to rot.
 import { readFileSync, writeFileSync } from 'node:fs';
+import { graderForm } from './kernel.mjs';
 
 const read = (f) => readFileSync(new URL('./' + f, import.meta.url), 'utf8').replace(/\r\n/g, '\n');
-const code = (f) => read(f).replace(/^export /gm, '').trimEnd();
+const code = (f) => graderForm(read(f));   // the kernel's own rule, so the tab can hash exactly what it runs
 let page = read('index.html');
 
 const CODE = [

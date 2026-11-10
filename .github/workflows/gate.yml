@@ -30,7 +30,7 @@ jobs:
 
       - name: the mutation gate is CLEAN on kernel.mjs (not test-theatre)
         run: |
-          node "$RUNNER_TEMP/witness/witness.mjs" mutate kernel.mjs --timeout 30000 --cap 500 --test node --test kernel.test.mjs | tee kernel.witness.out || true
+          node "$RUNNER_TEMP/witness/witness.mjs" mutate kernel.mjs --timeout 60000 --cap 5000 --test node --test kernel.test.mjs | tee kernel.witness.out || true
           node -e "const b=require('fs').readFileSync('kernel.witness.out','utf8');const j=JSON.parse(b.slice(b.indexOf('{'),b.lastIndexOf('}')+1));if(j.clean!==true){console.error('GATE NOT CLEAN');process.exit(1)}console.log('CLEAN '+j.killed+'/'+j.total)"
 
       - name: the mutation gate is CLEAN on costcase.mjs (not test-theatre)
@@ -42,6 +42,11 @@ jobs:
         run: |
           node tools/facts.mjs kernel.mjs=kernel.tests.out,kernel.witness.out costcase.mjs=costcase.tests.out,costcase.witness.out
           git diff --exit-code facts.json || { echo "facts.json differs from what this runner measured — commit the measured copy above"; cat facts.json; exit 1; }
+
+      # G3: run here, never inside the mutation gate — a test that compares the page's grader with the mutated source
+      # would kill every mutant by a hash mismatch alone and make the kill rate meaningless.
+      - name: the live page runs exactly the grader the gate measured, and facts.json carries its gate block (G3)
+        run: node --test page.test.mjs
 
       - name: the LIVE page IS the gated code and data (fixpoint)
         run: |

@@ -152,6 +152,20 @@ async function loadJson(where) {
     return JSON.parse(readFileSync(where, 'utf8'));
   } catch (e) { die('could not read ' + where + ': ' + e.message); }
 }
+// ── the number inside the check: the gate block for the grader this rail is running, from its own facts.json ──
+// facts.json is re-measured by the gate workflow on every push and fails it if it differs, so at a commit on the main
+// line it is what witness found on GitHub's runner for exactly this kernel and these tests. Anything else is a stop.
+function railGate() {
+  const text = (f) => readFileSync(join(here, '..', f), 'utf8').split('\r\n').join('\n');
+  const facts = JSON.parse(text('facts.json'));
+  const mine = K.gateFromFacts(facts, K.sha256(K.graderForm(text('kernel.mjs'))).hash);
+  if (!mine.ok) die('the rail cannot read its own gate: ' + mine.why);
+  if (!mine.bound) die('the rail\'s facts.json is not for the kernel it is running: ' + mine.why);
+  if (mine.gate.testsSha256 !== K.sha256(text('kernel.test.mjs')).hash) die('the rail\'s facts.json is not for the tests it carries');
+  return mine.gate;
+}
+const pct = (r) => (Math.floor(r * 1000) / 10) + '%';
+const gateLine = (g) => `${g.killed}/${g.mutants} broken graders stopped (${pct(g.killRate)}), ${g.survivors.length} listed with ${g.survivors.length === 1 ? 'its reason' : 'their reasons'}`;
 function railCommit() { try { return execFileSync('git', ['-C', join(here, '..'), 'rev-parse', 'HEAD'], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).trim(); } catch { return null; } }
 const summary = (md) => { if (SUMMARY) appendFileSync(SUMMARY, md + '\n'); process.stdout.write(md + '\n'); };
 const annotate = (level, title, msg) => { if (process.env.GITHUB_ACTIONS) process.stdout.write(`::${level} title=${title}::${msg.replace(/\n/g, '%0A')}\n`); };
@@ -172,11 +186,12 @@ async function mint() {
   for (const h of plan.holdout) rows.push({ input: h.input, correct: h.output, baseOut: await chat(minted.base, h.input), mintedOut: await chat(name, h.input) });
   const sc = K.scorecard(rows.map((r) => ({ correct: r.correct, baseOut: r.baseOut, mintedOut: r.mintedOut })));
   const d = K.holdoutDisjoint(rows, minted.modelfile);
+  const gate = railGate();
   const built = K.scorecardReceipt({
     base: minted.base, modelFingerprint: minted.fingerprint, taskHash: K.sha256(s.task).hash, evidenceHash: K.sha256(K.canon(rows)).hash,
     sc: { n: sc.n, baseHits: sc.baseHits, mintedHits: sc.mintedHits, verdict: sc.verdict }, createdAt: new Date().toISOString(),
     keyClass: 'software-ed25519', holdoutHash: d.holdoutHash, holdoutExcludedFromSpec: d.excludedFromSpec, evaluatedOn,
-    ...(RUN_URL ? { rerun: RUN_URL } : {}),
+    ...(RUN_URL ? { rerun: RUN_URL } : {}), gate,
   });
   if (!built.ok) die(built.why);
   const receipt = signReceipt(built.receipt);
@@ -185,6 +200,8 @@ async function mint() {
   if (OUT) writeFileSync(OUT, JSON.stringify(b.bundle, null, 2) + '\n');
   summary(`## FallForge Mint — a scorecard minted on this runner\n\n${row(sc)} on ${sc.n} held-out examples · measured on \`${evaluatedOn}\`\n\n`
     + `- Held-out answers ${d.excludedFromSpec ? '**hash-disjoint** from the recipe (the narrow-true claim ships)' : 'appear in the recipe, so the held-out claim is **not** made'}\n`
+    + `- The check behind it (\`gate\`): ${gateLine(gate)} · grader \`${gate.graderSha256.slice(0, 12)}\`\n`
+    + `- ${gate.limit}\n`
     + `- Signed with a fresh software Ed25519 key (it proves the numbers are unedited, not who ran it)\n`
     + `- Machine: ${MACHINE}\n`
     + (RUN_URL ? `- This run is the receipt's \`rerun\` link: ${RUN_URL}. The rail checks that link against this run's \`rerun-result\` artifact, which GitHub keeps about ${K.ARTIFACT_KEEP_DAYS} days; after that it can confirm only that this run was the rail and was running when the receipt was stamped\n` : '- Run locally: no run link is recorded (never a placeholder)\n')
@@ -205,6 +222,13 @@ async function verifyMode() {
     if (!link.ok) die('cannot judge the rerun link: ' + link.why);
     const said = { BOUND: 'the run it names made this exact receipt', RUN_ONLY: 'partly: ' + link.why, NOT_BOUND: 'the run it names did not make it: ' + link.why };
     checks.push({ name: 'rerun-link', ok: link.pass, detail: said[link.level] });
+  }
+  // the receipt states how strong its grader is: check that against what the gate measured for the grader this rail runs
+  let gm = null;
+  if (bundle.receipt.gate !== undefined) {
+    gm = K.gateMeasured(bundle.receipt.gate, railGate());
+    if (!gm.ok) die('cannot judge the gate block: ' + gm.why);
+    checks.push({ name: 'gate-measured', ok: gm.pass, detail: gm.level + ': ' + gm.why });
   }
   const tampered = checks.some((c) => !c.ok);
   const rec = K.scorecard(bundle.rows.map((x) => ({ correct: x.correct, baseOut: x.baseOut, mintedOut: x.mintedOut })));
@@ -228,10 +252,11 @@ async function verifyMode() {
     outcome = cmp.outcome;
   }
   const createdAt = new Date().toISOString();
-  const att = outcome && RUN_URL ? K.rerunAttestation({ bundleHash: bundle.hash, receiptHash: bundle.receipt.hash, outcome, checks, recorded, fresh: cmp ? cmp.fresh : null, runtime, runUrl: RUN_URL, createdAt, ...(link ? { link: { level: link.level, url: bundle.receipt.rerun } } : {}) }) : null;
+  const att = outcome && RUN_URL ? K.rerunAttestation({ bundleHash: bundle.hash, receiptHash: bundle.receipt.hash, outcome, checks, recorded, fresh: cmp ? cmp.fresh : null, runtime, runUrl: RUN_URL, createdAt, ...(link ? { link: { level: link.level, url: bundle.receipt.rerun } } : {}), ...(gm ? { gate: { level: gm.level, graderSha256: bundle.receipt.gate.graderSha256 } } : {}) }) : null;
   if (att && !att.ok) die('attestation refused: ' + att.why);
   const result = { outcome: outcome || 'VERIFIED_NOT_EXECUTED', pass: outcome === null ? !tampered : outcome === 'REPRODUCED' || outcome === 'AGREES',
-    attestation: att ? att.attestation : null, rerunLink: link ? { url: bundle.receipt.rerun, level: link.level, confirmed: link.confirmed, why: link.why } : null, runUrl: RUN_URL, rail: railCommit(), bundleHash: bundle.hash, receiptHash: bundle.receipt.hash,
+    attestation: att ? att.attestation : null, rerunLink: link ? { url: bundle.receipt.rerun, level: link.level, confirmed: link.confirmed, why: link.why } : null,
+    gate: gm ? { level: gm.level, why: gm.why, graderSha256: bundle.receipt.gate.graderSha256 } : null, runUrl: RUN_URL, rail: railCommit(), bundleHash: bundle.hash, receiptHash: bundle.receipt.hash,
     evaluatedOn: bundle.evaluatedOn, rerunRuntime: runtime, machine: MACHINE, checks, recorded, fresh: cmp ? cmp.fresh : null,
     freshOutputs: freshRows ? bundle.rows.map((r, i) => ({ input: r.input, correct: r.correct, baseOut: freshRows[i].baseOut, mintedOut: freshRows[i].mintedOut })) : null, createdAt };
   if (OUT) writeFileSync(OUT, JSON.stringify(result, null, 2) + '\n');
@@ -250,6 +275,10 @@ async function verifyMode() {
     md += '**The run this receipt names:** ' + bundle.receipt.rerun + ' — ' + word + ': ' + link.why + '.\n\n';
     if (link.confirmed.length) md += 'Confirmed on GitHub: ' + link.confirmed.join('; ') + '.\n\n';
     if (link.level === 'RUN_ONLY') md += "Not confirmed: that this run made this exact receipt. GitHub keeps a run's artifact for about " + K.ARTIFACT_KEEP_DAYS + ' days, and without it that can no longer be checked.\n\n';
+  }
+  if (gm) {
+    const g = bundle.receipt.gate, word = { CONFIRMED: '✓ **CONFIRMED**', CONTRADICTED: '✗ **CONTRADICTED**', OTHER_VERSION: '◐ **OTHER VERSION**' }[gm.level];
+    md += `**The check behind this score:** the receipt says ${gateLine(g)} (grader \`${String(g.graderSha256).slice(0, 12)}\`) — ${word}: ${gm.why}.\n\n> ${g.limit}\n\n`;
   }
   md += `**Recorded:** ${row(recorded)} · measured on \`${bundle.evaluatedOn}\`\n\n`;
   if (cmp) {

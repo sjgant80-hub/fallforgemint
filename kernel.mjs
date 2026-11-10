@@ -535,6 +535,13 @@ export function scorecardReceipt(input) {
       if (body.heldOutClaim !== undefined) body.heldOutClaim = HELDOUT_CLAIM_RUNNER;
     }
   }
+  // gate: how strong the grader behind these numbers is (the number inside the check). A block that does not add up
+  // refuses the whole receipt, so a receipt can never carry a kill rate its own counts contradict.
+  if (input.gate !== undefined) {
+    const vg = verifyGate(input.gate);
+    if (!vg.valid) return { ok: false, why: 'the gate block does not add up: ' + vg.why };
+    body.gate = input.gate;
+  }
   const h = sha256(canon(body));
   if (!h.ok) return { ok: false, why: h.why };
   return { ok: true, receipt: { ...body, hash: h.hash } };
@@ -552,6 +559,10 @@ export function verifyScorecardReceipt(r) {
   // a genuine receipt's score is the exact same float division, so an exact check is right (no epsilon):
   // a NaN/Infinity from a missing or zero held-out count also fails this and is caught here.
   if (r.score !== r.mintedHits / r.heldOut) return { ok: true, valid: false, why: 'the score does not match the hit counts' };
+  if (r.gate !== undefined) {
+    const vg = verifyGate(r.gate);
+    if (!vg.valid) return { ok: true, valid: false, why: 'the gate block does not add up: ' + vg.why };
+  }
   return { ok: true, valid: true, why: 'scorecard intact' };
 }
 
@@ -907,6 +918,14 @@ export function rerunAttestation(input) {
     const lc = checks.find((c) => c.name === 'rerun-link');
     if (lc === undefined || lc.ok !== (link.level !== 'NOT_BOUND')) return { ok: false, why: 'the link level must agree with the rerun-link check' };
   }
+  // gate (optional, additive): the rail's judgement on the receipt's gate block. It must agree with the gate-measured
+  // check it came from, so an attestation cannot say CONFIRMED over a contradiction or CONTRADICTED over a pass.
+  const { gate } = input;
+  if (gate !== undefined) {
+    if (!isObj(gate) || !GATE_LEVELS.includes(gate.level) || !isHash(gate.graderSha256)) return { ok: false, why: 'gate must be { level: CONFIRMED|CONTRADICTED|OTHER_VERSION, graderSha256 }' };
+    const gc = checks.find((c) => c.name === 'gate-measured');
+    if (gc === undefined || gc.ok !== (gate.level !== 'CONTRADICTED')) return { ok: false, why: 'the gate level must agree with the gate-measured check' };
+  }
   const body = {
     v: 1, kind: 'fallforgemint-rerun-attestation', bundleHash, receiptHash, outcome,
     pass: outcome === 'REPRODUCED' || outcome === 'AGREES',
@@ -914,6 +933,7 @@ export function rerunAttestation(input) {
     runtime: outcome === 'TAMPERED' ? null : runtime, runUrl, createdAt, scope: RERUN_SCOPE,
   };
   if (link !== undefined) body.link = { level: link.level, url: link.url };
+  if (gate !== undefined) body.gate = { level: gate.level, graderSha256: gate.graderSha256 };
   const h = sha256(canon(body));
   if (!h.ok) return { ok: false, why: h.why };
   return { ok: true, attestation: { ...body, hash: h.hash } };
@@ -990,4 +1010,118 @@ export function rerunLinkCheck(receipt, ev) {
       why: 'the run\'s artifact has expired' + (isStr(art.expiresAt) ? ' (' + art.expiresAt + ')' : '') + ', so which receipt it made can no longer be checked — only that the rail ran and was running when this was stamped' };
   }
   return no('the run is recent enough to still hold its minted bundle and holds none, so it did not mint this receipt');
+}
+
+// ══════════════════════════════════════════════════════════════════════════════════════════════════
+// THE NUMBER INSIDE THE CHECK — how strong is the grader behind a scorecard?
+// A signed scorecard proves nobody edited its numbers. It does not say whether the check that produced them could tell
+// a bad delivery from a good one. witness (v0.6, pinned) breaks this grader on purpose, one mutant at a time, on
+// GitHub's runner, and the tests must catch each one. The gate block carries how many of those broken graders the
+// tests stopped, every one they did not stop with its written reason, and a limit line generated from the numbers.
+// The numbers are measured in CI (facts.json, re-derived on every push) and never typed; the grader is named by the
+// hash of its code exactly as the page runs it, so a tab can check that the grader it is running is the one measured.
+// ══════════════════════════════════════════════════════════════════════════════════════════════════
+export const GATE_WITNESS = 'sjgant80-hub/witness v0.6';
+export const GATE_GRADER = 'kernel.mjs';
+export const GATE_SCOPE = 'It cannot see a fault outside what it grades (a whitespace- and case-normalised exact or contained match against the held-out answers supplied), and it says nothing about inputs unlike the held-out set.';
+export const GATE_LEVELS = ['CONFIRMED', 'CONTRADICTED', 'OTHER_VERSION'];
+const GATE_KEYS = ['grader', 'graderSha256', 'testsSha256', 'witness', 'tests', 'mutants', 'killed', 'equivalent', 'survived', 'killRate', 'survivors', 'limit'];
+const SURVIVOR_KEYS = 'line,mutation,reason,snippet';
+const isHash = (v) => isStr(v) && v.length === 64 && HEX.test(v);
+const isCount = (v) => isInt(v) && v >= 0;
+// the page's kernel markers, written with escapes so this file never contains them and cannot be cut at itself
+const PAGE_BEGIN = '// \u27e6KERNEL-BEGIN\u27e7';
+const PAGE_END = '\n// \u27e6KERNEL-END\u27e7';
+
+/** graderForm(src) — the grader's code exactly as the page runs it: LF line ends, `export ` removed at line starts,
+ *  trailing space trimmed. make-page.mjs inlines this form, so the page and CI hash the same bytes. */
+export function graderForm(src) {
+  if (!isStr(src)) return null;
+  return src.replace(/\r\n/g, '\n').replace(/^export /gm, '').trimEnd();
+}
+
+/** graderFromPage(text) — the grader code a page is running: what sits between its kernel markers, or null. */
+export function graderFromPage(text) {
+  if (!isStr(text)) return null;
+  const a = text.indexOf(PAGE_BEGIN);
+  if (a === -1) return null;
+  const start = text.indexOf('\n', a);
+  if (start === -1) return null;
+  const end = text.indexOf(PAGE_END, start);
+  if (end === -1) return null;
+  return text.slice(start + 1, end);
+}
+
+/** gateLimit(g) — the limit line, generated from the numbers, so it can never say more than they do. */
+export function gateLimit(g) {
+  if (!isObj(g)) return '';
+  const left = g.mutants - g.killed;
+  const lead = 'This check stopped ' + g.killed + ' of the ' + g.mutants + ' deliberately broken versions of its own grader that ' + g.witness + ' tried.';
+  const rest = left === 0 ? '' : (left === 1 ? ' The one it did not stop is listed with the reason.' : ' The ' + left + ' it did not stop are listed with their reasons.');
+  return lead + rest + ' ' + GATE_SCOPE;
+}
+
+/** verifyGate(g) — does a gate block add up? valid only if every field is present, well-formed and consistent. */
+export function verifyGate(g) {
+  const no = (why) => ({ ok: true, valid: false, why });
+  if (!isObj(g)) return no('the gate block must be an object');
+  const extra = Object.keys(g).filter((k) => !GATE_KEYS.includes(k));
+  if (extra.length !== 0) return no('the gate block carries fields it should not: ' + extra.join(', '));
+  if (g.grader !== GATE_GRADER) return no('the gate block must name its grader, ' + GATE_GRADER);
+  if (!isHash(g.graderSha256)) return no('graderSha256 must be a 64-character hex hash');
+  if (!isHash(g.testsSha256)) return no('testsSha256 must be a 64-character hex hash');
+  if (g.witness !== GATE_WITNESS) return no('the gate block must name the pinned mutation gate, ' + GATE_WITNESS);
+  for (const k of ['tests', 'mutants', 'killed', 'equivalent', 'survived']) if (!isCount(g[k])) return no(k + ' must be a whole number, 0 or more');
+  if (g.mutants === 0) return no('a gate that made no mutants measured nothing');
+  if (g.killed + g.equivalent + g.survived !== g.mutants) return no('killed, equivalent and survived must add up to the mutants');
+  if (g.killRate !== g.killed / g.mutants) return no('the kill rate must be killed ÷ mutants');
+  if (!Array.isArray(g.survivors) || g.survivors.length !== g.mutants - g.killed) return no('every mutant the tests did not kill must be listed, and only those');
+  for (const s of g.survivors) {
+    if (!isObj(s) || Object.keys(s).sort().join() !== SURVIVOR_KEYS) return no('each survivor is { line, mutation, snippet, reason }');
+    if (!isInt(s.line) || s.line < 1 || !isStr(s.mutation) || !isStr(s.snippet)) return no('each survivor needs its line, mutation and snippet');
+    if (!isStr(s.reason) || s.reason.trim().length === 0) return no('each survivor needs its written reason');
+  }
+  if (g.limit !== gateLimit(g)) return no('the limit line must be the one its numbers generate');
+  return { ok: true, valid: true, why: 'the gate block adds up' };
+}
+
+/** gateBlock(input) — build a gate block from measured numbers: the kill rate and the limit line are derived here. */
+export function gateBlock(input) {
+  if (!isObj(input)) return { ok: false, why: 'gateBlock takes an object' };
+  const g = {
+    grader: input.grader, graderSha256: input.graderSha256, testsSha256: input.testsSha256, witness: input.witness,
+    tests: input.tests, mutants: input.mutants, killed: input.killed, equivalent: input.equivalent, survived: input.survived,
+    survivors: input.survivors,
+  };
+  g.killRate = g.killed / g.mutants;
+  g.limit = gateLimit(g);
+  const v = verifyGate(g);
+  if (!v.valid) return { ok: false, why: v.why };
+  return { ok: true, gate: g };
+}
+
+/** gateFromFacts(facts, here) — the gate block for the grader running here, from the runner's facts.json. Bound only
+ *  when `here` (the SHA-256 of the grader code this page or rail is running) is the grader the gate measured. */
+export function gateFromFacts(facts, here) {
+  if (!isObj(facts) || !Array.isArray(facts.organs)) return { ok: false, why: 'facts.json is missing its organs' };
+  const o = facts.organs.find((x) => isObj(x) && x.file === GATE_GRADER);
+  if (o === undefined) return { ok: false, why: 'facts.json has no entry for ' + GATE_GRADER };
+  if (here !== o.graderSha256) return { ok: true, bound: false, why: 'the grader running here (' + String(here).slice(0, 12) + ') is not the one the gate measured (' + String(o.graderSha256).slice(0, 12) + '), so no gate block is bound' };
+  const b = gateBlock({ ...o, grader: o.file, witness: facts.witness });
+  if (!b.ok) return b;
+  return { ok: true, bound: true, gate: b.gate, why: 'the grader running here is the one the gate measured on GitHub\'s runner' };
+}
+
+/** gateMeasured(gate, mine) — the rail's judgement on a receipt's gate block against the block its own checkout
+ *  measured: CONFIRMED (same grader and tests, every number equal), CONTRADICTED (same grader and tests, a number
+ *  differs: a re-verification failure), OTHER_VERSION (a different grader or tests: it cannot confirm the number). */
+export function gateMeasured(gate, mine) {
+  if (!isObj(gate) || !isObj(mine)) return { ok: false, why: 'gateMeasured needs the receipt\'s gate block and the rail\'s own' };
+  const vm = verifyGate(mine);
+  if (!vm.valid) return { ok: false, why: 'the rail\'s own gate block does not add up: ' + vm.why };
+  if (gate.graderSha256 !== mine.graderSha256 || gate.testsSha256 !== mine.testsSha256) {
+    return { ok: true, level: 'OTHER_VERSION', pass: true, why: 'measured on a different version of the grader or its tests, so this rail cannot confirm the number; run the gate at the commit that made it' };
+  }
+  if (canon(gate) !== canon(mine)) return { ok: true, level: 'CONTRADICTED', pass: false, why: 'the same grader and tests, but numbers that are not what the gate measured' };
+  return { ok: true, level: 'CONFIRMED', pass: true, why: 'the grader and its tests are the ones this rail carries, and every number is what the gate measured on GitHub\'s runner' };
 }

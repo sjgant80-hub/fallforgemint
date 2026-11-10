@@ -4,21 +4,34 @@
   "organs": [
     {
       "file": "kernel.mjs",
-      "tests": 71,
-      "mutants": 377,
-      "killed": 376,
+      "graderSha256": "40bb97099c34ef196cb688c301e425e886b758e3400b86609b76a143fd6b68fe",
+      "testsSha256": "e51addba15d61226eb019866e0d5adf933b555829d9806208cd90c7237caee86",
+      "tests": 81,
+      "mutants": 426,
+      "killed": 425,
       "equivalent": 1,
       "survived": 0,
-      "score": 0.997
+      "score": 0.998,
+      "survivors": [
+        {
+          "line": 51,
+          "mutation": "< → <=",
+          "snippet": "for (let t = 16; t < 64; t++) {",
+          "reason": "Genuinely equivalent: the mutated bound runs one extra schedule iteration that writes w[64], out of bounds on the fixed Uint32Array(64) — typed-array OOB writes are silently discarded, the loop body has no other side effect, and nothing reads past w[63]. Behaviour is bit-identical; the FIPS vectors pass either way."
+        }
+      ]
     },
     {
       "file": "costcase.mjs",
+      "graderSha256": "ff8bc58cf20279fcc6e5eb4ebbea4ce96eca04ccaeb537127a97e4ba11cff076",
+      "testsSha256": "28a10b51d5badee46daba7fb85c8dd6c02663290f78cb9af9c055b572191d2dd",
       "tests": 14,
       "mutants": 28,
       "killed": 28,
       "equivalent": 0,
       "survived": 0,
-      "score": 1
+      "score": 1,
+      "survivors": []
     }
   ]
 }

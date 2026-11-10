@@ -14,8 +14,10 @@ import {
   RERUN_OUTCOMES, RERUN_SCOPE, rerunAttestation, verifyRerunAttestation,
   RAIL_HOME, RAIL_WORKFLOW, ARTIFACT_KEEP_DAYS, RERUN_LINK_LEVELS, rerunLinkCheck,
   HELDOUT_CLAIM_RUNNER, SCOPE_BROWSER, SCOPE_RUNNER,
+  GATE_WITNESS, GATE_SCOPE, GATE_LEVELS, graderForm, graderFromPage, gateLimit, verifyGate, gateBlock, gateFromFacts, gateMeasured,
 } from './kernel.mjs';
 import { Buffer } from 'node:buffer';
+import { readFileSync } from 'node:fs';
 
 test('sha256 + canon: FIPS-pinned, order-blind, primitive-distinct', () => {
   assert.equal(sha256('abc').hash, 'ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad');
@@ -1338,4 +1340,198 @@ test('anti-drift guard: the link check never claims more than it saw', () => {
   const FORBIDDEN = /hermetic|sealed|tamper-proof|unforgeable|guarantee|certif/i;
   for (const s of [ro.why, ...ro.confirmed]) assert.equal(FORBIDDEN.test(s), false, s);
   assert.equal(/made this exact receipt/.test(ro.why), false);
+});
+
+// ══════════════════════════ THE NUMBER INSIDE THE CHECK (CLAIMS.md G1–G6) ══════════════════════════
+const G_IN = {
+  grader: 'kernel.mjs', graderSha256: 'a'.repeat(64), testsSha256: 'b'.repeat(64), witness: GATE_WITNESS,
+  tests: 7, mutants: 10, killed: 8, equivalent: 1, survived: 1,
+  survivors: [
+    { line: 1, mutation: '< → <=', snippet: 'for (let t = 16; t < 64; t++) {', reason: 'equivalent: the extra write is out of bounds and discarded' },
+    { line: 12, mutation: '+ → -', snippet: 'a + b', reason: 'not reviewed: the tests let this broken grader through' },
+  ],
+};
+const G_ALL = { ...G_IN, tests: 0, mutants: 3, killed: 3, equivalent: 0, survived: 0, survivors: [] };   // every count 0 that may be
+const GOOD = gateBlock(G_IN).gate;
+const ALLKILLED = gateBlock(G_ALL).gate;
+// a block edited after the fact, with its derived fields recomputed so only the planted fault remains
+const planted = (over) => { const g = { ...GOOD, ...over }; return g; };
+const consistent = (over) => { const g = { ...GOOD, ...over }; g.killRate = g.killed / g.mutants; g.limit = gateLimit(g); return g; };
+
+test('graderForm: the grader exactly as the page runs it', () => {
+  assert.equal(graderForm(7), null);
+  assert.equal(graderForm(null), null);
+  assert.equal(graderForm('export const a = 1;\r\nexport function f() {}\n  \n'), 'const a = 1;\nfunction f() {}');
+  assert.equal(graderForm('const s = "export ";\n  export x'), 'const s = "export ";\n  export x');   // only at a line start
+  assert.equal(graderForm(''), '');
+});
+
+test('graderFromPage: what sits between the kernel markers, or nothing', () => {
+  const B = '// ⟦KERNEL-BEGIN⟧ generated from kernel.mjs by make-page.mjs — do not edit here', E = '// ⟦KERNEL-END⟧';
+  assert.equal(graderFromPage('head\n' + B + '\nCODE\nMORE\n' + E + '\ntail'), 'CODE\nMORE');
+  assert.equal(graderFromPage(B + '\nX\n' + E), 'X');
+  assert.equal(graderFromPage('no markers here'), null);
+  assert.equal(graderFromPage('x' + B), null);                      // the begin line never ends
+  assert.equal(graderFromPage(B + '\nCODE with no end'), null);
+  assert.equal(graderFromPage(B + '\nCODE ' + E), null);              // the end marker must start its own line
+  assert.equal(graderFromPage(42), null);
+  // the kernel never contains its own markers, so it can be inlined and cut out again
+  const src = readFileSync(new URL('./kernel.mjs', import.meta.url), 'utf8');
+  assert.equal(src.includes('⟦KERNEL-BEGIN'), false);
+  assert.equal(src.includes('⟦KERNEL-END'), false);
+});
+
+test('gateLimit: generated from the numbers, never more than they say', () => {
+  assert.equal(gateLimit(null), '');
+  assert.equal(gateLimit('x'), '');
+  const W = GATE_WITNESS;
+  assert.equal(gateLimit({ killed: 5, mutants: 5, witness: W }), 'This check stopped 5 of the 5 deliberately broken versions of its own grader that ' + W + ' tried. ' + GATE_SCOPE);
+  assert.equal(gateLimit({ killed: 4, mutants: 5, witness: W }), 'This check stopped 4 of the 5 deliberately broken versions of its own grader that ' + W + ' tried. The one it did not stop is listed with the reason. ' + GATE_SCOPE);
+  assert.equal(gateLimit({ killed: 3, mutants: 5, witness: W }), 'This check stopped 3 of the 5 deliberately broken versions of its own grader that ' + W + ' tried. The 2 it did not stop are listed with their reasons. ' + GATE_SCOPE);
+  assert.match(GATE_SCOPE, /cannot see a fault outside what it grades/);
+  assert.match(GATE_SCOPE, /inputs unlike the held-out set/);
+});
+
+test('gateBlock: the kill rate and the limit are derived, never given', () => {
+  assert.equal(gateBlock('nope').ok, false);
+  assert.equal(gateBlock(null).ok, false);
+  assert.equal(GOOD.killRate, 0.8);
+  assert.equal(GOOD.limit, gateLimit(GOOD));
+  assert.deepEqual(Object.keys(GOOD).sort(), ['equivalent', 'grader', 'graderSha256', 'killRate', 'killed', 'limit', 'mutants', 'survived', 'survivors', 'tests', 'testsSha256', 'witness']);
+  assert.equal(ALLKILLED.killRate, 1);
+  assert.equal(ALLKILLED.limit, 'This check stopped 3 of the 3 deliberately broken versions of its own grader that ' + GATE_WITNESS + ' tried. ' + GATE_SCOPE);
+  // a given kill rate or limit is ignored: they are always recomputed
+  assert.equal(gateBlock({ ...G_IN, killRate: 1, limit: 'perfect' }).gate.killRate, 0.8);
+  const bad = gateBlock({ ...G_IN, survivors: [] });
+  assert.equal(bad.ok, false);
+  assert.match(bad.why, /every mutant the tests did not kill/);
+  assert.equal(gateBlock({ ...G_IN, mutants: 0, killed: 0, equivalent: 0, survived: 0, survivors: [] }).ok, false);
+});
+
+test('G2: verifyGate accepts every genuine block and refuses every planted inconsistency', () => {
+  for (const g of [GOOD, ALLKILLED]) assert.deepEqual(verifyGate(g), { ok: true, valid: true, why: 'the gate block adds up' });
+  const refused = (g, re) => { const v = verifyGate(g); assert.equal(v.ok, true); assert.equal(v.valid, false, JSON.stringify(g).slice(0, 80)); assert.match(v.why, re); };
+  // 1 not an object
+  for (const g of [null, [], 'gate', 7]) refused(g, /must be an object/);
+  // 2 a field it should not carry
+  refused(planted({ certified: true }), /fields it should not: certified/);
+  // 3 the wrong grader
+  refused(planted({ grader: 'other.mjs' }), /must name its grader/);
+  // 4 hashes that are not 64 hex characters
+  for (const h of ['a'.repeat(63), 'A'.repeat(64), 7, 'g'.repeat(64)]) refused(planted({ graderSha256: h }), /graderSha256 must be/);
+  for (const h of ['b'.repeat(65), null]) refused(planted({ testsSha256: h }), /testsSha256 must be/);
+  // 5 the wrong mutation gate
+  refused(planted({ witness: 'sjgant80-hub/witness v0.5' }), /pinned mutation gate/);
+  // 6 counts that are not whole numbers, 0 or more
+  for (const k of ['tests', 'mutants', 'killed', 'equivalent', 'survived']) for (const bad of [1.5, -1, '8', null]) refused(consistent({ [k]: bad }), new RegExp(k + ' must be a whole number'));
+  // 7 a gate that made no mutants
+  refused(consistent({ mutants: 0, killed: 0, equivalent: 0, survived: 0, survivors: [] }), /made no mutants/);
+  // 8 counts that do not add up
+  refused(consistent({ killed: 9 }), /must add up to the mutants/);
+  refused(consistent({ equivalent: 2 }), /must add up to the mutants/);
+  // 9 a kill rate that is not killed ÷ mutants
+  refused(planted({ killRate: 0.8000001 }), /kill rate must be killed ÷ mutants/);
+  refused(planted({ killRate: 1 }), /kill rate/);
+  // 10 survivors missing, extra, or not a list
+  refused(planted({ survivors: [GOOD.survivors[0]] }), /every mutant the tests did not kill must be listed/);
+  refused(planted({ survivors: [...GOOD.survivors, GOOD.survivors[0]] }), /every mutant the tests did not kill must be listed/);
+  refused(planted({ survivors: 'two' }), /every mutant the tests did not kill must be listed/);
+  // 11 a survivor that is not { line, mutation, snippet, reason }
+  refused(planted({ survivors: [GOOD.survivors[0], { ...GOOD.survivors[1], seen: true }] }), /each survivor is/);
+  refused(planted({ survivors: [GOOD.survivors[0], 'x'] }), /each survivor is/);
+  const { reason: _r, ...noReason } = GOOD.survivors[1];
+  refused(planted({ survivors: [GOOD.survivors[0], noReason] }), /each survivor is/);
+  // 12 a survivor without its line, mutation or snippet
+  for (const s of [{ line: 0 }, { line: 1.5 }, { line: '3' }, { mutation: 5 }, { snippet: null }]) refused(planted({ survivors: [GOOD.survivors[0], { ...GOOD.survivors[1], ...s }] }), /needs its line, mutation and snippet/);
+  // 13 a survivor with no written reason
+  for (const reason of ['', '   ', 5]) refused(planted({ survivors: [GOOD.survivors[0], { ...GOOD.survivors[1], reason }] }), /written reason/);
+  // 14 a limit line that is not the one the numbers generate
+  refused(planted({ limit: GOOD.limit.replace('8 of the 10', '10 of the 10') }), /limit line/);
+  refused(planted({ limit: 'This check is perfect.' }), /limit line/);
+});
+
+test('gateFromFacts: bound only to the grader the gate measured', () => {
+  const organ = { file: 'kernel.mjs', ...G_IN, score: 0.8 };
+  delete organ.grader; delete organ.witness;
+  const facts = { witness: GATE_WITNESS, organs: [null, { file: 'costcase.mjs', graderSha256: 'c'.repeat(64) }, organ] };
+  for (const f of [null, {}, { organs: 'x' }]) assert.equal(gateFromFacts(f, 'a'.repeat(64)).ok, false);
+  assert.match(gateFromFacts({ witness: GATE_WITNESS, organs: [] }, 'a'.repeat(64)).why, /no entry for kernel\.mjs/);
+  const b = gateFromFacts(facts, 'a'.repeat(64));
+  assert.deepEqual([b.ok, b.bound], [true, true]);
+  assert.deepEqual(b.gate, GOOD);
+  assert.match(b.why, /the one the gate measured/);
+  const u = gateFromFacts(facts, 'c'.repeat(64));
+  assert.deepEqual([u.ok, u.bound, u.gate], [true, false, undefined]);
+  assert.match(u.why, /\(cccccccccccc\) is not the one the gate measured \(aaaaaaaaaaaa\)/);
+  assert.equal(gateFromFacts(facts, undefined).bound, false);
+  const broken = gateFromFacts({ ...facts, organs: [{ ...organ, killed: 9 }] }, 'a'.repeat(64));
+  assert.equal(broken.ok, false);
+  assert.match(broken.why, /add up/);
+});
+
+test('G4: gateMeasured — CONFIRMED, CONTRADICTED, OTHER_VERSION', () => {
+  for (const [a, b] of [[null, GOOD], [GOOD, null], ['x', GOOD]]) assert.equal(gateMeasured(a, b).ok, false);
+  assert.match(gateMeasured(GOOD, { ...GOOD, killRate: 1 }).why, /rail's own gate block does not add up/);
+  const c = gateMeasured(GOOD, GOOD);
+  assert.deepEqual([c.ok, c.level, c.pass], [true, 'CONFIRMED', true]);
+  const forged = consistent({ killed: 9, equivalent: 0, survivors: [GOOD.survivors[1]] });
+  assert.equal(verifyGate(forged).valid, true);                     // the forgery adds up on its own…
+  const x = gateMeasured(forged, GOOD);
+  assert.deepEqual([x.ok, x.level, x.pass], [true, 'CONTRADICTED', false]);   // …but it is not what the gate measured
+  assert.equal(gateMeasured({ ...GOOD, graderSha256: 'd'.repeat(64) }, GOOD).level, 'OTHER_VERSION');
+  const t = gateMeasured({ ...GOOD, testsSha256: 'd'.repeat(64) }, GOOD);
+  assert.deepEqual([t.level, t.pass], ['OTHER_VERSION', true]);
+  assert.match(t.why, /cannot confirm the number/);
+  assert.deepEqual(GATE_LEVELS, ['CONFIRMED', 'CONTRADICTED', 'OTHER_VERSION']);
+});
+
+test('G1/G2: the receipt carries the gate block, refuses one that does not add up, and stays additive', () => {
+  const r = scorecardReceipt({ ...RIN, gate: GOOD });
+  assert.equal(r.ok, true);
+  assert.deepEqual(r.receipt.gate, GOOD);
+  assert.deepEqual(verifyScorecardReceipt(r.receipt), { ok: true, valid: true, why: 'scorecard intact' });
+  const no = scorecardReceipt({ ...RIN, gate: planted({ killRate: 1 }) });
+  assert.equal(no.ok, false);
+  assert.match(no.why, /^the gate block does not add up: the kill rate/);
+  // a gate block edited after issue, with the receipt re-hashed so its fingerprint still matches
+  const { hash: _h, ...body } = r.receipt;
+  const edited = { ...body, gate: planted({ killRate: 1 }) };
+  const rehashed = { ...edited, hash: sha256(canon(edited)).hash };
+  const v = verifyScorecardReceipt(rehashed);
+  assert.deepEqual([v.ok, v.valid], [true, false]);
+  assert.match(v.why, /^the gate block does not add up/);
+  // additive: no gate given → no gate key, and the same receipt as before this field existed
+  const plain = scorecardReceipt(RIN).receipt;
+  assert.equal('gate' in plain, false);
+  assert.equal(verifyScorecardReceipt(plain).valid, true);
+});
+
+test('G4: the attestation records the gate level, and it must agree with the gate-measured check', () => {
+  const g = genuine(), v = verifyBundle(g.bundle), cmp = compareRerun(g.bundle, { runtime: EV, rows: g.rows.map((r) => ({ baseOut: r.baseOut, mintedOut: r.mintedOut })) });
+  const RUN = 'https://github.com/sjgant80-hub/fallforgemint/actions/runs/123';
+  const base = { bundleHash: g.bundle.hash, receiptHash: g.receipt.hash, outcome: cmp.outcome, recorded: cmp.recorded, fresh: cmp.fresh, runtime: EV, runUrl: RUN, createdAt: 't' };
+  const passed = [...v.checks, { name: 'gate-measured', ok: true }], failed = [...v.checks, { name: 'gate-measured', ok: false }];
+  const H = 'a'.repeat(64);
+  const a = rerunAttestation({ ...base, checks: passed, gate: { level: 'CONFIRMED', graderSha256: H } });
+  assert.equal(a.ok, true);
+  assert.deepEqual(a.attestation.gate, { level: 'CONFIRMED', graderSha256: H });
+  assert.equal(verifyRerunAttestation(a.attestation).valid, true);
+  assert.equal(rerunAttestation({ ...base, checks: passed, gate: { level: 'OTHER_VERSION', graderSha256: H } }).ok, true);
+  const t = rerunAttestation({ ...base, outcome: 'TAMPERED', checks: failed, fresh: null, runtime: null, gate: { level: 'CONTRADICTED', graderSha256: H } });
+  assert.deepEqual([t.ok, t.attestation.gate.level, t.attestation.pass], [true, 'CONTRADICTED', false]);
+  assert.match(rerunAttestation({ ...base, outcome: 'TAMPERED', checks: failed, fresh: null, runtime: null, gate: { level: 'CONFIRMED', graderSha256: H } }).why, /must agree with the gate-measured check/);
+  assert.match(rerunAttestation({ ...base, checks: passed, gate: { level: 'CONTRADICTED', graderSha256: H } }).why, /must agree with the gate-measured check/);
+  assert.match(rerunAttestation({ ...base, checks: v.checks, gate: { level: 'CONFIRMED', graderSha256: H } }).why, /must agree with the gate-measured check/);
+  for (const gate of [null, 'CONFIRMED', { level: 'MAYBE', graderSha256: H }, { level: 'CONFIRMED', graderSha256: 'short' }, { level: 'CONFIRMED' }])
+    assert.match(rerunAttestation({ ...base, checks: passed, gate }).why, /gate must be/);
+  assert.equal('gate' in rerunAttestation({ ...base, checks: v.checks }).attestation, false);
+});
+
+test('fuzz: the gate kernels never throw on garbage', () => {
+  const junk = [undefined, null, 0, -1, NaN, '', 'x', [], [1], {}, { mutants: 'x' }, { survivors: [null] }, () => 1, Symbol.for('s'), 10n];
+  for (const a of junk) {
+    graderForm(a); graderFromPage(a); gateLimit(a); verifyGate(a); gateBlock(a);
+    for (const b of junk) { gateFromFacts(a, b); gateMeasured(a, b); }
+  }
+  assert.ok(true);
 });
