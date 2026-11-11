@@ -137,4 +137,4 @@ Proving a model on examples kept out of its spec and re-running the scorecard on
 
 FallForge Mint itself — the kernel, the page, the re-run rail — is AI Native Solutions' own work. Powered by the Konomi architecture, created by Thomas Frumkin. See [NOTICE](NOTICE).
 
-Supplied by AI Native Solutions (https://www.ai-nativesolutions.com). MIT. ◊·κ=1.
+Supplied by AI Native Solutions (https://www.ai-nativesolutions.com). MIT. .

@@ -1,6 +1,6 @@
 # FallForge Mint
 
-> Bring one repetitive task and a few worked examples; walk out owning a real, private small model that does that job. FallForge Mint runs entirely in your browser: it turns your examples into a deterministic Ollama Modelfile you download and run on your own machine — a model you OWN, with no per-token bill and no data leaving your computer. Optional in-browser live preview (WebLLM, nothing to install). Every done-for-you mint carries a signed, re-checkable receipt that can — and sometimes does — say it LOST. Free to try. Supplied by AI Native Solutions. MIT. ◊·κ=1.
+> Bring one repetitive task and a few worked examples; walk out owning a real, private small model that does that job. FallForge Mint runs entirely in your browser: it turns your examples into a deterministic Ollama Modelfile you download and run on your own machine — a model you OWN, with no per-token bill and no data leaving your computer. Optional in-browser live preview (WebLLM, nothing to install). Every done-for-you mint carries a signed, re-checkable receipt that can — and sometimes does — say it LOST. Free to try. Supplied by AI Native Solutions. MIT. .
 
 ## What it is
 
